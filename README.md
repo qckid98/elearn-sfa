@@ -44,5 +44,5 @@ Pastikan **Docker** dan **Git** sudah terinstall di komputer Anda.
 
 ### 1. Clone Repository
 ```bash
-git clone [https://github.com/username-anda/fashion-school.git](https://github.com/username-anda/fashion-school.git)
+git clone [https://github.com/qckid98/elearn-sfa.git](https://github.com/qckid98/elearn-sfa.git)
 cd fashion-school
