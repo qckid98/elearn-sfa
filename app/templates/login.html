@@ -1,0 +1,73 @@
+{% extends "base.html" %} {% block content %}
+<div
+  class="row justify-content-center align-items-center"
+  style="min-height: 70vh"
+>
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4">
+      <div
+        class="icon-box bg-soft-danger mx-auto rounded-circle"
+        style="width: 80px; height: 80px"
+      >
+        <i class="fas fa-cut fs-2"></i>
+      </div>
+      <h3 class="fw-bold mt-3">Selamat Datang</h3>
+      <p class="text-muted">Masuk ke Sistem Sekolah Fashion</p>
+    </div>
+
+    <div class="card p-4">
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-4">
+            <label class="form-label small text-uppercase fw-bold text-muted"
+              >Email Address</label
+            >
+            <div class="input-group">
+              <span class="input-group-text bg-light border-0"
+                ><i class="far fa-envelope text-muted"></i
+              ></span>
+              <input
+                type="email"
+                name="email"
+                class="form-control bg-light border-0 py-2"
+                required
+                placeholder="nama@email.com"
+              />
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label small text-uppercase fw-bold text-muted"
+              >Password</label
+            >
+            <div class="input-group">
+              <span class="input-group-text bg-light border-0"
+                ><i class="fas fa-lock text-muted"></i
+              ></span>
+              <input
+                type="password"
+                name="password"
+                class="form-control bg-light border-0 py-2"
+                required
+                placeholder="******"
+              />
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-danger py-2">
+              Masuk Sekarang
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="text-center mt-3">
+      <small class="text-muted"
+        >Butuh bantuan?
+        <a href="#" class="text-danger text-decoration-none"
+          >Hubungi Admin</a
+        ></small
+      >
+    </div>
+  </div>
+</div>
+{% endblock %}

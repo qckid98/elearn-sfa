@@ -1,0 +1,69 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0">Master Schedule</h4>
+  <span class="badge bg-dark">Monitoring Kelas</span>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table
+        class="table table-bordered text-center align-middle mb-0"
+        style="min-width: 800px"
+      >
+        <thead class="bg-dark text-white">
+          <tr>
+            <th class="py-3">Hari / Sesi</th>
+            {% for slot in timeslots %}
+            <th class="py-3">
+              {{ slot.name }}
+              <div class="small fw-normal text-white-50">
+                {{ slot.start_time.strftime('%H:%M') }} - {{
+                slot.end_time.strftime('%H:%M') }}
+              </div>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(7) %}
+          <tr>
+            <td class="fw-bold bg-light">{{ days[i] }}</td>
+            {% for slot in timeslots %}
+            <td class="text-start p-2 align-top" style="height: 120px">
+              {% set sched_list = schedule_map[i][slot.id] %} {% if sched_list
+              %}
+              <div
+                class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2"
+              >
+                <span class="badge bg-soft-primary text-primary"
+                  >{{ sched_list|length }} Siswa</span
+                >
+              </div>
+              {% for item in sched_list %}
+              <div class="bg-light p-1 rounded mb-1 small border">
+                <strong
+                  >{{ item.enrollment.student.name.split(' ')[0] }}</strong
+                >
+                <div class="text-muted" style="font-size: 0.75rem">
+                  {{ item.subject.name }} ({{ item.teacher.name.split(' ')[0]
+                  }})
+                </div>
+              </div>
+              {% endfor %} {% else %}
+              <div
+                class="h-100 d-flex align-items-center justify-content-center text-muted small bg-light bg-opacity-50 rounded"
+              >
+                - Kosong -
+              </div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

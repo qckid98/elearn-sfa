@@ -1,0 +1,91 @@
+{% extends "base.html" %} {% block content %}
+<div class="row g-4">
+  <div class="col-md-8">
+    <h4 class="fw-bold mb-3">Daftar Pengajar</h4>
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">Nama Guru</th>
+                <th>Kontak</th>
+                <th>Skill</th>
+                <th class="text-end pe-4">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for teacher in teachers %}
+              <tr>
+                <td class="ps-4 fw-bold">{{ teacher.name }}</td>
+                <td class="small">
+                  {{ teacher.email }}<br />
+                  <span class="text-muted">{{ teacher.phone_number }}</span>
+                </td>
+                <td>
+                  {% for skill in teacher.skills %}
+                  <span class="badge bg-soft-primary text-primary"
+                    >{{ skill.subject.name }}</span
+                  >
+                  {% endfor %}
+                </td>
+                <td class="text-end pe-4">
+                  <a
+                    href="{{ url_for('admin.teacher_detail', user_id=teacher.id) }}"
+                    class="btn btn-sm btn-outline-dark rounded-pill"
+                    >Atur Detail</a
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <h4 class="fw-bold mb-3">Tambah Baru</h4>
+    <div class="card shadow-sm border-0 border-top border-warning border-4">
+      <div class="card-body p-4">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Nama Lengkap</label>
+            <input
+              type="text"
+              name="name"
+              class="form-control bg-light border-0"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Email (Login)</label>
+            <input
+              type="email"
+              name="email"
+              class="form-control bg-light border-0"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="form-label small fw-bold">No. HP (WA)</label>
+            <input
+              type="text"
+              name="phone"
+              class="form-control bg-light border-0"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-warning w-100 fw-bold">
+            Simpan Guru
+          </button>
+          <small class="d-block text-center text-muted mt-2"
+            >Password default: <code>guru123</code></small
+          >
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

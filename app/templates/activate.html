@@ -1,0 +1,62 @@
+{% extends "base.html" %} {% block content %}
+<div
+  class="row justify-content-center align-items-center"
+  style="min-height: 70vh"
+>
+  <div class="col-md-6 col-lg-5">
+    <div class="text-center mb-4">
+      <h3 class="fw-bold">Aktivasi Akun</h3>
+      <p class="text-muted">Halo, silakan lengkapi data diri Anda</p>
+    </div>
+
+    <div class="card p-4 shadow-lg border-0">
+      <div class="card-body">
+        <div
+          class="alert alert-success border-0 bg-soft-primary d-flex align-items-center mb-4"
+        >
+          <i class="fas fa-check-circle me-2 fs-5"></i>
+          <div>
+            Email <strong>{{ current_user.email }}</strong> terverifikasi.
+          </div>
+        </div>
+
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label small text-uppercase fw-bold text-muted"
+              >Nama Lengkap</label
+            >
+            <input
+              type="text"
+              name="name"
+              class="form-control bg-light border-0 py-2"
+              required
+              placeholder="Sesuai KTP/Absen"
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small text-uppercase fw-bold text-muted"
+              >Buat Password Baru</label
+            >
+            <input
+              type="password"
+              name="password"
+              class="form-control bg-light border-0 py-2"
+              required
+              minlength="6"
+              placeholder="******"
+            />
+            <div class="form-text text-muted small">Minimal 6 karakter.</div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-danger py-2 rounded-pill">
+              Simpan & Masuk Dashboard
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

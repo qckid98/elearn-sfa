@@ -1,0 +1,108 @@
+{% extends "base.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="text-center mb-5">
+      <span class="badge bg-soft-danger text-danger mb-2"
+        >Langkah Pengaturan Jadwal</span
+      >
+      <h2 class="fw-bold">Pilih Jadwal Kelas</h2>
+      <p class="text-muted">
+        Mata Pelajaran: <strong>{{ subject.name }}</strong>
+      </p>
+    </div>
+
+    <div class="card shadow border-0 overflow-hidden">
+      <div class="card-header bg-white border-0 pt-4 px-4">
+        <h5 class="fw-bold mb-0">
+          <i class="fas fa-clock text-warning me-2"></i> Ketersediaan Pengajar
+        </h5>
+        <p class="small text-muted">
+          Klik pada kotak hijau untuk memilih jadwal.
+        </p>
+      </div>
+      <div class="card-body p-4">
+        <div id="calendar"></div>
+      </div>
+    </div>
+
+    <div class="mt-4 text-center">
+      <a
+        href="{{ url_for('main.dashboard') }}"
+        class="text-muted text-decoration-none small"
+        >Kembali ke Dashboard</a
+      >
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Konfirmasi Jadwal</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <div
+          class="icon-box bg-soft-primary mx-auto mb-3 text-primary rounded-circle"
+        >
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <p class="mb-1">Apakah Anda yakin memilih jadwal ini?</p>
+        <h5 class="fw-bold" id="modalText"></h5>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pb-4">
+        <form method="POST">
+          <input type="hidden" name="teacher_id" id="inputTeacher" />
+          <input type="hidden" name="day" id="inputDay" />
+          <input type="hidden" name="timeslot_id" id="inputTimeslot" />
+          <button
+            type="button"
+            class="btn btn-light rounded-pill px-4 me-2"
+            data-bs-dismiss="modal"
+          >
+            Batal
+          </button>
+          <button type="submit" class="btn btn-primary rounded-pill px-4">
+            Ya, Ambil Jadwal
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      headerToolbar: { left: '', center: '', right: '' },
+      dayHeaderFormat: { weekday: 'long' },
+      slotMinTime: '09:00:00',
+      slotMaxTime: '18:00:00',
+      allDaySlot: false,
+      height: 'auto',
+      hiddenDays: [],
+      events: {{ events|tojson }},
+      eventClick: function(info) {
+        var props = info.event.extendedProps;
+        document.getElementById('modalText').innerText = info.event.title + "\n" + info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + " - " + info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        document.getElementById('inputTeacher').value = props.teacher_id;
+        document.getElementById('inputDay').value = props.day;
+        document.getElementById('inputTimeslot').value = props.timeslot_id;
+
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        modal.show();
+      }
+    });
+    calendar.render();
+  });
+</script>
+{% endblock %}

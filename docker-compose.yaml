@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # 1. Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fashion_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # 2. Flask Application
+  web:
+    build: .
+    # command: sh -c "flask db upgrade && python manage.py seed && gunicorn --bind 0.0.0.0:5000 run:app"
+    # command: sh -c "flask db upgrade && python manage.py seed"
+    command: sh -c "gunicorn --bind 0.0.0.0:5000 run:app && flask db upgrade && python manage.py seed"
+    volumes:
+      - .:/app
+    ports:
+      - "8080:5000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/fashion_db
+      - WA_API_URL=http://wabot:3000
+    depends_on:
+      - db
+      - wabot
+    networks:
+      - app_network
+
+  # 3. WhatsApp Bot (Aldinokemal Build Local)
+  wabot:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+    build:
+      context: .
+      dockerfile: ./go-whatsapp-web-multidevice/docker/golang.Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./go-whatsapp-web-multidevice/src/.env
+    volumes:
+      - wa_credentials:/app/credentials 
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+  wa_credentials:
+
+networks:
+  app_network:

@@ -1,0 +1,151 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a
+    href="{{ url_for('admin.teacher_list') }}"
+    class="btn btn-light rounded-circle me-3"
+    ><i class="fas fa-arrow-left"></i
+  ></a>
+  <h4 class="fw-bold mb-0">Detail Pengajar: {{ teacher.name }}</h4>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white border-0 fw-bold pt-4 px-4">
+        Info Profil
+      </div>
+      <div class="card-body px-4 pb-4">
+        <form method="POST">
+          <input type="hidden" name="update_profile" value="1" />
+          <div class="mb-2">
+            <input
+              type="text"
+              name="name"
+              class="form-control bg-light border-0"
+              value="{{ teacher.name }}"
+            />
+          </div>
+          <div class="mb-2">
+            <input
+              type="email"
+              name="email"
+              class="form-control bg-light border-0"
+              value="{{ teacher.email }}"
+            />
+          </div>
+          <div class="mb-3">
+            <input
+              type="text"
+              name="phone"
+              class="form-control bg-light border-0"
+              value="{{ teacher.phone_number }}"
+            />
+          </div>
+          <button type="submit" class="btn btn-dark btn-sm w-100">
+            Update Profil
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 bg-soft-primary">
+      <div
+        class="card-header border-0 bg-transparent fw-bold pt-4 px-4 text-primary"
+      >
+        Skill Mengajar
+      </div>
+      <div class="card-body px-4 pb-4">
+        <form method="POST">
+          <input type="hidden" name="update_skills" value="1" />
+          {% for sub in subjects %}
+          <div class="form-check mb-2">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="subject_ids"
+              value="{{ sub.id }}"
+              id="sub{{sub.id}}"
+              {%
+              if
+              sub.id
+              in
+              my_skill_ids
+              %}checked{%
+              endif
+              %}
+            />
+            <label class="form-check-label" for="sub{{sub.id}}"
+              >{{ sub.name }}</label
+            >
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">
+            Simpan Skills
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white border-0 pt-4 px-4">
+        <h6 class="fw-bold text-success">
+          <i class="fas fa-clock me-2"></i> Jadwal Ketersediaan
+        </h6>
+        <p class="small text-muted mb-0">
+          Centang waktu dimana guru ini <strong>BISA</strong> mengajar.
+        </p>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          <input type="hidden" name="update_avail" value="1" />
+          <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+              <thead class="bg-light">
+                <tr>
+                  <th>Hari</th>
+                  {% for slot in timeslots %}
+                  <th>
+                    {{ slot.name }}<br /><small class="text-muted fw-normal"
+                      >{{ slot.start_time.strftime('%H:%M') }}</small
+                    >
+                  </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for i in range(7) %}
+                <tr>
+                  <td class="fw-bold bg-light">{{ days[i] }}</td>
+                  {% for slot in timeslots %}
+                  <td class="position-relative">
+                    <input
+                      type="checkbox"
+                      class="form-check-input border-2"
+                      name="slots"
+                      value="{{ i }}_{{ slot.id }}"
+                      style="width: 25px; height: 25px; cursor: pointer"
+                      {%
+                      if
+                      avail_map[i][slot.id]
+                      %}checked{%
+                      endif
+                      %}
+                    />
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <button type="submit" class="btn btn-success w-100 py-2 mt-3 fw-bold">
+            Simpan Ketersediaan
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
