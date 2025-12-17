@@ -1,116 +1,183 @@
 {% extends "base.html" %}
+
+{% block page_title %}Detail Siswa{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="d-flex align-items-center">
-        <a href="{{ url_for('admin.student_list') }}" class="btn btn-light rounded-circle me-3"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h4 class="fw-bold mb-0">{{ student.name }}</h4>
-            <p class="text-muted small mb-0">{{ student.email }}</p>
-        </div>
+<!-- Breadcrumb -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.student_list') }}" class="btn btn-secondary btn-icon" style="width: 40px; height: 40px;">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+        <h4 class="fw-700 mb-1">{{ student.name }}</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">{{ student.email }}</p>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white border-0 pt-4 px-4">
-                <h6 class="fw-bold"><i class="fas fa-id-card text-danger me-2"></i> Info Akademik</h6>
+<div class="row g-4">
+    <!-- Left Column - Academic Info -->
+    <div class="col-lg-4">
+        <!-- Profile Card -->
+        <div class="card mb-4">
+            <div class="card-body text-center py-4">
+                <div class="avatar avatar-xl mx-auto mb-3">
+                    {{ student.name[0]|upper if student.name else '?' }}
+                </div>
+                <h5 class="fw-700 mb-1">{{ student.name }}</h5>
+                <p class="text-muted mb-3" style="font-size: 13px;">{{ student.email }}</p>
+                {% if enrollment %}
+                <span class="badge badge-{% if enrollment.status == 'active' %}success{% else %}secondary{% endif %}">
+                    {{ enrollment.status|capitalize }}
+                </span>
+                {% endif %}
             </div>
-            <div class="card-body px-4 pb-4">
+        </div>
+
+        <!-- Academic Info Form -->
+        <div class="card" style="border-left: 4px solid var(--brand-primary);">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-id-card text-brand me-2"></i> Info Akademik
+                </h6>
+            </div>
+            <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="update_info" value="1">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Sisa Sesi</label>
-                        <input type="number" name="sessions_remaining" class="form-control bg-light border-0" value="{{ enrollment.sessions_remaining }}">
+
+                    <div class="form-group">
+                        <label class="form-label">Sisa Sesi</label>
+                        <input type="number" name="sessions_remaining" class="form-control"
+                            value="{{ enrollment.sessions_remaining if enrollment else 0 }}">
+                        <div class="form-hint">Jumlah sesi yang masih tersisa</div>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold">Status Akun</label>
-                        <select name="status" class="form-select bg-light border-0">
-                            <option value="active" {% if enrollment.status=='active' %}selected{% endif %}>Active</option>
-                            <option value="completed" {% if enrollment.status=='completed' %}selected{% endif %}>Lulus</option>
-                            <option value="inactive" {% if enrollment.status=='inactive' %}selected{% endif %}>Non-aktif</option>
+
+                    <div class="form-group">
+                        <label class="form-label">Status Akun</label>
+                        <select name="status" class="form-control">
+                            <option value="active" {% if enrollment and enrollment.status=='active' %}selected{% endif
+                                %}>Active</option>
+                            <option value="completed" {% if enrollment and enrollment.status=='completed' %}selected{%
+                                endif %}>Lulus</option>
+                            <option value="inactive" {% if enrollment and enrollment.status=='inactive' %}selected{%
+                                endif %}>Non-aktif</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-warning w-100 text-dark">Update Data</button>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i> Update Data
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold"><i class="fas fa-calendar-alt text-danger me-2"></i> Jadwal Tetap</h6>
+    <!-- Right Column - Schedule -->
+    <div class="col-lg-8">
+        <!-- Current Schedule -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt text-brand me-2"></i> Jadwal Tetap
+                </h6>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-custom mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Hari</th>
-                                <th>Jam</th>
-                                <th>Mapel</th>
-                                <th>Guru</th>
-                                <th class="text-end pe-4">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sched in enrollment.schedules %}
-                            <tr>
-                                <td class="ps-4"><span class="badge bg-light text-dark border">{{ days[sched.day_of_week] }}</span></td>
-                                <td class="fw-bold">{{ sched.timeslot.name }}</td>
-                                <td>{{ sched.subject.name }}</td>
-                                <td>{{ sched.teacher.name }}</td>
-                                <td class="text-end pe-4">
-                                    <a href="{{ url_for('admin.delete_schedule', sched_id=sched.id) }}" class="btn btn-sm btn-outline-danger rounded-circle" onclick="return confirm('Hapus?')"><i class="fas fa-trash"></i></a>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="5" class="text-center py-4 text-muted">Belum ada jadwal tetap.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 24px;">Hari</th>
+                            <th>Jam</th>
+                            <th>Materi</th>
+                            <th>Pengajar</th>
+                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if enrollment %}
+                        {% for sched in enrollment.schedules %}
+                        <tr>
+                            <td style="padding-left: 24px;">
+                                <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
+                            </td>
+                            <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
+                            <td>{{ sched.subject.name }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-sm"
+                                        style="background: var(--success-light); color: var(--success);">
+                                        {{ sched.teacher.name[0]|upper }}
+                                    </div>
+                                    {{ sched.teacher.name }}
+                                </div>
+                            </td>
+                            <td style="text-align: right; padding-right: 24px;">
+                                <a href="{{ url_for('admin.delete_schedule', sched_id=sched.id) }}"
+                                    class="btn btn-ghost btn-sm text-danger"
+                                    onclick="return confirm('Hapus jadwal ini?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="fas fa-calendar-times fa-2x mb-3" style="opacity: 0.3;"></i>
+                                <p>Belum ada jadwal tetap</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
-            <div class="card-footer bg-white border-0 p-4">
-                <p class="small fw-bold text-uppercase text-muted mb-3">Tambah Jadwal Manual (Override)</p>
-                <form method="POST" class="row g-2">
+
+            <!-- Add Schedule Form -->
+            <div class="card-footer" style="background: var(--bg-body);">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="fas fa-plus-circle text-muted"></i>
+                    <span class="fw-600" style="font-size: 13px;">Tambah Jadwal Manual (Override)</span>
+                </div>
+
+                <form method="POST">
                     <input type="hidden" name="add_schedule" value="1">
-                    <div class="col-md-3">
-                        <select name="day" class="form-select bg-light border-0" required>
-                            <option value="">- Hari -</option>
-                            {% for i in range(7) %}
-                            <option value="{{ i }}">{{ days[i] }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <select name="day" class="form-control" required>
+                                <option value="">Pilih Hari</option>
+                                {% for i in range(7) %}
+                                <option value="{{ i }}">{{ days[i] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="timeslot_id" class="form-control" required>
+                                <option value="">Pilih Sesi</option>
+                                {% for slot in timeslots %}
+                                <option value="{{ slot.id }}">{{ slot.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="subject_id" class="form-control" required>
+                                <option value="">Pilih Materi</option>
+                                {% for sub in subjects %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="teacher_id" class="form-control" required>
+                                <option value="">Pilih Guru</option>
+                                {% for t in teachers %}
+                                <option value="{{ t.id }}">{{ t.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <select name="timeslot_id" class="form-select bg-light border-0" required>
-                            <option value="">- Sesi -</option>
-                            {% for slot in timeslots %}
-                            <option value="{{ slot.id }}">{{ slot.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select name="subject_id" class="form-select bg-light border-0" required>
-                            <option value="">- Mapel -</option>
-                            {% for sub in subjects %}
-                            <option value="{{ sub.id }}">{{ sub.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select name="teacher_id" class="form-select bg-light border-0" required>
-                            <option value="">- Guru -</option>
-                            {% for t in teachers %}
-                            <option value="{{ t.id }}">{{ t.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-12 mt-3">
-                        <button type="submit" class="btn btn-dark w-100">+ Tambah Jadwal</button>
-                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        <i class="fas fa-plus me-2"></i> Tambah Jadwal
+                    </button>
                 </form>
             </div>
         </div>

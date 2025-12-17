@@ -1,85 +1,125 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block page_title %}Pilih Jadwal{% endblock %}
+
+{% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-8">
+  <div class="col-lg-10">
+    <!-- Header -->
     <div class="text-center mb-5">
-      <span class="badge bg-soft-danger text-danger mb-2"
-        >Langkah Pengaturan Jadwal</span
-      >
-      <h2 class="fw-bold">Pilih Jadwal Kelas</h2>
+      <span class="badge badge-primary mb-2" style="font-size: 12px; padding: 8px 16px;">
+        Langkah Pengaturan Jadwal
+      </span>
+      <h2 class="fw-700 mb-2">Pilih Jadwal Kelas</h2>
       <p class="text-muted">
-        Mata Pelajaran: <strong>{{ subject.name }}</strong>
+        Mata Pelajaran: <strong class="text-brand">{{ subject.name }}</strong>
       </p>
     </div>
 
-    <div class="card shadow border-0 overflow-hidden">
-      <div class="card-header bg-white border-0 pt-4 px-4">
-        <h5 class="fw-bold mb-0">
-          <i class="fas fa-clock text-warning me-2"></i> Ketersediaan Pengajar
-        </h5>
-        <p class="small text-muted">
-          Klik pada kotak hijau untuk memilih jadwal.
-        </p>
+    <!-- Calendar Card -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h6 class="card-title mb-0">
+            <i class="fas fa-clock text-warning me-2"></i> Ketersediaan Pengajar
+          </h6>
+          <p class="text-muted mb-0" style="font-size: 13px;">
+            Klik pada kotak hijau untuk memilih jadwal
+          </p>
+        </div>
       </div>
       <div class="card-body p-4">
-        <div id="calendar"></div>
+        <div id="calendar" data-events="{{ events|tojson|forceescape }}"></div>
       </div>
     </div>
 
-    <div class="mt-4 text-center">
-      <a
-        href="{{ url_for('main.dashboard') }}"
-        class="text-muted text-decoration-none small"
-        >Kembali ke Dashboard</a
-      >
+    <!-- Back Link -->
+    <div class="text-center mt-4">
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">
+        <i class="fas fa-arrow-left me-2"></i> Kembali ke Dashboard
+      </a>
     </div>
   </div>
 </div>
 
+<!-- Confirmation Modal -->
 <div class="modal fade" id="confirmModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow rounded-4">
-      <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold">Konfirmasi Jadwal</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
+    <div class="modal-content" style="border: none; border-radius: var(--radius-lg); overflow: hidden;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+        <h5 class="modal-title fw-700">Konfirmasi Jadwal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center py-4">
-        <div
-          class="icon-box bg-soft-primary mx-auto mb-3 text-primary rounded-circle"
-        >
+        <div class="avatar avatar-xl mx-auto mb-3" style="background: var(--info-light); color: var(--info);">
           <i class="fas fa-calendar-check"></i>
         </div>
-        <p class="mb-1">Apakah Anda yakin memilih jadwal ini?</p>
-        <h5 class="fw-bold" id="modalText"></h5>
+        <p class="text-muted mb-2">Apakah Anda yakin memilih jadwal ini?</p>
+        <h5 class="fw-700" id="modalText"></h5>
       </div>
-      <div class="modal-footer border-0 justify-content-center pb-4">
+      <div class="modal-footer justify-content-center"
+        style="border-top: 1px solid var(--border-color); padding: 20px;">
         <form method="POST">
           <input type="hidden" name="teacher_id" id="inputTeacher" />
           <input type="hidden" name="day" id="inputDay" />
           <input type="hidden" name="timeslot_id" id="inputTimeslot" />
-          <button
-            type="button"
-            class="btn btn-light rounded-pill px-4 me-2"
-            data-bs-dismiss="modal"
-          >
-            Batal
-          </button>
-          <button type="submit" class="btn btn-primary rounded-pill px-4">
-            Ya, Ambil Jadwal
-          </button>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Batal
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-check me-2"></i> Ya, Ambil Jadwal
+            </button>
+          </div>
         </form>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_css %}
+<style>
+  #calendar {
+    font-family: inherit;
+  }
+
+  .fc {
+    --fc-border-color: var(--border-color);
+    --fc-today-bg-color: var(--brand-primary-light);
+  }
+
+  .fc-event {
+    border-radius: var(--radius-sm) !important;
+    border: none !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    cursor: pointer;
+  }
+
+  .fc-timegrid-slot {
+    height: 50px !important;
+  }
+
+  .fc-col-header-cell {
+    background: var(--bg-body);
+    padding: 12px 0 !important;
+  }
+
+  .fc-col-header-cell-cushion {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     var calendarEl = document.getElementById('calendar');
+    var calendarEvents = JSON.parse(calendarEl.dataset.events);
     var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'timeGridWeek',
       headerToolbar: { left: '', center: '', right: '' },
@@ -89,11 +129,13 @@
       allDaySlot: false,
       height: 'auto',
       hiddenDays: [],
-      events: {{ events|tojson }},
-      eventClick: function(info) {
+      events: calendarEvents,
+      eventClick: function (info) {
         var props = info.event.extendedProps;
-        document.getElementById('modalText').innerText = info.event.title + "\n" + info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + " - " + info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        var startTime = info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        var endTime = info.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        document.getElementById('modalText').innerText = info.event.title + "\n" + startTime + " - " + endTime;
         document.getElementById('inputTeacher').value = props.teacher_id;
         document.getElementById('inputDay').value = props.day;
         document.getElementById('inputTimeslot').value = props.timeslot_id;

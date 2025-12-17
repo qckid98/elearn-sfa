@@ -1,218 +1,240 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
 
-<div class="row mb-5 align-items-end">
-  <div class="col-md-8">
-    <p class="text-uppercase text-danger fw-bold mb-1 ls-1 small">Dashboard</p>
-    <h2 class="fw-bold display-6">Halo, {{ current_user.name }}</h2>
-    <p class="text-muted mb-0">
-      Role:
-      <span class="badge bg-soft-dark text-dark"
-        >{{ current_user.role|capitalize }}</span
-      >
-    </p>
-  </div>
-  <div class="col-md-4 text-md-end mt-3 mt-md-0">
-    <div class="text-muted small">{{ now_date }}</div>
-  </div>
-</div>
+{% block page_title %}Dashboard{% endblock %}
 
-<div class="row g-4">
+{% block content %}
+<!-- Dashboard Content -->
+<div class="dashboard-container">
+
   {% if current_user.role == 'admin' %}
+  <!-- ==================== ADMIN DASHBOARD ==================== -->
 
-  <div class="col-12 mb-2"><h5 class="fw-bold">Menu Utama</h5></div>
-
-  <div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 hover-card text-center py-4">
-      <div class="card-body">
-        <div class="icon-box bg-soft-danger mx-auto">
-          <i class="fas fa-user-plus"></i>
-        </div>
-        <h6 class="fw-bold">Invite Siswa</h6>
-        <p class="small text-muted mb-0">Daftarkan siswa baru</p>
-        <a href="{{ url_for('main.admin_invite') }}" class="stretched-link"></a>
-      </div>
+  <!-- Greeting Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="fw-700 mb-1">Selamat Datang, {{ current_user.name.split(' ')[0] }}! 👋</h2>
+      <p class="text-muted mb-0">Kelola sistem akademik Fashion School dari sini.</p>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 hover-card text-center py-4">
-      <div class="card-body">
-        <div class="icon-box bg-soft-danger mx-auto">
+  <!-- Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stats-card">
+        <div class="stats-card-icon primary">
           <i class="fas fa-users"></i>
         </div>
-        <h6 class="fw-bold">Data Siswa</h6>
-        <p class="small text-muted mb-0">Lihat database siswa</p>
-        <a
-          href="{{ url_for('admin.student_list') }}"
-          class="stretched-link"
-        ></a>
+        <div class="stats-card-value">{{ stats.total_students if stats else '0' }}</div>
+        <div class="stats-card-label">Total Siswa</div>
       </div>
     </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 hover-card text-center py-4">
-      <div class="card-body">
-        <div class="icon-box bg-soft-warning mx-auto">
+    <div class="col-6 col-md-3">
+      <div class="stats-card">
+        <div class="stats-card-icon success">
           <i class="fas fa-chalkboard-teacher"></i>
         </div>
-        <h6 class="fw-bold">Pengajar</h6>
-        <p class="small text-muted mb-0">Kelola guru & skill</p>
-        <a
-          href="{{ url_for('admin.teacher_list') }}"
-          class="stretched-link"
-        ></a>
+        <div class="stats-card-value">{{ stats.total_teachers if stats else '0' }}</div>
+        <div class="stats-card-label">Total Pengajar</div>
       </div>
     </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg-3">
-    <div class="card h-100 hover-card text-center py-4">
-      <div class="card-body">
-        <div class="icon-box bg-soft-warning mx-auto">
+    <div class="col-6 col-md-3">
+      <div class="stats-card">
+        <div class="stats-card-icon warning">
           <i class="fas fa-book-open"></i>
         </div>
-        <h6 class="fw-bold">Program</h6>
-        <p class="small text-muted mb-0">Kurikulum & Sesi</p>
-        <a
-          href="{{ url_for('admin.program_manage') }}"
-          class="stretched-link"
-        ></a>
+        <div class="stats-card-value">{{ stats.total_programs if stats else '0' }}</div>
+        <div class="stats-card-label">Program Aktif</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stats-card">
+        <div class="stats-card-icon info">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stats-card-value">{{ stats.total_sessions if stats else '0' }}</div>
+        <div class="stats-card-label">Sesi Hari Ini</div>
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-md-8 col-lg-6">
-    <div
-      class="card h-100 hover-card bg-dark text-white"
-      style="background: linear-gradient(45deg, #212529, #343a40)"
-    >
-      <div
-        class="card-body d-flex align-items-center justify-content-between p-4"
-      >
-        <div>
-          <h5 class="fw-bold text-white">Master Schedule</h5>
-          <p class="text-white-50 mb-0">
-            Monitoring kepadatan kelas secara real-time.
-          </p>
+  <!-- Quick Actions -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <h5 class="fw-600 mb-3">Menu Cepat</h5>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('main.admin_invite') }}" class="action-card">
+        <div class="action-card-icon">
+          <i class="fas fa-user-plus"></i>
         </div>
-        <div class="icon-box bg-white text-dark mb-0">
-          <i class="fas fa-calendar-alt"></i>
+        <div class="action-card-content">
+          <div class="action-card-title">Invite Siswa</div>
+          <div class="action-card-desc">Daftarkan siswa baru</div>
         </div>
-        <a
-          href="{{ url_for('admin.master_schedule') }}"
-          class="stretched-link"
-        ></a>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('admin.student_list') }}" class="action-card">
+        <div class="action-card-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="action-card-content">
+          <div class="action-card-title">Data Siswa</div>
+          <div class="action-card-desc">Lihat database siswa</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('admin.teacher_list') }}" class="action-card">
+        <div class="action-card-icon">
+          <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div class="action-card-content">
+          <div class="action-card-title">Pengajar</div>
+          <div class="action-card-desc">Kelola guru & skill</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('admin.program_manage') }}" class="action-card">
+        <div class="action-card-icon">
+          <i class="fas fa-book-open"></i>
+        </div>
+        <div class="action-card-content">
+          <div class="action-card-title">Program</div>
+          <div class="action-card-desc">Kurikulum & Sesi</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Featured Card & Chart -->
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-5">
+      <a href="{{ url_for('admin.master_schedule') }}" class="featured-card" style="display: block; height: 100%;">
+        <div class="featured-card-content">
+          <div class="featured-card-label">Monitoring</div>
+          <h3 class="fw-700 text-white mb-2">Master Schedule</h3>
+          <p class="featured-card-subtitle">Monitoring kepadatan kelas secara real-time.</p>
+          <div class="featured-card-badge">
+            <i class="fas fa-arrow-right me-1"></i> Lihat Jadwal
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-7">
+      <div class="chart-container" style="height: 100%;">
+        <div class="chart-header">
+          <h6 class="chart-title">Grafik Pendaftaran Siswa</h6>
+        </div>
+        <div class="chart-placeholder" id="chartEnrollment">
+          <i class="fas fa-chart-bar me-2"></i> Chart akan ditampilkan di sini
+        </div>
       </div>
     </div>
   </div>
 
   {% elif current_user.role == 'teacher' %}
+  <!-- ==================== TEACHER DASHBOARD ==================== -->
 
-  <div class="col-12">
-    <div class="alert alert-light border shadow-sm">
-      👋 Selamat mengajar, jangan lupa absen ya!
+  <!-- Greeting Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="fw-700 mb-1">Selamat Mengajar, {{ current_user.name.split(' ')[0] }}! 👋</h2>
+      <p class="text-muted mb-0">Jangan lupa untuk mengisi absensi hari ini.</p>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card h-100 hover-card border-start border-warning border-5">
-      <div class="card-body p-4 d-flex align-items-center">
-        <div class="icon-box bg-soft-warning mb-0 me-3">
+  <!-- Quick Actions for Teacher -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6">
+      <a href="{{ url_for('attendance.view_form', timeslot_id=1) }}" class="action-card"
+        style="border-left: 4px solid var(--warning);">
+        <div class="action-card-icon" style="background: var(--warning-light); color: var(--warning);">
           <i class="fas fa-sun"></i>
         </div>
-        <div>
-          <h5 class="fw-bold mb-1">Absensi Sesi 1</h5>
-          <p class="text-muted small mb-0">Jam 10:00 - 13:00</p>
+        <div class="action-card-content">
+          <div class="action-card-title">Absensi Sesi 1</div>
+          <div class="action-card-desc">Jam 10:00 - 13:00</div>
         </div>
-        <a
-          href="{{ url_for('attendance.view_form', timeslot_id=1) }}"
-          class="stretched-link"
-        ></a>
-        <i class="fas fa-chevron-right ms-auto text-muted"></i>
-      </div>
+        <i class="fas fa-chevron-right text-muted"></i>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{{ url_for('attendance.view_form', timeslot_id=2) }}" class="action-card"
+        style="border-left: 4px solid var(--sidebar-bg);">
+        <div class="action-card-icon" style="background: rgba(30, 58, 95, 0.1); color: var(--sidebar-bg);">
+          <i class="fas fa-moon"></i>
+        </div>
+        <div class="action-card-content">
+          <div class="action-card-title">Absensi Sesi 2</div>
+          <div class="action-card-desc">Jam 14:00 - 17:00</div>
+        </div>
+        <i class="fas fa-chevron-right text-muted"></i>
+      </a>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card h-100 hover-card border-start border-dark border-5">
-      <div class="card-body p-4 d-flex align-items-center">
-        <div class="icon-box bg-soft-dark mb-0 me-3">
-          <i class="fas fa-moon"></i>
+  <!-- Chart Placeholder -->
+  <div class="row">
+    <div class="col-12">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h6 class="chart-title">Statistik Mengajar Bulan Ini</h6>
         </div>
-        <div>
-          <h5 class="fw-bold mb-1">Absensi Sesi 2</h5>
-          <p class="text-muted small mb-0">Jam 14:00 - 17:00</p>
+        <div class="chart-placeholder">
+          <i class="fas fa-chart-line me-2"></i> Chart akan ditampilkan di sini
         </div>
-        <a
-          href="{{ url_for('attendance.view_form', timeslot_id=2) }}"
-          class="stretched-link"
-        ></a>
-        <i class="fas fa-chevron-right ms-auto text-muted"></i>
       </div>
     </div>
   </div>
 
   {% elif enrollment %}
+  <!-- ==================== STUDENT DASHBOARD ==================== -->
 
-  <div class="col-md-4">
-    <div
-      class="card h-100 bg-danger text-white shadow-lg overflow-hidden position-relative"
-    >
-      <div
-        style="
-          position: absolute;
-          top: -20px;
-          right: -20px;
-          width: 100px;
-          height: 100px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 50%;
-        "
-      ></div>
-
-      <div
-        class="card-body text-center d-flex flex-column justify-content-center p-4"
-      >
-        <p class="text-white-50 text-uppercase small ls-1 mb-2">
-          Sisa Sesi Anda
-        </p>
-        <h1 class="display-1 fw-bold mb-0">
-          {{ enrollment.sessions_remaining }}
-        </h1>
-        <p class="mt-2 mb-0 fw-bold">{{ enrollment.program.name }}</p>
-        {% if enrollment.batch %}
-        <span class="badge bg-white text-danger mt-2 mx-auto"
-          >{{ enrollment.batch.name }}</span
-        >
-        {% endif %}
-      </div>
+  <!-- Greeting Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="fw-700 mb-1">Halo, {{ current_user.name.split(' ')[0] }}! 👋</h2>
+      <p class="text-muted mb-0">Selamat belajar di Fashion School.</p>
     </div>
   </div>
 
-  <div class="col-md-8">
-    <div class="card h-100">
-      <div
-        class="card-header bg-white py-3 d-flex justify-content-between align-items-center"
-      >
-        <h6 class="fw-bold mb-0">
-          <i class="fas fa-calendar-week text-danger me-2"></i> Jadwal Rutin
-        </h6>
-        {% if not enrollment.schedules %}
-        <a
-          href="{{ url_for('onboarding.schedule_wizard') }}"
-          class="btn btn-sm btn-danger rounded-pill"
-          >Atur Jadwal</a
-        >
-        {% endif %}
+  <!-- Stats Section - Student -->
+  <div class="row g-4 mb-4">
+    <!-- Featured Card - Sessions Remaining -->
+    <div class="col-md-4">
+      <div class="featured-card" style="height: 100%;">
+        <div class="featured-card-content text-center">
+          <div class="featured-card-label">Sisa Sesi Anda</div>
+          <div class="featured-card-value">{{ enrollment.sessions_remaining }}</div>
+          <div class="featured-card-subtitle">{{ enrollment.program.name }}</div>
+          {% if enrollment.batch %}
+          <div class="featured-card-badge">{{ enrollment.batch.name }}</div>
+          {% endif %}
+        </div>
       </div>
-      <div class="card-body p-0">
-        {% if enrollment.schedules %}
-        <div class="table-responsive">
-          <table class="table table-custom table-hover mb-0">
+    </div>
+
+    <!-- Info Cards -->
+    <div class="col-md-8">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calendar-week text-brand me-2"></i> Jadwal Rutin
+          </h6>
+          {% if not enrollment.schedules %}
+          <a href="{{ url_for('onboarding.schedule_wizard') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> Atur Jadwal
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% if enrollment.schedules %}
+          <table class="table-modern">
             <thead>
               <tr>
-                <th class="ps-4">Hari</th>
+                <th style="padding-left: 24px;">Hari</th>
                 <th>Waktu</th>
                 <th>Materi</th>
                 <th>Pengajar</th>
@@ -221,21 +243,15 @@
             <tbody>
               {% for sched in enrollment.schedules %}
               <tr>
-                <td class="ps-4">
-                  <span
-                    class="badge bg-light text-dark border fw-normal px-3 py-2"
-                    >{{ days[sched.day_of_week] }}</span
-                  >
+                <td style="padding-left: 24px;">
+                  <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
                 </td>
-                <td class="fw-bold text-danger">{{ sched.timeslot.name }}</td>
+                <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
                 <td>{{ sched.subject.name }}</td>
                 <td>
-                  <div class="d-flex align-items-center">
-                    <div
-                      class="bg-light rounded-circle text-center me-2"
-                      style="width: 30px; height: 30px; line-height: 30px"
-                    >
-                      <i class="fas fa-user-tie small text-muted"></i>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar avatar-sm">
+                      {{ sched.teacher.name[0]|upper }}
                     </div>
                     {{ sched.teacher.name.split(' ')[0] }}
                   </div>
@@ -244,29 +260,61 @@
               {% endfor %}
             </tbody>
           </table>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+            <p class="text-muted">Anda belum memiliki jadwal rutin.</p>
+            <a href="{{ url_for('onboarding.schedule_wizard') }}" class="btn btn-primary">
+              <i class="fas fa-plus me-1"></i> Atur Jadwal Sekarang
+            </a>
+          </div>
+          {% endif %}
         </div>
-        {% else %}
-        <div class="text-center py-5">
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/7486/7486831.png"
-            alt="No Schedule"
-            style="width: 80px; opacity: 0.5"
-            class="mb-3"
-          />
-          <p class="text-muted">Anda belum memiliki jadwal rutin.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Chart -->
+  <div class="row">
+    <div class="col-12">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h6 class="chart-title">Progress Belajar</h6>
         </div>
-        {% endif %}
+        <div class="chart-placeholder">
+          <i class="fas fa-chart-pie me-2"></i> Chart akan ditampilkan di sini
+        </div>
       </div>
     </div>
   </div>
 
   {% else %}
-  <div class="col-12">
-    <div class="alert alert-warning border-0 shadow-sm rounded-3">
-      <i class="fas fa-exclamation-triangle me-2"></i> Akun ini terdaftar
-      sebagai Siswa tetapi belum memiliki data Enrollment. Hubungi Admin.
+  <!-- ==================== NO ENROLLMENT ==================== -->
+  <div class="row">
+    <div class="col-12">
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Akun ini terdaftar sebagai Siswa tetapi belum memiliki data Enrollment. Hubungi Admin untuk mendaftarkan
+          program.</span>
+      </div>
     </div>
   </div>
   {% endif %}
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Chart initialization placeholder
+  // TODO: Replace with actual data from backend
+  document.addEventListener('DOMContentLoaded', function () {
+    const chartEl = document.getElementById('chartEnrollment');
+    if (chartEl && typeof Chart !== 'undefined') {
+      // Chart will be initialized here when data is available
+      console.log('Chart.js loaded and ready');
+    }
+  });
+</script>
 {% endblock %}

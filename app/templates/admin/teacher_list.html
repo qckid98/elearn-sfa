@@ -1,40 +1,95 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block page_title %}Daftar Pengajar{% endblock %}
+
+{% block content %}
 <div class="row g-4">
-  <div class="col-md-8">
-    <h4 class="fw-bold mb-3">Daftar Pengajar</h4>
-    <div class="card shadow-sm border-0">
+  <!-- Left Column - Teacher List -->
+  <div class="col-lg-8">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-700 mb-1">Daftar Pengajar</h4>
+        <p class="text-muted mb-0">Kelola pengajar dan keahlian mereka</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6">
+        <div class="stats-card">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stats-card-icon success" style="margin-bottom: 0;">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div>
+              <div class="stats-card-value" style="font-size: 24px;">{{ teachers|length }}</div>
+              <div class="stats-card-label">Total Pengajar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Table -->
+    <div class="card">
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-custom table-hover align-middle mb-0">
+          <table class="table-modern">
             <thead>
               <tr>
-                <th class="ps-4">Nama Guru</th>
+                <th style="padding-left: 24px;">Nama Pengajar</th>
                 <th>Kontak</th>
-                <th>Skill</th>
-                <th class="text-end pe-4">Aksi</th>
+                <th>Keahlian</th>
+                <th style="text-align: right; padding-right: 24px;">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {% for teacher in teachers %}
               <tr>
-                <td class="ps-4 fw-bold">{{ teacher.name }}</td>
-                <td class="small">
-                  {{ teacher.email }}<br />
-                  <span class="text-muted">{{ teacher.phone_number }}</span>
+                <td style="padding-left: 24px;">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="avatar" style="background: var(--success-light); color: var(--success);">
+                      {{ teacher.name[0]|upper if teacher.name else '?' }}
+                    </div>
+                    <div>
+                      <div class="fw-600">{{ teacher.name }}</div>
+                      <div class="text-muted" style="font-size: 12px;">ID: #{{ teacher.id }}</div>
+                    </div>
+                  </div>
                 </td>
                 <td>
-                  {% for skill in teacher.skills %}
-                  <span class="badge bg-soft-primary text-primary"
-                    >{{ skill.subject.name }}</span
-                  >
-                  {% endfor %}
+                  <div class="fw-500" style="font-size: 13px;">{{ teacher.email }}</div>
+                  <div class="text-muted" style="font-size: 12px;">{{ teacher.phone_number or '-' }}</div>
                 </td>
-                <td class="text-end pe-4">
-                  <a
-                    href="{{ url_for('admin.teacher_detail', user_id=teacher.id) }}"
-                    class="btn btn-sm btn-outline-dark rounded-pill"
-                    >Atur Detail</a
-                  >
+                <td>
+                  <div class="d-flex flex-wrap gap-1">
+                    {% for skill in teacher.skills %}
+                    <span class="badge badge-info">{{ skill.subject.name }}</span>
+                    {% else %}
+                    <span class="text-muted" style="font-size: 12px;">Belum ada skill</span>
+                    {% endfor %}
+                  </div>
+                </td>
+                <td style="text-align: right; padding-right: 24px;">
+                  <a href="{{ url_for('admin.teacher_detail', user_id=teacher.id) }}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-cog me-1"></i> Atur Detail
+                  </a>
+                  <form action="{{ url_for('admin.delete_teacher', user_id=teacher.id) }}" method="POST"
+                    class="d-inline">
+                    <button type="button" class="btn btn-outline btn-sm text-danger"
+                      style="border-color: var(--danger);"
+                      onclick="if(confirm('Yakin ingin menghapus guru ini?')) { this.form.submit(); }">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-5 text-muted">
+                  <i class="fas fa-chalkboard-teacher fa-2x mb-3" style="opacity: 0.3;"></i>
+                  <p>Belum ada data pengajar</p>
                 </td>
               </tr>
               {% endfor %}
@@ -45,44 +100,49 @@
     </div>
   </div>
 
-  <div class="col-md-4">
-    <h4 class="fw-bold mb-3">Tambah Baru</h4>
-    <div class="card shadow-sm border-0 border-top border-warning border-4">
-      <div class="card-body p-4">
+  <!-- Right Column - Add New Teacher -->
+  <div class="col-lg-4">
+    <div class="card" style="border-top: 4px solid var(--warning);">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-user-plus text-warning me-2"></i> Tambah Pengajar Baru
+        </h6>
+      </div>
+      <div class="card-body">
         <form method="POST">
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Nama Lengkap</label>
-            <input
-              type="text"
-              name="name"
-              class="form-control bg-light border-0"
-              required
-            />
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap</label>
+            <div class="input-icon">
+              <i class="fas fa-user"></i>
+              <input type="text" name="name" class="form-control" required placeholder="Nama pengajar" />
+            </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Email (Login)</label>
-            <input
-              type="email"
-              name="email"
-              class="form-control bg-light border-0"
-              required
-            />
+
+          <div class="form-group">
+            <label class="form-label">Email (Login)</label>
+            <div class="input-icon">
+              <i class="fas fa-envelope"></i>
+              <input type="email" name="email" class="form-control" required placeholder="email@example.com" />
+            </div>
           </div>
-          <div class="mb-4">
-            <label class="form-label small fw-bold">No. HP (WA)</label>
-            <input
-              type="text"
-              name="phone"
-              class="form-control bg-light border-0"
-              required
-            />
+
+          <div class="form-group">
+            <label class="form-label">No. HP (WhatsApp)</label>
+            <div class="input-icon">
+              <i class="fas fa-phone"></i>
+              <input type="text" name="phone" class="form-control" required placeholder="08xxxxxxxxxx" />
+            </div>
           </div>
-          <button type="submit" class="btn btn-warning w-100 fw-bold">
-            Simpan Guru
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-save me-2"></i> Simpan Pengajar
           </button>
-          <small class="d-block text-center text-muted mt-2"
-            >Password default: <code>guru123</code></small
-          >
+
+          <div class="alert alert-info mt-3 mb-0" style="font-size: 12px;">
+            <i class="fas fa-info-circle me-1"></i>
+            Password default: <code
+              style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px;">guru123</code>
+          </div>
         </form>
       </div>
     </div>

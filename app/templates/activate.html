@@ -1,61 +1,130 @@
-{% extends "base.html" %} {% block content %}
-<div
-  class="row justify-content-center align-items-center"
-  style="min-height: 70vh"
->
-  <div class="col-md-6 col-lg-5">
-    <div class="text-center mb-4">
-      <h3 class="fw-bold">Aktivasi Akun</h3>
-      <p class="text-muted">Halo, silakan lengkapi data diri Anda</p>
+{% extends "base.html" %}
+
+{% block title %}Aktivasi Akun - Fashion School{% endblock %}
+
+{% block guest_content %}
+<style>
+  .activate-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, var(--bg-body) 0%, #e2e8f0 100%);
+  }
+
+  .activate-container {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .activate-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .activate-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--brand-primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: white;
+    font-size: 32px;
+  }
+
+  .activate-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .activate-header p {
+    color: var(--text-muted);
+    font-size: 15px;
+  }
+
+  .activate-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 32px;
+    border: 1px solid var(--border-color);
+  }
+
+  .email-verified {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--success-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+  }
+
+  .email-verified i {
+    color: var(--success);
+    font-size: 20px;
+  }
+
+  .email-verified span {
+    color: var(--success);
+    font-size: 14px;
+  }
+
+  .email-verified strong {
+    color: var(--text-primary);
+  }
+</style>
+
+<div class="activate-wrapper">
+  <div class="activate-container">
+    <!-- Header -->
+    <div class="activate-header">
+      <div class="activate-icon">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <h2>Aktivasi Akun</h2>
+      <p>Lengkapi data diri Anda untuk memulai</p>
     </div>
 
-    <div class="card p-4 shadow-lg border-0">
-      <div class="card-body">
-        <div
-          class="alert alert-success border-0 bg-soft-primary d-flex align-items-center mb-4"
-        >
-          <i class="fas fa-check-circle me-2 fs-5"></i>
-          <div>
-            Email <strong>{{ current_user.email }}</strong> terverifikasi.
+    <!-- Form Card -->
+    <div class="activate-card">
+      <!-- Email Verified Alert -->
+      <div class="email-verified">
+        <i class="fas fa-check-circle"></i>
+        <span>Email <strong>{{ current_user.email }}</strong> terverifikasi!</span>
+      </div>
+
+      <!-- Activation Form -->
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <div class="input-icon">
+            <i class="fas fa-user"></i>
+            <input type="text" name="name" class="form-control" required placeholder="Sesuai KTP/Absen"
+              style="padding-left: 44px;" />
           </div>
         </div>
 
-        <form method="POST">
-          <div class="mb-3">
-            <label class="form-label small text-uppercase fw-bold text-muted"
-              >Nama Lengkap</label
-            >
-            <input
-              type="text"
-              name="name"
-              class="form-control bg-light border-0 py-2"
-              required
-              placeholder="Sesuai KTP/Absen"
-            />
+        <div class="form-group">
+          <label class="form-label">Buat Password Baru</label>
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+            <input type="password" name="password" class="form-control" required minlength="6"
+              placeholder="Minimal 6 karakter" style="padding-left: 44px;" />
           </div>
+          <div class="form-hint">Password harus minimal 6 karakter</div>
+        </div>
 
-          <div class="mb-4">
-            <label class="form-label small text-uppercase fw-bold text-muted"
-              >Buat Password Baru</label
-            >
-            <input
-              type="password"
-              name="password"
-              class="form-control bg-light border-0 py-2"
-              required
-              minlength="6"
-              placeholder="******"
-            />
-            <div class="form-text text-muted small">Minimal 6 karakter.</div>
-          </div>
-
-          <div class="d-grid">
-            <button type="submit" class="btn btn-danger py-2 rounded-pill">
-              Simpan & Masuk Dashboard
-            </button>
-          </div>
-        </form>
-      </div>
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-check me-2"></i> Simpan & Masuk Dashboard
+        </button>
+      </form>
     </div>
   </div>
 </div>

@@ -1,115 +1,121 @@
-{% extends "base.html" %} {% block content %}
-<div class="d-flex align-items-center mb-4">
-  <a
-    href="{{ url_for('admin.teacher_list') }}"
-    class="btn btn-light rounded-circle me-3"
-    ><i class="fas fa-arrow-left"></i
-  ></a>
-  <h4 class="fw-bold mb-0">Detail Pengajar: {{ teacher.name }}</h4>
+{% extends "base.html" %}
+
+{% block page_title %}Detail Pengajar{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('admin.teacher_list') }}" class="btn btn-secondary btn-icon" style="width: 40px; height: 40px;">
+    <i class="fas fa-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-700 mb-1">{{ teacher.name }}</h4>
+    <p class="text-muted mb-0" style="font-size: 13px;">{{ teacher.email }}</p>
+  </div>
 </div>
 
 <div class="row g-4">
-  <div class="col-md-4">
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-header bg-white border-0 fw-bold pt-4 px-4">
-        Info Profil
+  <!-- Left Column -->
+  <div class="col-lg-4">
+    <!-- Profile Card -->
+    <div class="card mb-4">
+      <div class="card-body text-center py-4">
+        <div class="avatar avatar-xl mx-auto mb-3" style="background: var(--success-light); color: var(--success);">
+          {{ teacher.name[0]|upper if teacher.name else '?' }}
+        </div>
+        <h5 class="fw-700 mb-1">{{ teacher.name }}</h5>
+        <p class="text-muted mb-1" style="font-size: 13px;">{{ teacher.email }}</p>
+        <p class="text-muted mb-0" style="font-size: 13px;">{{ teacher.phone_number or '-' }}</p>
       </div>
-      <div class="card-body px-4 pb-4">
+    </div>
+
+    <!-- Profile Update Form -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-user-edit text-muted me-2"></i> Info Profil
+        </h6>
+      </div>
+      <div class="card-body">
         <form method="POST">
           <input type="hidden" name="update_profile" value="1" />
-          <div class="mb-2">
-            <input
-              type="text"
-              name="name"
-              class="form-control bg-light border-0"
-              value="{{ teacher.name }}"
-            />
+
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap</label>
+            <input type="text" name="name" class="form-control" value="{{ teacher.name }}" />
           </div>
-          <div class="mb-2">
-            <input
-              type="email"
-              name="email"
-              class="form-control bg-light border-0"
-              value="{{ teacher.email }}"
-            />
+
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ teacher.email }}" />
           </div>
-          <div class="mb-3">
-            <input
-              type="text"
-              name="phone"
-              class="form-control bg-light border-0"
-              value="{{ teacher.phone_number }}"
-            />
+
+          <div class="form-group">
+            <label class="form-label">No. HP</label>
+            <input type="text" name="phone" class="form-control" value="{{ teacher.phone_number }}" />
           </div>
-          <button type="submit" class="btn btn-dark btn-sm w-100">
-            Update Profil
+
+          <button type="submit" class="btn btn-secondary w-100">
+            <i class="fas fa-save me-2"></i> Update Profil
           </button>
         </form>
       </div>
     </div>
 
-    <div class="card shadow-sm border-0 bg-soft-primary">
-      <div
-        class="card-header border-0 bg-transparent fw-bold pt-4 px-4 text-primary"
-      >
-        Skill Mengajar
+    <!-- Skills Card -->
+    <div class="card" style="border-top: 4px solid var(--info);">
+      <div class="card-header" style="background: var(--info-light);">
+        <h6 class="card-title mb-0" style="color: var(--info);">
+          <i class="fas fa-graduation-cap me-2"></i> Skill Mengajar
+        </h6>
       </div>
-      <div class="card-body px-4 pb-4">
+      <div class="card-body">
         <form method="POST">
           <input type="hidden" name="update_skills" value="1" />
-          {% for sub in subjects %}
-          <div class="form-check mb-2">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              name="subject_ids"
-              value="{{ sub.id }}"
-              id="sub{{sub.id}}"
-              {%
-              if
-              sub.id
-              in
-              my_skill_ids
-              %}checked{%
-              endif
-              %}
-            />
-            <label class="form-check-label" for="sub{{sub.id}}"
-              >{{ sub.name }}</label
-            >
+
+          <div class="skill-list">
+            {% for sub in subjects %}
+            <label class="skill-item d-flex align-items-center gap-3 p-2 rounded mb-2"
+              style="cursor: pointer; transition: background 0.2s;">
+              <input class="form-check-input" type="checkbox" name="subject_ids" value="{{ sub.id }}" {% if sub.id in
+                my_skill_ids %}checked{% endif %} style="width: 20px; height: 20px;" />
+              <span>{{ sub.name }}</span>
+            </label>
+            {% endfor %}
           </div>
-          {% endfor %}
-          <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">
-            Simpan Skills
+
+          <button type="submit" class="btn btn-primary w-100 mt-3">
+            <i class="fas fa-save me-2"></i> Simpan Skills
           </button>
         </form>
       </div>
     </div>
   </div>
 
-  <div class="col-md-8">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-white border-0 pt-4 px-4">
-        <h6 class="fw-bold text-success">
+  <!-- Right Column - Availability -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header" style="background: var(--success-light);">
+        <h6 class="card-title mb-0" style="color: var(--success);">
           <i class="fas fa-clock me-2"></i> Jadwal Ketersediaan
         </h6>
-        <p class="small text-muted mb-0">
-          Centang waktu dimana guru ini <strong>BISA</strong> mengajar.
-        </p>
+        <span class="text-muted" style="font-size: 12px;">Centang waktu dimana guru ini BISA mengajar</span>
       </div>
-      <div class="card-body p-4">
+      <div class="card-body">
         <form method="POST">
           <input type="hidden" name="update_avail" value="1" />
+
           <div class="table-responsive">
-            <table class="table table-bordered text-center align-middle">
-              <thead class="bg-light">
+            <table class="table-modern text-center">
+              <thead>
                 <tr>
-                  <th>Hari</th>
+                  <th style="text-align: left; padding-left: 16px;">Hari</th>
                   {% for slot in timeslots %}
                   <th>
-                    {{ slot.name }}<br /><small class="text-muted fw-normal"
-                      >{{ slot.start_time.strftime('%H:%M') }}</small
-                    >
+                    <div class="fw-600">{{ slot.name }}</div>
+                    <div class="text-muted" style="font-size: 11px; font-weight: 400;">
+                      {{ slot.start_time.strftime('%H:%M') }}
+                    </div>
                   </th>
                   {% endfor %}
                 </tr>
@@ -117,22 +123,16 @@
               <tbody>
                 {% for i in range(7) %}
                 <tr>
-                  <td class="fw-bold bg-light">{{ days[i] }}</td>
+                  <td style="text-align: left; padding-left: 16px;">
+                    <span class="fw-600">{{ days[i] }}</span>
+                  </td>
                   {% for slot in timeslots %}
-                  <td class="position-relative">
-                    <input
-                      type="checkbox"
-                      class="form-check-input border-2"
-                      name="slots"
-                      value="{{ i }}_{{ slot.id }}"
-                      style="width: 25px; height: 25px; cursor: pointer"
-                      {%
-                      if
-                      avail_map[i][slot.id]
-                      %}checked{%
-                      endif
-                      %}
-                    />
+                  <td>
+                    <label class="availability-checkbox">
+                      <input type="checkbox" class="form-check-input" name="slots" value="{{ i }}_{{ slot.id }}"
+                        style="width: 28px; height: 28px; cursor: pointer;" {% if avail_map[i][slot.id] %}checked{%
+                        endif %} />
+                    </label>
                   </td>
                   {% endfor %}
                 </tr>
@@ -140,12 +140,24 @@
               </tbody>
             </table>
           </div>
-          <button type="submit" class="btn btn-success w-100 py-2 mt-3 fw-bold">
-            Simpan Ketersediaan
+
+          <button type="submit" class="btn btn-primary w-100 mt-4">
+            <i class="fas fa-save me-2"></i> Simpan Ketersediaan
           </button>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  .skill-item:hover {
+    background: var(--bg-body);
+  }
+
+  .availability-checkbox input:checked {
+    background-color: var(--success);
+    border-color: var(--success);
+  }
+</style>
 {% endblock %}

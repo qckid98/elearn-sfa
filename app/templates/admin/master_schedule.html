@@ -1,25 +1,32 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block page_title %}Master Schedule{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0">Master Schedule</h4>
-  <span class="badge bg-dark">Monitoring Kelas</span>
+  <div>
+    <h4 class="fw-700 mb-1">Master Schedule</h4>
+    <p class="text-muted mb-0">Monitoring kepadatan kelas secara real-time</p>
+  </div>
+  <span class="badge badge-secondary" style="font-size: 14px; padding: 10px 16px;">
+    <i class="fas fa-calendar-alt me-2"></i> Monitoring Kelas
+  </span>
 </div>
 
-<div class="card shadow-sm border-0">
+<!-- Schedule Grid -->
+<div class="card">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table
-        class="table table-bordered text-center align-middle mb-0"
-        style="min-width: 800px"
-      >
-        <thead class="bg-dark text-white">
+      <table class="table-modern" style="min-width: 900px;">
+        <thead style="background: var(--sidebar-bg); color: white;">
           <tr>
-            <th class="py-3">Hari / Sesi</th>
+            <th style="padding: 16px 24px; color: white;">Hari / Sesi</th>
             {% for slot in timeslots %}
-            <th class="py-3">
-              {{ slot.name }}
-              <div class="small fw-normal text-white-50">
-                {{ slot.start_time.strftime('%H:%M') }} - {{
-                slot.end_time.strftime('%H:%M') }}
+            <th style="padding: 16px; color: white; text-align: center;">
+              <div class="fw-600">{{ slot.name }}</div>
+              <div style="font-size: 11px; opacity: 0.7; font-weight: 400;">
+                {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}
               </div>
             </th>
             {% endfor %}
@@ -28,33 +35,43 @@
         <tbody>
           {% for i in range(7) %}
           <tr>
-            <td class="fw-bold bg-light">{{ days[i] }}</td>
+            <td style="padding: 16px 24px; background: var(--bg-body);">
+              <span class="fw-700">{{ days[i] }}</span>
+            </td>
             {% for slot in timeslots %}
-            <td class="text-start p-2 align-top" style="height: 120px">
-              {% set sched_list = schedule_map[i][slot.id] %} {% if sched_list
-              %}
-              <div
-                class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2"
-              >
-                <span class="badge bg-soft-primary text-primary"
-                  >{{ sched_list|length }} Siswa</span
-                >
+            <td style="padding: 12px; vertical-align: top; min-width: 180px;">
+              {% set sched_list = schedule_map[i][slot.id] %}
+              {% if sched_list %}
+              <!-- Has schedules -->
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge badge-info">
+                  <i class="fas fa-users me-1"></i> {{ sched_list|length }} Siswa
+                </span>
               </div>
-              {% for item in sched_list %}
-              <div class="bg-light p-1 rounded mb-1 small border">
-                <strong
-                  >{{ item.enrollment.student.name.split(' ')[0] }}</strong
-                >
-                <div class="text-muted" style="font-size: 0.75rem">
-                  {{ item.subject.name }} ({{ item.teacher.name.split(' ')[0]
-                  }})
+
+              <div class="schedule-items" style="max-height: 150px; overflow-y: auto;">
+                {% for item in sched_list %}
+                <div class="schedule-item p-2 rounded mb-2"
+                  style="background: var(--bg-body); border-left: 3px solid var(--brand-primary);">
+                  <div class="fw-600" style="font-size: 13px;">
+                    {{ item.enrollment.student.name.split(' ')[0] }}
+                  </div>
+                  <div class="text-muted" style="font-size: 11px;">
+                    <i class="fas fa-book me-1"></i> {{ item.subject.name }}
+                  </div>
+                  <div class="text-muted" style="font-size: 11px;">
+                    <i class="fas fa-chalkboard-teacher me-1"></i> {{ item.teacher.name.split(' ')[0] }}
+                  </div>
                 </div>
+                {% endfor %}
               </div>
-              {% endfor %} {% else %}
-              <div
-                class="h-100 d-flex align-items-center justify-content-center text-muted small bg-light bg-opacity-50 rounded"
-              >
-                - Kosong -
+              {% else %}
+              <!-- Empty slot -->
+              <div class="empty-slot d-flex align-items-center justify-content-center"
+                style="height: 80px; background: var(--bg-body); border-radius: var(--radius-md); opacity: 0.5;">
+                <span class="text-muted" style="font-size: 12px;">
+                  <i class="fas fa-minus me-1"></i> Kosong
+                </span>
               </div>
               {% endif %}
             </td>
@@ -66,4 +83,42 @@
     </div>
   </div>
 </div>
+
+<!-- Legend -->
+<div class="d-flex gap-4 mt-4">
+  <div class="d-flex align-items-center gap-2">
+    <div style="width: 16px; height: 16px; background: var(--brand-primary); border-radius: 4px;"></div>
+    <span class="text-muted" style="font-size: 13px;">Jadwal Aktif</span>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <div
+      style="width: 16px; height: 16px; background: var(--bg-body); border-radius: 4px; border: 1px solid var(--border-color);">
+    </div>
+    <span class="text-muted" style="font-size: 13px;">Slot Kosong</span>
+  </div>
+</div>
+
+<style>
+  .schedule-items::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .schedule-items::-webkit-scrollbar-track {
+    background: var(--bg-body);
+  }
+
+  .schedule-items::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .schedule-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .schedule-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+  }
+</style>
 {% endblock %}

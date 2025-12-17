@@ -1,90 +1,147 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
 
+{% block page_title %}Data Siswa{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h4 class="fw-bold mb-1">Data Siswa</h4>
-    <p class="text-muted small mb-0">Kelola seluruh siswa aktif</p>
+    <h4 class="fw-700 mb-1">Data Siswa</h4>
+    <p class="text-muted mb-0">Kelola seluruh siswa yang terdaftar di Fashion School</p>
   </div>
-  <a href="{{ url_for('main.admin_invite') }}" class="btn btn-danger shadow-sm">
-    <i class="fas fa-plus me-2"></i> Invite Baru
+  <a href="{{ url_for('main.admin_invite') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-2"></i> Invite Siswa Baru
   </a>
 </div>
 
-<div class="card shadow-sm border-0">
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stats-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stats-card-icon primary" style="margin-bottom: 0;">
+          <i class="fas fa-users"></i>
+        </div>
+        <div>
+          <div class="stats-card-value" style="font-size: 24px;">{{ students|length }}</div>
+          <div class="stats-card-label">Total Siswa</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stats-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stats-card-icon success" style="margin-bottom: 0;">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div>
+          <div class="stats-card-value" style="font-size: 24px;">{{ students|selectattr('enrollments')|list|length }}
+          </div>
+          <div class="stats-card-label">Siswa Aktif</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter & Search -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-6">
+        <div class="input-icon">
+          <i class="fas fa-search"></i>
+          <input type="text" class="form-control" placeholder="Cari nama siswa..." id="searchInput">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select class="form-control" id="filterProgram">
+          <option value="">Semua Program</option>
+          <!-- TODO: Populate from backend -->
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-control" id="filterStatus">
+          <option value="">Semua Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Student Table -->
+<div class="card">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table
-        class="table table-custom table-hover align-middle mb-0"
-        style="min-width: 600px"
-      >
+      <table class="table-modern" id="studentTable">
         <thead>
           <tr>
-            <th class="ps-4">Nama Siswa</th>
+            <th style="padding-left: 24px; width: 30%;">Nama Siswa</th>
             <th>Kontak</th>
             <th>Program</th>
-            <th class="text-center">Sisa Sesi</th>
+            <th style="text-align: center;">Sisa Sesi</th>
             <th>Status</th>
-            <th class="text-end pe-4">Aksi</th>
+            <th style="text-align: right; padding-right: 24px;">Aksi</th>
           </tr>
         </thead>
         <tbody>
-          {% for student in students %} {% set enroll = student.enrollments[0]
-          if student.enrollments else None %}
+          {% for student in students %}
+          {% set enroll = student.enrollments[0] if student.enrollments else None %}
           <tr>
-            <td class="ps-4">
-              <div class="d-flex align-items-center">
-                <div
-                  class="bg-soft-danger rounded-circle text-center me-3 fw-bold"
-                  style="width: 40px; height: 40px; line-height: 40px"
-                >
-                  {{ student.name[0] | upper if student.name else '?' }}
+            <td style="padding-left: 24px;">
+              <div class="d-flex align-items-center gap-3">
+                <div class="avatar">
+                  {{ student.name[0]|upper if student.name else '?' }}
                 </div>
                 <div>
-                  <h6 class="mb-0 fw-bold text-dark">
-                    {{ student.name or 'Belum Aktivasi' }}
-                  </h6>
-                  <small class="text-muted">ID: #{{ student.id }}</small>
+                  <div class="fw-600">{{ student.name or 'Belum Aktivasi' }}</div>
+                  <div class="text-muted" style="font-size: 12px;">ID: #{{ student.id }}</div>
                 </div>
               </div>
             </td>
             <td>
-              <div class="small text-dark">{{ student.email }}</div>
-              <div class="small text-muted">{{ student.phone_number }}</div>
+              <div class="fw-500" style="font-size: 13px;">{{ student.email }}</div>
+              <div class="text-muted" style="font-size: 12px;">{{ student.phone_number or '-' }}</div>
             </td>
             <td>
               {% if enroll %}
-              <span class="badge bg-light text-dark border"
-                >{{ enroll.program.name }}</span
-              >
-              {% if enroll.batch %}<br /><small class="text-muted ms-1"
-                >{{ enroll.batch.name }}</small
-              >{% endif %} {% else %}
+              <span class="badge badge-secondary">{{ enroll.program.name }}</span>
+              {% if enroll.batch %}
+              <div class="text-muted" style="font-size: 12px; margin-top: 4px;">{{ enroll.batch.name }}</div>
+              {% endif %}
+              {% else %}
               <span class="text-muted">-</span>
               {% endif %}
             </td>
-            <td class="text-center fw-bold fs-5 text-danger">
-              {{ enroll.sessions_remaining if enroll else 0 }}
+            <td style="text-align: center;">
+              <span class="fw-700 text-brand" style="font-size: 20px;">
+                {{ enroll.sessions_remaining if enroll else 0 }}
+              </span>
             </td>
             <td>
               {% if enroll and enroll.status == 'active' %}
-              <span
-                class="badge bg-success bg-opacity-10 text-success rounded-pill px-3"
-                >Active</span
-              >
+              <span class="badge badge-success">
+                <i class="fas fa-check-circle me-1"></i> Active
+              </span>
               {% else %}
-              <span
-                class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3"
-                >{{ enroll.status if enroll else 'No Data' }}</span
-              >
+              <span class="badge badge-secondary">
+                {{ enroll.status if enroll else 'No Data' }}
+              </span>
               {% endif %}
             </td>
-            <td class="text-end pe-4">
-              <a
-                href="{{ url_for('admin.student_detail', user_id=student.id) }}"
-                class="btn btn-sm btn-light text-dark border"
-              >
-                Detail <i class="fas fa-arrow-right ms-1"></i>
+            <td style="text-align: right; padding-right: 24px;">
+              <a href="{{ url_for('admin.student_detail', user_id=student.id) }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-eye me-1"></i> Detail
               </a>
+              <form action="{{ url_for('admin.delete_student', user_id=student.id) }}" method="POST" class="d-inline">
+                <button type="button" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);"
+                  onclick="if(confirm('Yakin ingin menghapus siswa ini? Seluruh data enroll & jadwal akan ikut terhapus.')) { this.form.submit(); }">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
             </td>
           </tr>
           {% endfor %}
@@ -93,4 +150,32 @@
     </div>
   </div>
 </div>
+
+{% if students|length == 0 %}
+<div class="card mt-4">
+  <div class="card-body text-center py-5">
+    <i class="fas fa-users fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+    <h5 class="text-muted">Belum ada data siswa</h5>
+    <p class="text-muted mb-4">Mulai dengan mengundang siswa baru ke sistem.</p>
+    <a href="{{ url_for('main.admin_invite') }}" class="btn btn-primary">
+      <i class="fas fa-plus me-2"></i> Invite Siswa Pertama
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Simple search filter
+  document.getElementById('searchInput').addEventListener('keyup', function () {
+    const searchValue = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#studentTable tbody tr');
+
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchValue) ? '' : 'none';
+    });
+  });
+</script>
 {% endblock %}

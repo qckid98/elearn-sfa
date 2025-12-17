@@ -1,72 +1,287 @@
-{% extends "base.html" %} {% block content %}
-<div
-  class="row justify-content-center align-items-center"
-  style="min-height: 70vh"
->
-  <div class="col-md-5 col-lg-4">
-    <div class="text-center mb-4">
-      <div
-        class="icon-box bg-soft-danger mx-auto rounded-circle"
-        style="width: 80px; height: 80px"
-      >
-        <i class="fas fa-cut fs-2"></i>
-      </div>
-      <h3 class="fw-bold mt-3">Selamat Datang</h3>
-      <p class="text-muted">Masuk ke Sistem Sekolah Fashion</p>
-    </div>
+{% extends "base.html" %}
 
-    <div class="card p-4">
-      <div class="card-body">
-        <form method="POST">
-          <div class="mb-4">
-            <label class="form-label small text-uppercase fw-bold text-muted"
-              >Email Address</label
-            >
-            <div class="input-group">
-              <span class="input-group-text bg-light border-0"
-                ><i class="far fa-envelope text-muted"></i
-              ></span>
-              <input
-                type="email"
-                name="email"
-                class="form-control bg-light border-0 py-2"
-                required
-                placeholder="nama@email.com"
-              />
-            </div>
-          </div>
-          <div class="mb-4">
-            <label class="form-label small text-uppercase fw-bold text-muted"
-              >Password</label
-            >
-            <div class="input-group">
-              <span class="input-group-text bg-light border-0"
-                ><i class="fas fa-lock text-muted"></i
-              ></span>
-              <input
-                type="password"
-                name="password"
-                class="form-control bg-light border-0 py-2"
-                required
-                placeholder="******"
-              />
-            </div>
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-danger py-2">
-              Masuk Sekarang
-            </button>
-          </div>
-        </form>
+{% block title %}Login - Fashion School{% endblock %}
+
+{% block guest_content %}
+<style>
+  .login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f1f35 100%);
+  }
+
+  .login-illustration {
+    flex: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media (min-width: 992px) {
+    .login-illustration {
+      display: flex;
+    }
+  }
+
+  .login-illustration::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 80%;
+    height: 150%;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50%;
+  }
+
+  .login-illustration-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: white;
+  }
+
+  .login-illustration-icon {
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 32px;
+    backdrop-filter: blur(10px);
+  }
+
+  .login-illustration-icon i {
+    font-size: 48px;
+    color: var(--brand-primary);
+  }
+
+  .login-illustration h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .login-illustration p {
+    font-size: 16px;
+    opacity: 0.7;
+    max-width: 400px;
+  }
+
+  .login-form-section {
+    flex: 0 0 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: var(--bg-body);
+  }
+
+  @media (max-width: 991px) {
+    .login-form-section {
+      flex: 1;
+    }
+  }
+
+  .login-form-container {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .login-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .login-logo-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--brand-primary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+  }
+
+  .login-logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .login-logo-text span {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .login-header {
+    margin-bottom: 32px;
+  }
+
+  .login-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .login-header p {
+    color: var(--text-muted);
+    font-size: 15px;
+  }
+
+  .login-form .form-group {
+    margin-bottom: 20px;
+  }
+
+  .login-form .form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .login-form .form-control {
+    height: 52px;
+    padding: 14px 16px 14px 48px;
+    font-size: 15px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-card);
+  }
+
+  .login-form .form-control:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 4px var(--brand-primary-light);
+  }
+
+  .login-form .input-icon i {
+    left: 18px;
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+
+  .login-form .btn-login {
+    width: 100%;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    background: var(--brand-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .login-form .btn-login:hover {
+    background: var(--brand-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+  }
+
+  .login-footer {
+    margin-top: 24px;
+    text-align: center;
+  }
+
+  .login-footer a {
+    color: var(--brand-primary);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .login-footer a:hover {
+    text-decoration: underline;
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 24px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+  }
+</style>
+
+<div class="login-wrapper">
+  <!-- Left Side - Illustration -->
+  <div class="login-illustration">
+    <div class="login-illustration-content">
+      <div class="login-illustration-icon">
+        <i class="fas fa-cut"></i>
       </div>
+      <h1>Fashion School</h1>
+      <p>Sistem Manajemen Akademik untuk Sekolah Fashion terbaik. Kelola siswa, pengajar, dan jadwal dengan mudah.</p>
     </div>
-    <div class="text-center mt-3">
-      <small class="text-muted"
-        >Butuh bantuan?
-        <a href="#" class="text-danger text-decoration-none"
-          >Hubungi Admin</a
-        ></small
-      >
+  </div>
+
+  <!-- Right Side - Login Form -->
+  <div class="login-form-section">
+    <div class="login-form-container">
+      <!-- Logo (Mobile) -->
+      <div class="login-logo d-lg-none">
+        <div class="login-logo-icon">
+          <i class="fas fa-cut"></i>
+        </div>
+        <div class="login-logo-text">FASHION<span>SCHOOL</span></div>
+      </div>
+
+      <!-- Header -->
+      <div class="login-header">
+        <h2>Selamat Datang! 👋</h2>
+        <p>Masuk ke akun Anda untuk melanjutkan</p>
+      </div>
+
+      <!-- Login Form -->
+      <form method="POST" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <div class="input-icon">
+            <i class="far fa-envelope"></i>
+            <input type="email" name="email" class="form-control" required placeholder="nama@email.com"
+              autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+            <input type="password" name="password" class="form-control" required placeholder="Masukkan password"
+              autocomplete="current-password" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">
+          <i class="fas fa-sign-in-alt me-2"></i> Masuk Sekarang
+        </button>
+      </form>
+
+      <!-- Footer -->
+      <div class="login-footer">
+        <p class="text-muted mb-0">
+          Butuh bantuan? <a href="#">Hubungi Admin</a>
+        </p>
+      </div>
     </div>
   </div>
 </div>

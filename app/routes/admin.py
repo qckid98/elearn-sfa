@@ -197,3 +197,57 @@ def teacher_detail(user_id):
         avail_map[av.day_of_week][av.timeslot_id] = True
         
     return render_template('admin/teacher_detail.html', teacher=teacher, subjects=subjects, timeslots=timeslots, days=days, my_skill_ids=my_skill_ids, avail_map=avail_map)
+
+# --- DELETE ROUTES ---
+@bp.route('/student/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_student(user_id):
+    student = User.query.get_or_404(user_id)
+    if student.role != 'student':
+        flash('User bukan siswa.')
+        return redirect(url_for('admin.student_list'))
+        
+    try:
+        db.session.delete(student)
+        db.session.commit()
+        flash('Siswa dihapus.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Gagal menghapus: {str(e)}')
+        
+    return redirect(url_for('admin.student_list'))
+
+@bp.route('/program/delete/<int:prog_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_program(prog_id):
+    prog = Program.query.get_or_404(prog_id)
+    try:
+        db.session.delete(prog)
+        db.session.commit()
+        flash('Program dihapus.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Gagal menghapus program: {str(e)}')
+        
+    return redirect(url_for('admin.program_manage'))
+
+@bp.route('/teacher/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_teacher(user_id):
+    teacher = User.query.get_or_404(user_id)
+    if teacher.role != 'teacher':
+        flash('User bukan guru.')
+        return redirect(url_for('admin.teacher_list'))
+        
+    try:
+        db.session.delete(teacher)
+        db.session.commit()
+        flash('Guru dihapus.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Gagal menghapus guru: {str(e)}')
+        
+    return redirect(url_for('admin.teacher_list'))

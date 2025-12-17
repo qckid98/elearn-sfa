@@ -1,227 +1,210 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fashion School System</title>
 
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Fashion School System{% endblock %}</title>
 
-    <style>
-      :root {
-        --brand-color: #dc3545; /* Merah Bootstrap */
-        --brand-hover: #bb2d3b;
-        --bg-body: #f4f6f9;
-      }
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-      body {
-        font-family: "Poppins", sans-serif;
-        background-color: var(--bg-body);
-        color: #333;
-      }
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-      /* --- MODERN NAVBAR --- */
-      .navbar {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-        padding: 1rem 0;
-      }
-      .navbar-brand {
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        color: var(--brand-color) !important;
-      }
-      .nav-link {
-        font-weight: 500;
-        color: #555 !important;
-        transition: color 0.3s;
-      }
-      .nav-link:hover,
-      .nav-link.active {
-        color: var(--brand-color) !important;
-      }
+  <!-- Bootstrap (minimal usage) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-      /* --- MODERN CARDS --- */
-      .card {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        overflow: hidden;
-        background: #fff;
-      }
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 
-      /* Efek Hover untuk Card Menu */
-      .hover-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(220, 53, 69, 0.15); /* Bayangan merah halus */
-        border-color: transparent;
-      }
+  {% block extra_css %}{% endblock %}
+</head>
 
-      /* --- BUTTONS --- */
-      .btn {
-        border-radius: 50px; /* Pill shape buttons */
-        padding: 0.6rem 1.5rem;
-        font-weight: 500;
-        transition: all 0.3s;
-      }
-      .btn-brand,
-      .btn-danger {
-        background-color: var(--brand-color);
-        border: none;
-        box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
-      }
-      .btn-brand:hover,
-      .btn-danger:hover {
-        background-color: var(--brand-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
-      }
+<body>
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+  <div class="toast-wrapper">
+    {% for message in messages %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i>
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
 
-      /* --- TABLES --- */
-      .table-custom thead th {
-        background-color: #f8f9fa;
-        color: #666;
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        border-bottom: 2px solid #eee;
-        padding: 1rem;
-      }
-      .table-custom tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-        border-bottom: 1px solid #f1f1f1;
-      }
+  {% if current_user.is_authenticated %}
+  <!-- App Layout with Sidebar -->
+  <div class="app-wrapper">
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay"></div>
 
-      /* --- UTILS --- */
-      .icon-box {
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
-      .bg-soft-danger {
-        background-color: rgba(220, 53, 69, 0.1);
-        color: var(--brand-color);
-      }
-      .bg-soft-warning {
-        background-color: rgba(255, 193, 7, 0.1);
-        color: #ffc107;
-      }
-      .bg-soft-dark {
-        background-color: rgba(33, 37, 41, 0.1);
-        color: #212529;
-      }
-      .bg-soft-primary {
-        background-color: rgba(13, 110, 253, 0.1);
-        color: #0d6efd;
-      }
-    </style>
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg sticky-top">
-      <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
-          <i class="fas fa-cut"></i> FASHION<span class="text-dark"
-            >SCHOOL</span
-          >
-        </a>
-        <button
-          class="navbar-toggler border-0"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span class="navbar-toggler-icon"></span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fas fa-cut"></i>
+        </div>
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-name">FASHION<span style="opacity: 0.7">SCHOOL</span></span>
+          <span class="sidebar-brand-tagline">Academic System</span>
+        </div>
+        <button class="sidebar-toggle" title="Toggle Sidebar">
+          <i class="fas fa-chevron-left"></i>
         </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto align-items-center">
-            {% if current_user.is_authenticated %}
-            <li class="nav-item me-3">
-              <a class="nav-link" href="{{ url_for('main.dashboard') }}"
-                >Dashboard</a
-              >
-            </li>
-            <li class="nav-item">
-              <div class="dropdown">
-                <a
-                  class="btn btn-outline-dark btn-sm dropdown-toggle"
-                  href="#"
-                  role="button"
-                  data-bs-toggle="dropdown"
-                >
-                  <i class="far fa-user-circle me-1"></i> {{
-                  current_user.name.split(' ')[0] }}
-                </a>
-                <ul
-                  class="dropdown-menu dropdown-menu-end border-0 shadow rounded-4 mt-2"
-                >
-                  <li>
-                    <span class="dropdown-header text-uppercase small"
-                      >Role: {{ current_user.role }}</span
-                    >
-                  </li>
-                  <li><hr class="dropdown-divider" /></li>
-                  <li>
-                    <a
-                      class="dropdown-item text-danger"
-                      href="{{ url_for('auth.logout') }}"
-                      ><i class="fas fa-sign-out-alt me-2"></i> Logout</a
-                    >
-                  </li>
-                </ul>
-              </div>
-            </li>
-            {% else %}
-            <li class="nav-item">
-              <a
-                class="btn btn-danger btn-sm px-4"
-                href="{{ url_for('auth.login') }}"
-                >Login</a
-              >
-            </li>
-            {% endif %}
-          </ul>
+      </div>
+
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar-nav">
+        <!-- Main Menu -->
+        <div class="nav-section">
+          <a href="{{ url_for('main.dashboard') }}"
+            class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+            <i class="fas fa-th-large"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+
+        {% if current_user.role == 'admin' %}
+        <!-- Admin Menu -->
+        <div class="nav-section">
+          <div class="nav-section-title">Manajemen</div>
+          <a href="{{ url_for('main.admin_invite') }}"
+            class="nav-item {% if request.endpoint == 'main.admin_invite' %}active{% endif %}">
+            <i class="fas fa-user-plus"></i>
+            <span>Invite Siswa</span>
+          </a>
+          <a href="{{ url_for('admin.student_list') }}"
+            class="nav-item {% if 'student' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-users"></i>
+            <span>Data Siswa</span>
+          </a>
+          <a href="{{ url_for('admin.teacher_list') }}"
+            class="nav-item {% if 'teacher' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Pengajar</span>
+          </a>
+          <a href="{{ url_for('admin.program_manage') }}"
+            class="nav-item {% if 'program' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-book-open"></i>
+            <span>Program</span>
+          </a>
+          <a href="{{ url_for('admin.master_schedule') }}"
+            class="nav-item {% if 'schedule' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Master Schedule</span>
+          </a>
+        </div>
+
+        {% elif current_user.role == 'teacher' %}
+        <!-- Teacher Menu -->
+        <div class="nav-section">
+          <div class="nav-section-title">Absensi</div>
+          <a href="{{ url_for('attendance.view_form', timeslot_id=1) }}" class="nav-item">
+            <i class="fas fa-sun"></i>
+            <span>Sesi 1 (Pagi)</span>
+          </a>
+          <a href="{{ url_for('attendance.view_form', timeslot_id=2) }}" class="nav-item">
+            <i class="fas fa-moon"></i>
+            <span>Sesi 2 (Siang)</span>
+          </a>
+        </div>
+
+        {% else %}
+        <!-- Student Menu -->
+        <div class="nav-section">
+          <div class="nav-section-title">Akademik</div>
+          <a href="{{ url_for('onboarding.schedule_wizard') }}" class="nav-item">
+            <i class="fas fa-calendar-check"></i>
+            <span>Atur Jadwal</span>
+          </a>
+        </div>
+        {% endif %}
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">
+            {{ current_user.name[0]|upper if current_user.name else '?' }}
+          </div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">{{ current_user.name.split(' ')[0] if current_user.name else 'User' }}</div>
+            <div class="sidebar-user-role">{{ current_user.role|capitalize }}</div>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" class="sidebar-user-logout" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </a>
         </div>
       </div>
-    </nav>
+    </aside>
 
-    <div class="container py-5">
-      {% with messages = get_flashed_messages() %} {% if messages %} {% for
-      message in messages %}
-      <div
-        class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center mb-4"
-        role="alert"
-      >
-        <i class="fas fa-info-circle me-2 fs-5"></i>
-        <div>{{ message }}</div>
-        <button
-          type="button"
-          class="btn-close ms-auto"
-          data-bs-dismiss="alert"
-          aria-label="Close"
-        ></button>
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="btn btn-icon mobile-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+        </div>
+        <div class="header-right">
+          <button class="header-icon-btn" title="Tema">
+            <i class="fas fa-moon"></i>
+          </button>
+          <button class="header-icon-btn" title="Notifikasi">
+            <i class="fas fa-bell"></i>
+          </button>
+          <div class="dropdown">
+            <div class="header-user" data-dropdown-toggle>
+              <div class="header-user-info">
+                <div class="header-user-name">{{ current_user.name if current_user.name else 'User' }}</div>
+                <div class="header-user-date">{{ now_date if now_date else '' }}</div>
+              </div>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-item">
+                <i class="fas fa-user"></i>
+                <span>Profil Saya</span>
+              </div>
+              <div class="dropdown-item">
+                <i class="fas fa-cog"></i>
+                <span>Pengaturan</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a href="{{ url_for('auth.logout') }}" class="dropdown-item danger">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Body -->
+      <div class="content-body">
+        {% block content %}{% endblock %}
       </div>
-      {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
-    </div>
+    </main>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  {% else %}
+  <!-- Guest Layout (Login, etc.) -->
+  <div class="guest-wrapper">
+    {% block guest_content %}{% endblock %}
+  </div>
+  {% endif %}
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
 </html>

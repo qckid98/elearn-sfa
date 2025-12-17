@@ -1,79 +1,77 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block page_title %}Edit Program{% endblock %}
+
+{% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-white border-0 fw-bold pt-4 px-4">
-        Edit Program: {{ program.name }}
+  <div class="col-md-8 col-lg-6">
+    <!-- Breadcrumb -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <a href="{{ url_for('admin.program_manage') }}" class="btn btn-secondary btn-icon"
+        style="width: 40px; height: 40px;">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div>
+        <h4 class="fw-700 mb-1">Edit Program</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">{{ program.name }}</p>
       </div>
+    </div>
+
+    <!-- Edit Form Card -->
+    <div class="card" style="border-top: 4px solid var(--warning);">
       <div class="card-body p-4">
         <form method="POST">
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Nama Program</label>
-            <input
-              type="text"
-              name="name"
-              class="form-control bg-light border-0"
-              value="{{ program.name }}"
-              required
-            />
+          <!-- Program Name -->
+          <div class="form-group">
+            <label class="form-label">Nama Program</label>
+            <input type="text" name="name" class="form-control" value="{{ program.name }}" required />
           </div>
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Total Sesi</label>
-            <input
-              type="number"
-              name="total_sessions"
-              class="form-control bg-light border-0"
-              value="{{ program.total_sessions }}"
-              required
-            />
+
+          <!-- Total Sessions -->
+          <div class="form-group">
+            <label class="form-label">Total Sesi</label>
+            <input type="number" name="total_sessions" class="form-control" value="{{ program.total_sessions }}"
+              required />
+            <div class="form-hint">Jumlah pertemuan dalam program ini</div>
           </div>
-          <div class="form-check form-switch mb-4">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              name="is_batch_based"
-              id="isBatch"
-              {%
-              if
-              program.is_batch_based
-              %}checked{%
-              endif
-              %}
-            />
-            <label class="form-check-label" for="isBatch">Sistem Batch?</label>
-          </div>
-          <div class="mb-4">
-            <label class="form-label small fw-bold">Materi:</label>
-            <div class="card bg-light border-0 p-3">
-              {% for sub in subjects %}
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  name="subjects"
-                  value="{{ sub.id }}"
-                  {%
-                  if
-                  sub.id
-                  in
-                  current_sub_ids
-                  %}checked{%
-                  endif
-                  %}
-                />
-                <label class="form-check-label">{{ sub.name }}</label>
+
+          <!-- Batch Toggle -->
+          <div class="form-group">
+            <label class="d-flex align-items-center gap-3 p-3 rounded"
+              style="background: var(--bg-body); cursor: pointer;">
+              <input class="form-check-input" type="checkbox" name="is_batch_based" style="width: 20px; height: 20px;"
+                {% if program.is_batch_based %}checked{% endif %} />
+              <div>
+                <div class="fw-600">Sistem Batch</div>
+                <div class="text-muted" style="font-size: 12px;">Fast Track dengan jadwal tetap</div>
               </div>
+            </label>
+          </div>
+
+          <!-- Subject Selection -->
+          <div class="form-group">
+            <label class="form-label">Pilih Materi</label>
+            <div class="p-3 rounded" style="background: var(--bg-body); max-height: 250px; overflow-y: auto;">
+              {% for sub in subjects %}
+              <label class="d-flex align-items-center gap-2 mb-2 p-2 rounded"
+                style="cursor: pointer; transition: background 0.2s;">
+                <input class="form-check-input" type="checkbox" name="subjects" value="{{ sub.id }}"
+                  style="width: 18px; height: 18px;" {% if sub.id in current_sub_ids %}checked{% endif %} />
+                <span>{{ sub.name }}</span>
+              </label>
+              {% else %}
+              <p class="text-muted mb-0" style="font-size: 13px;">Tidak ada materi tersedia</p>
               {% endfor %}
             </div>
           </div>
+
+          <!-- Action Buttons -->
           <div class="d-flex gap-2">
-            <a
-              href="{{ url_for('admin.program_manage') }}"
-              class="btn btn-light w-50"
-              >Batal</a
-            >
-            <button type="submit" class="btn btn-primary w-50">
-              Simpan Perubahan
+            <a href="{{ url_for('admin.program_manage') }}" class="btn btn-secondary flex-fill">
+              <i class="fas fa-times me-2"></i> Batal
+            </a>
+            <button type="submit" class="btn btn-primary flex-fill">
+              <i class="fas fa-save me-2"></i> Simpan Perubahan
             </button>
           </div>
         </form>
@@ -81,4 +79,10 @@
     </div>
   </div>
 </div>
+
+<style>
+  .form-group label.d-flex:hover {
+    background: var(--border-color) !important;
+  }
+</style>
 {% endblock %}

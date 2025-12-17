@@ -31,6 +31,7 @@ def seed():
     design = get_or_create(Subject, name="Fashion Design")
     pcsw = get_or_create(Subject, name="PCSW (Pola)")
     cad = get_or_create(Subject, name="CAD")
+    business = get_or_create(Subject, name="Fashion Business")
     
     # 3. Programs
     prog_3in1 = get_or_create(Program, name="FF 3 in 1", total_sessions=48)

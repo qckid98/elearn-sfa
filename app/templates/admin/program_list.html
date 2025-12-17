@@ -1,36 +1,94 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block page_title %}Program Studi{% endblock %}
+
+{% block content %}
 <div class="row g-4">
-  <div class="col-md-8">
-    <h4 class="fw-bold mb-3">Daftar Program Studi</h4>
-    <div class="card shadow-sm border-0">
+  <!-- Left Column - Program List -->
+  <div class="col-lg-8">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-700 mb-1">Program Studi</h4>
+        <p class="text-muted mb-0">Kelola kurikulum dan program pembelajaran</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6">
+        <div class="stats-card">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stats-card-icon warning" style="margin-bottom: 0;">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <div>
+              <div class="stats-card-value" style="font-size: 24px;">{{ programs|length }}</div>
+              <div class="stats-card-label">Total Program</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Program Table -->
+    <div class="card">
       <div class="card-body p-0">
-        <table class="table table-custom table-hover align-middle mb-0">
+        <table class="table-modern">
           <thead>
             <tr>
-              <th class="ps-4">Nama Program</th>
+              <th style="padding-left: 24px;">Nama Program</th>
               <th>Total Sesi</th>
               <th>Tipe</th>
-              <th class="text-end pe-4">Aksi</th>
+              <th style="text-align: right; padding-right: 24px;">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {% for prog in programs %}
             <tr>
-              <td class="ps-4 fw-bold">{{ prog.name }}</td>
-              <td>{{ prog.total_sessions }} Sesi</td>
+              <td style="padding-left: 24px;">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="avatar" style="background: var(--warning-light); color: var(--warning);">
+                    <i class="fas fa-book"></i>
+                  </div>
+                  <div>
+                    <div class="fw-600">{{ prog.name }}</div>
+                    <div class="text-muted" style="font-size: 12px;">ID: #{{ prog.id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="fw-600 text-brand" style="font-size: 18px;">{{ prog.total_sessions }}</span>
+                <span class="text-muted">Sesi</span>
+              </td>
               <td>
                 {% if prog.is_batch_based %}
-                <span class="badge bg-soft-warning text-dark">Batch Based</span>
+                <span class="badge badge-warning">
+                  <i class="fas fa-users me-1"></i> Batch Based
+                </span>
                 {% else %}
-                <span class="badge bg-soft-success text-success">Rolling</span>
+                <span class="badge badge-success">
+                  <i class="fas fa-sync me-1"></i> Rolling
+                </span>
                 {% endif %}
               </td>
-              <td class="text-end pe-4">
-                <a
-                  href="{{ url_for('admin.program_edit', prog_id=prog.id) }}"
-                  class="btn btn-sm btn-outline-dark rounded-pill"
-                  >Edit</a
-                >
+              <td style="text-align: right; padding-right: 24px;">
+                <a href="{{ url_for('admin.program_edit', prog_id=prog.id) }}" class="btn btn-secondary btn-sm">
+                  <i class="fas fa-edit me-1"></i> Edit
+                </a>
+                <form action="{{ url_for('admin.delete_program', prog_id=prog.id) }}" method="POST" class="d-inline">
+                  <button type="button" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);"
+                    onclick="if(confirm('Yakin ingin menghapus program ini?')) { this.form.submit(); }">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-5 text-muted">
+                <i class="fas fa-book-open fa-2x mb-3" style="opacity: 0.3;"></i>
+                <p>Belum ada program yang dibuat</p>
               </td>
             </tr>
             {% endfor %}
@@ -40,62 +98,56 @@
     </div>
   </div>
 
-  <div class="col-md-4">
-    <h4 class="fw-bold mb-3">Tambah Program</h4>
-    <div class="card shadow-sm border-0 border-top border-success border-4">
-      <div class="card-body p-4">
+  <!-- Right Column - Add Program Form -->
+  <div class="col-lg-4">
+    <div class="card" style="border-top: 4px solid var(--success);">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-plus-circle text-success me-2"></i> Tambah Program Baru
+        </h6>
+      </div>
+      <div class="card-body">
         <form method="POST">
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Nama Program</label>
-            <input
-              type="text"
-              name="name"
-              class="form-control bg-light border-0"
-              required
-            />
+          <div class="form-group">
+            <label class="form-label">Nama Program</label>
+            <input type="text" name="name" class="form-control" required placeholder="Contoh: Fashion Design Basic" />
           </div>
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Total Sesi</label>
-            <input
-              type="number"
-              name="total_sessions"
-              class="form-control bg-light border-0"
-              required
-              value="12"
-            />
+
+          <div class="form-group">
+            <label class="form-label">Total Sesi</label>
+            <input type="number" name="total_sessions" class="form-control" required value="12" />
+            <div class="form-hint">Jumlah pertemuan dalam program ini</div>
           </div>
-          <div class="form-check form-switch mb-4">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              name="is_batch_based"
-              id="isBatch"
-            />
-            <label class="form-check-label small fw-bold" for="isBatch"
-              >Sistem Batch (Fast Track)?</label
-            >
-          </div>
-          <div class="mb-4">
-            <label class="form-label small fw-bold mb-2">Pilih Materi:</label>
-            <div class="card bg-light border-0 p-3">
-              {% for sub in subjects %}
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  name="subjects"
-                  value="{{ sub.id }}"
-                  id="s_{{sub.id}}"
-                />
-                <label class="form-check-label" for="s_{{sub.id}}"
-                  >{{ sub.name }}</label
-                >
+
+          <div class="form-group">
+            <label class="d-flex align-items-center gap-3 p-3 rounded"
+              style="background: var(--bg-body); cursor: pointer;">
+              <input class="form-check-input" type="checkbox" name="is_batch_based"
+                style="width: 20px; height: 20px;" />
+              <div>
+                <div class="fw-600">Sistem Batch</div>
+                <div class="text-muted" style="font-size: 12px;">Fast Track dengan jadwal tetap</div>
               </div>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pilih Materi</label>
+            <div class="p-3 rounded" style="background: var(--bg-body); max-height: 200px; overflow-y: auto;">
+              {% for sub in subjects %}
+              <label class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;">
+                <input class="form-check-input" type="checkbox" name="subjects" value="{{ sub.id }}"
+                  style="width: 18px; height: 18px;" />
+                <span>{{ sub.name }}</span>
+              </label>
+              {% else %}
+              <p class="text-muted mb-0" style="font-size: 13px;">Belum ada materi yang tersedia</p>
               {% endfor %}
             </div>
           </div>
-          <button type="submit" class="btn btn-success w-100 fw-bold">
-            Simpan Program
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-save me-2"></i> Simpan Program
           </button>
         </form>
       </div>
