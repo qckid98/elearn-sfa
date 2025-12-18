@@ -54,13 +54,13 @@
                 <div class="schedule-item p-2 rounded mb-2"
                   style="background: var(--bg-body); border-left: 3px solid var(--brand-primary);">
                   <div class="fw-600" style="font-size: 13px;">
-                    {{ item.enrollment.student.name.split(' ')[0] }}
+                    {{ item.enrollment.student.name }}
                   </div>
                   <div class="text-muted" style="font-size: 11px;">
                     <i class="fas fa-book me-1"></i> {{ item.subject.name }}
                   </div>
                   <div class="text-muted" style="font-size: 11px;">
-                    <i class="fas fa-chalkboard-teacher me-1"></i> {{ item.teacher.name.split(' ')[0] }}
+                    <i class="fas fa-chalkboard-teacher me-1"></i> {{ item.teacher.name }}
                   </div>
                 </div>
                 {% endfor %}

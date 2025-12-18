@@ -80,6 +80,112 @@
   </div>
 </div>
 
+{% if program.is_batch_based %}
+<!-- Batch Management Section -->
+<div class="row justify-content-center mt-4">
+  <div class="col-md-8 col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-600">Daftar Batch</h5>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBatchModal">
+          <i class="fas fa-plus me-1"></i> Tambah Batch
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th class="ps-4">Nama Batch</th>
+                <th class="text-center">Kuota</th>
+                <th class="text-center">Status</th>
+                <th class="text-end pe-4">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for batch in program.batches %}
+              <tr>
+                <td class="ps-4 fw-600">{{ batch.name }}</td>
+                <td class="text-center">{{ batch.max_students }} Siswa</td>
+                <td class="text-center">
+                  {% if batch.is_active %}
+                  <span class="badge badge-success">Aktif</span>
+                  {% else %}
+                  <span class="badge badge-secondary">Non-Aktif</span>
+                  {% endif %}
+                </td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline btn-icon" data-bs-toggle="modal"
+                    data-bs-target="#editBatchModal{{ batch.id }}">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <div class="mb-3">
+                    <label class="form-label">Nama Batch</label>
+                    <input type="text" name="name" class="form-control" value="{{ batch.name }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Kuota Maksimal</label>
+                    <input type="number" name="max_students" class="form-control" value="{{ batch.max_students }}"
+                      required>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive{{ batch.id }}" {% if
+                      batch.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActive{{ batch.id }}">
+                      Batch Aktif (Buka Pendaftaran)
+                    </label>
+                  </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <tr>
+    <td colspan="4" class="text-center py-4 text-muted">Belum ada batch yang dibuat.</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Add Batch Modal -->
+<div class="modal fade" id="addBatchModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Tambah Batch Baru</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('admin.add_batch') }}" method="POST">
+        <input type="hidden" name="program_id" value="{{ program.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nama Batch</label>
+            <input type="text" name="name" class="form-control" placeholder="Contoh: Batch 1" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Kuota Maksimal</label>
+            <input type="number" name="max_students" class="form-control" value="6" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Tambah Batch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <style>
   .form-group label.d-flex:hover {
     background: var(--border-color) !important;

@@ -76,9 +76,9 @@
                 <a href="{{ url_for('admin.program_edit', prog_id=prog.id) }}" class="btn btn-secondary btn-sm">
                   <i class="fas fa-edit me-1"></i> Edit
                 </a>
-                <form action="{{ url_for('admin.delete_program', prog_id=prog.id) }}" method="POST" class="d-inline">
-                  <button type="button" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);"
-                    onclick="if(confirm('Yakin ingin menghapus program ini?')) { this.form.submit(); }">
+                <form action="{{ url_for('admin.delete_program', prog_id=prog.id) }}" method="POST"
+                  class="d-inline delete-form" data-confirm="Yakin ingin menghapus program ini?">
+                  <button type="submit" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);">
                     <i class="fas fa-trash"></i>
                   </button>
                 </form>

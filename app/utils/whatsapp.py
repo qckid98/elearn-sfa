@@ -11,9 +11,9 @@ def send_wa_message(target_number, message):
       - Personal: '62812345678@s.whatsapp.net' (Perhatikan akhiran ini untuk user)
       - Group: '12345678@g.us'
     """
-    # Endpoint untuk send message di repo aldinokemal biasanya /api/send/text
-    # atau cek dokumentasi repo jika berbeda. Ini default umum.
-    url = f"{WA_API_URL}/api/send/text" 
+    # Endpoint untuk send message di repo aldinokemal biasanya /send/message
+    # URL Path diperbaiki sesuai code Go: /send/message
+    url = f"{WA_API_URL}/send/message" 
     
     # Payload
     payload = {

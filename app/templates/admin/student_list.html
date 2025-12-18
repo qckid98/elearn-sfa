@@ -136,9 +136,10 @@
               <a href="{{ url_for('admin.student_detail', user_id=student.id) }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-eye me-1"></i> Detail
               </a>
-              <form action="{{ url_for('admin.delete_student', user_id=student.id) }}" method="POST" class="d-inline">
-                <button type="button" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);"
-                  onclick="if(confirm('Yakin ingin menghapus siswa ini? Seluruh data enroll & jadwal akan ikut terhapus.')) { this.form.submit(); }">
+              <form action="{{ url_for('admin.delete_student', user_id=student.id) }}" method="POST"
+                class="d-inline delete-form"
+                data-confirm="Yakin ingin menghapus siswa ini? Seluruh data enroll & jadwal akan ikut terhapus.">
+                <button type="submit" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>

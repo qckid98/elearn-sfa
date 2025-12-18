@@ -5,9 +5,10 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: fashion_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fashion_db
+      - TZ=Asia/Jakarta
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -25,7 +26,8 @@ services:
       - "8080:5000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/fashion_db
-      - WA_API_URL=http://wabot:3000
+      - WA_API_URL=http://flask-boilerplate-wabot-1:3000
+      - TZ=Asia/Jakarta
     depends_on:
       - db
       - wabot
@@ -47,6 +49,10 @@ services:
       - "3000:3000"
     env_file:
       - ./go-whatsapp-web-multidevice/src/.env
+    environment:
+      - APP_BASIC_AUTH=
+      - APP_DEBUG=true
+      - TZ=Asia/Jakarta
     volumes:
       - wa_credentials:/app/credentials 
     networks:

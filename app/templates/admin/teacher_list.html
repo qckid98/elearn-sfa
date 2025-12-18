@@ -76,10 +76,9 @@
                     <i class="fas fa-cog me-1"></i> Atur Detail
                   </a>
                   <form action="{{ url_for('admin.delete_teacher', user_id=teacher.id) }}" method="POST"
-                    class="d-inline">
-                    <button type="button" class="btn btn-outline btn-sm text-danger"
-                      style="border-color: var(--danger);"
-                      onclick="if(confirm('Yakin ingin menghapus guru ini?')) { this.form.submit(); }">
+                    class="d-inline delete-form" data-confirm="Yakin ingin menghapus guru ini?">
+                    <button type="submit" class="btn btn-outline btn-sm text-danger"
+                      style="border-color: var(--danger);">
                       <i class="fas fa-trash"></i>
                     </button>
                   </form>

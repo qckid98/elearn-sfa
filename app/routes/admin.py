@@ -129,6 +129,56 @@ def program_edit(prog_id):
     current_sub_ids = [ps.subject_id for ps in prog.subjects]
     return render_template('admin/program_edit.html', program=prog, subjects=Subject.query.all(), current_sub_ids=current_sub_ids)
 
+# --- BATCH MANAGEMENT ---
+@bp.route('/batch/add', methods=['POST'])
+@login_required
+@admin_required
+def add_batch():
+    program_id = int(request.form['program_id'])
+    name = request.form['name']
+    max_students = int(request.form['max_students'])
+    
+    new_batch = Batch(program_id=program_id, name=name, max_students=max_students, is_active=True)
+    db.session.add(new_batch)
+    db.session.commit()
+    flash('Batch berhasil ditambahkan.')
+    return redirect(url_for('admin.program_edit', prog_id=program_id))
+
+@bp.route('/batch/edit/<int:batch_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+    batch.name = request.form['name']
+    batch.max_students = int(request.form['max_students'])
+    batch.is_active = True if request.form.get('is_active') else False
+    
+    db.session.commit()
+    flash('Batch diperbarui.')
+    return redirect(url_for('admin.program_edit', prog_id=batch.program_id))
+
+@bp.route('/batch/delete/<int:batch_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+    program_id = batch.program_id
+    
+    # Check for enrolled students
+    if Enrollment.query.filter_by(batch_id=batch.id).first():
+        flash('Gagal menghapus: Masih ada siswa yang terdaftar di batch ini.', 'error')
+        return redirect(url_for('admin.program_edit', prog_id=program_id))
+        
+    try:
+        db.session.delete(batch)
+        db.session.commit()
+        flash('Batch dihapus.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Gagal menghapus batch: {str(e)}', 'error')
+        
+    return redirect(url_for('admin.program_edit', prog_id=program_id))
+
 # --- TEACHER ---
 @bp.route('/teachers', methods=['GET', 'POST'])
 @login_required

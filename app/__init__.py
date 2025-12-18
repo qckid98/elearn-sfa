@@ -26,6 +26,12 @@ def create_app():
     app.register_blueprint(attendance.bp)
     app.register_blueprint(admin.bp) # DAFTARKAN DISINI
 
+    # Context Processor untuk menyisipkan waktu server ke semua template
+    from datetime import datetime
+    @app.context_processor
+    def inject_now():
+        return {'now': datetime.now()}
+
     return app
 
 from app import models

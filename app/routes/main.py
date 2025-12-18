@@ -38,39 +38,13 @@ def admin_invite():
         elif clean_phone.startswith('+'):
             clean_phone = clean_phone[1:]
             
-        # 2. Generate Token & Create User
-        token = str(uuid.uuid4())
-        
-        # Cek apakah email sudah ada
+        # 2. Cek apakah email sudah ada
         if User.query.filter_by(email=email).first():
             flash('Email sudah terdaftar!')
             return redirect(url_for('main.admin_invite'))
 
-        new_user = User(
-            email=email, 
-            phone_number=clean_phone, # Simpan format 628xx
-            role='student', 
-            activation_token=token,
-            name="New Student" # Placeholder name
-        )
-        db.session.add(new_user)
-        db.session.flush() # Get ID
-        
-        # 3. Create Enrollment
-        prog = Program.query.get(program_id)
-        batch_id = request.form.get('batch_id') if prog.is_batch_based else None
-        
-        enroll = Enrollment(
-            student_id=new_user.id,
-            program_id=program_id,
-            batch_id=batch_id,
-            sessions_remaining=prog.total_sessions if not prog.is_batch_based else 0
-        )
-        db.session.add(enroll)
-        db.session.commit()
-        
-        # 4. KIRIM WHATSAPP
-        # Generate Link Full (http://domain.com/activate/token)
+        # 3. Generate Token & Link (PREPARE DATA)
+        token = str(uuid.uuid4())
         link = url_for('auth.activate', token=token, _external=True)
         
         pesan = (
@@ -79,14 +53,41 @@ def admin_invite():
             f"{link}\n\n"
             f"Terima kasih!"
         )
-        
-        # Kirim ke nomor user (tambah suffix sesuai library aldinokemal)
         target_wa = f"{clean_phone}@s.whatsapp.net"
         
+        # 4. KIRIM WHATSAPP DULUAN (ATOMIC CHECK)
         if send_wa_message(target_wa, pesan):
-            flash(f'Sukses! Link aktivasi dikirim ke WA {clean_phone}')
+            # Jika SUKSES kirim, baru simpan ke DB
+            try:
+                new_user = User(
+                    email=email, 
+                    phone_number=clean_phone,
+                    role='student', 
+                    activation_token=token,
+                    name="New Student"
+                )
+                db.session.add(new_user)
+                db.session.flush() # Get ID
+                
+                prog = Program.query.get(program_id)
+                batch_id = request.form.get('batch_id') if prog.is_batch_based else None
+                
+                enroll = Enrollment(
+                    student_id=new_user.id,
+                    program_id=program_id,
+                    batch_id=batch_id,
+                    sessions_remaining=prog.total_sessions
+                )
+                db.session.add(enroll)
+                db.session.commit()
+                
+                flash(f'Sukses! Link aktivasi dikirim ke WA {clean_phone} dan User dibuat.')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'WA Terkirim, tapi Gagal simpan DB: {str(e)}. Harap hubungi admin.')
         else:
-            flash(f'User dibuat, TAPI Gagal kirim WA ke {clean_phone}. Cek bot.')
+            # Jika GAGAL kirim, Jangan buat user
+            flash(f'GAGAL kirim WA ke {clean_phone}. User TIDAK dibuat. Cek koneksi bot.')
             
         return redirect(url_for('main.admin_invite'))
 

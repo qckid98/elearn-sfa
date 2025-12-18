@@ -134,7 +134,7 @@
             {{ current_user.name[0]|upper if current_user.name else '?' }}
           </div>
           <div class="sidebar-user-info">
-            <div class="sidebar-user-name">{{ current_user.name.split(' ')[0] if current_user.name else 'User' }}</div>
+            <div class="sidebar-user-name">{{ current_user.name if current_user.name else 'User' }}</div>
             <div class="sidebar-user-role">{{ current_user.role|capitalize }}</div>
           </div>
           <a href="{{ url_for('auth.logout') }}" class="sidebar-user-logout" title="Logout">
@@ -152,7 +152,14 @@
           <button class="btn btn-icon mobile-toggle">
             <i class="fas fa-bars"></i>
           </button>
-          <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+
+          <!-- Server Time Clock -->
+          <div class="d-none d-sm-flex align-items-center gap-2 text-muted fw-600 ms-3" style="font-size: 14px;">
+            <i class="fas fa-clock text-brand-primary"></i>
+            <span id="serverClock">{{ now.strftime('%H:%M:%S') }}</span> WIB
+          </div>
+
+          <h1 class="page-title ms-4">{% block page_title %}Dashboard{% endblock %}</h1>
         </div>
         <div class="header-right">
           <button class="header-icon-btn" title="Tema">
@@ -165,7 +172,7 @@
             <div class="header-user" data-dropdown-toggle>
               <div class="header-user-info">
                 <div class="header-user-name">{{ current_user.name if current_user.name else 'User' }}</div>
-                <div class="header-user-date">{{ now_date if now_date else '' }}</div>
+                <div class="header-user-date">{{ now.strftime('%d %b %Y') }}</div>
               </div>
             </div>
             <div class="dropdown-menu">
@@ -201,9 +208,31 @@
   </div>
   {% endif %}
 
-  <!-- Scripts -->
+  <!-- Core JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+  <script>
+    // Server Clock Script
+    // Initialize with server time via Jinja
+    let serverTime = new Date("{{ now.strftime('%Y-%m-%dT%H:%M:%S') }}");
+
+    function updateClock() {
+      serverTime.setSeconds(serverTime.getSeconds() + 1);
+
+      const hours = String(serverTime.getHours()).padStart(2, '0');
+      const minutes = String(serverTime.getMinutes()).padStart(2, '0');
+      const seconds = String(serverTime.getSeconds()).padStart(2, '0');
+
+      const clockEl = document.getElementById('serverClock');
+      if (clockEl) {
+        clockEl.textContent = `${hours}:${minutes}:${seconds}`;
+      }
+    }
+
+    setInterval(updateClock, 1000);
+  </script>
+
   {% block extra_js %}{% endblock %}
 </body>
 
