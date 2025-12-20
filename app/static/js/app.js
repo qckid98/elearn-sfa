@@ -185,32 +185,18 @@ function showToast(message, type = 'info') {
 }
 
 function confirmAction(message) {
-  return new Promise((resolve) => {
-    const modal = document.createElement('div');
-    modal.className = 'confirm-modal';
-    modal.innerHTML = `
-      <div class="confirm-modal-content">
-        <div class="confirm-modal-icon">
-          <i class="fas fa-question-circle"></i>
-        </div>
-        <p>${message}</p>
-        <div class="confirm-modal-actions">
-          <button class="btn btn-secondary" data-action="cancel">Batal</button>
-          <button class="btn btn-primary" data-action="confirm">Ya, Lanjutkan</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector('[data-action="cancel"]').addEventListener('click', () => {
-      modal.remove();
-      resolve(false);
-    });
-
-    modal.querySelector('[data-action="confirm"]').addEventListener('click', () => {
-      modal.remove();
-      resolve(true);
-    });
+  return Swal.fire({
+    title: 'Konfirmasi',
+    text: message,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: 'var(--brand-primary)',
+    cancelButtonColor: '#858796',
+    confirmButtonText: 'Ya, Lanjutkan',
+    cancelButtonText: 'Batal',
+    background: 'var(--bg-card)',
+    color: 'var(--text-primary)'
+  }).then((result) => {
+    return result.isConfirmed;
   });
 }

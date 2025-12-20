@@ -203,10 +203,11 @@
   <!-- Stats Section - Student -->
   <div class="row g-4 mb-4">
     <!-- Featured Card - Sessions Remaining -->
-    <div class="col-md-4">
-      <div class="featured-card" style="height: 100%;">
-        <div class="featured-card-content text-center">
-          <div class="featured-card-label">Sisa Sesi Anda</div>
+    <div class="col-lg-5 col-md-12">
+      <div class="featured-card d-flex align-items-center justify-content-center"
+        style="height: 100%; min-height: 250px;">
+        <div class="featured-card-content text-center w-100">
+          <div class="featured-card-label">SISA SESI ANDA</div>
           <div class="featured-card-value">{{ enrollment.sessions_remaining }}</div>
           <div class="featured-card-subtitle">{{ enrollment.program.name }}</div>
           {% if enrollment.batch %}
@@ -214,11 +215,74 @@
           {% endif %}
         </div>
       </div>
+      <!-- Progress Chart Removed from here -->
     </div>
 
     <!-- Info Cards -->
-    <div class="col-md-8">
-      <div class="card h-100">
+    <div class="col-lg-7 col-md-12">
+      <!-- Manual Sessions / Overrides -->
+      {% if manual_bookings %}
+      <div class="card mb-4" style="border-left: 4px solid var(--warning);">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-calendar-plus text-warning me-2"></i> Jadwal Tambahan (Manual)
+          </h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table-modern">
+              <thead>
+                <tr>
+                  <th style="padding-left: 24px;">Hari/Tanggal</th>
+                  <th>Waktu</th>
+                  <th>Materi</th>
+                  <th>Pengajar</th>
+                  <th style="text-align: right; padding-right: 24px;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for booking in manual_bookings %}
+                <tr>
+                  <td style="padding-left: 24px;">
+                    <div class="fw-600">{{ days[booking.date.weekday()] }}</div>
+                    <div class="text-muted" style="font-size: 13px;">{{ booking.date.strftime('%d %b %Y') }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-600 text-brand">{{ booking.timeslot.name }}</div>
+                  </td>
+                  <td>
+                    {% if booking.subject %}
+                    <span>{{ booking.subject.name }}</span>
+                    {% else %}
+                    <span class="text-muted fst-italic" style="font-size: 13px;">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if booking.teacher %}
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
+                        {{ booking.teacher.name[0]|upper }}
+                      </div>
+                      <span style="font-size: 14px;">{{ booking.teacher.name }}</span>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: right; padding-right: 24px;">
+                    <span class="badge badge-warning" style="font-weight: 500;">Override</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Regular Schedule -->
+      <div class="card">
         <div class="card-header">
           <h6 class="card-title mb-0">
             <i class="fas fa-calendar-week text-brand me-2"></i> Jadwal Rutin
@@ -283,8 +347,8 @@
         <div class="chart-header">
           <h6 class="chart-title">Progress Belajar</h6>
         </div>
-        <div class="chart-placeholder">
-          <i class="fas fa-chart-pie me-2"></i> Chart akan ditampilkan di sini
+        <div class="chart-placeholder" style="min-height: 300px;">
+          <i class="fas fa-chart-line me-2"></i> Chart Perkembangan Belajar akan ditampilkan di sini
         </div>
       </div>
     </div>

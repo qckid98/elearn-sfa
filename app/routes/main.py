@@ -1,9 +1,10 @@
 from app.utils.whatsapp import send_wa_message
 from flask import Blueprint, render_template, request, flash, url_for, redirect
 from flask_login import login_required, current_user
-from app.models import User, Enrollment, Program, Batch # Tambah import Batch
+from app.models import User, Enrollment, Program, Batch, Booking
 from app import db
 import uuid
+from datetime import date
 
 bp = Blueprint('main', __name__)
 
@@ -15,9 +16,18 @@ def dashboard():
     # Mapping Hari
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
+    manual_bookings = []
+    if enrollment:
+        manual_bookings = Booking.query.filter(
+            Booking.enrollment_id == enrollment.id,
+            Booking.status != 'completed',
+            Booking.date >= date.today()
+        ).order_by(Booking.date).all()
+    
     return render_template('dashboard.html', 
                            enrollment=enrollment, 
-                           days=days)
+                           days=days,
+                           manual_bookings=manual_bookings)
 
 # --- ROUTE UNTUK ADMIN MENDAFTARKAN SISWA (Simpel) ---
 @bp.route('/admin/invite', methods=['GET', 'POST'])

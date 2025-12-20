@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking
+from datetime import date
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -48,13 +49,66 @@ def student_detail(user_id):
             db.session.add(new_sched)
             db.session.commit()
             flash('Jadwal manual ditambahkan.')
+        
+        elif 'add_manual_booking' in request.form:
+            booking_date_str = request.form['date']
+            booking_date = date.fromisoformat(booking_date_str)
+            timeslot_id = int(request.form['timeslot_id'])
+            
+            # Additional fields for teacher/subject
+            teacher_id = request.form.get('teacher_id')
+            subject_id = request.form.get('subject_id')
+            
+            if teacher_id: teacher_id = int(teacher_id)
+            if subject_id: subject_id = int(subject_id)
+            
+            # Check duplicate
+            existing = Booking.query.filter_by(
+                enrollment_id=enrollment.id, 
+                date=booking_date, 
+                timeslot_id=timeslot_id
+            ).first()
+            
+            if existing:
+                flash('Booking untuk tanggal dan jam tersebut sudah ada!', 'error')
+            else:
+                new_booking = Booking(
+                    enrollment_id=enrollment.id,
+                    date=booking_date,
+                    timeslot_id=timeslot_id,
+                    teacher_id=teacher_id, # Added
+                    subject_id=subject_id, # Added
+                    status='booked'
+                )
+                db.session.add(new_booking)
+                db.session.commit()
+                flash('Override jadwal (Sesi Tambahan) berhasil dibuat.')
+
         return redirect(url_for('admin.student_detail', user_id=user_id))
+
+    booking_date_cutoff = date.today()
+    manual_bookings = Booking.query.filter(
+        Booking.enrollment_id == enrollment.id,
+        Booking.status != 'completed',
+        Booking.date >= booking_date_cutoff
+    ).order_by(Booking.date).all()
 
     subjects = Subject.query.all()
     timeslots = TimeSlot.query.all()
     teachers = User.query.filter_by(role='teacher').all()
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
-    return render_template('admin/student_detail.html', student=student, enrollment=enrollment, subjects=subjects, timeslots=timeslots, teachers=teachers, days=days)
+    return render_template('admin/student_detail.html', student=student, enrollment=enrollment, subjects=subjects, timeslots=timeslots, teachers=teachers, days=days, manual_bookings=manual_bookings)
+
+@bp.route('/booking/delete/<int:booking_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_booking(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    uid = booking.enrollment.student_id
+    db.session.delete(booking)
+    db.session.commit()
+    flash('Booking manual dihapus.')
+    return redirect(url_for('admin.student_detail', user_id=uid))
 
 @bp.route('/schedule/delete/<int:sched_id>')
 @login_required

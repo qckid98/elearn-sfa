@@ -117,10 +117,15 @@ class Booking(db.Model):
     enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollments.id'))
     date = db.Column(db.Date, nullable=False)
     timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
+    teacher_id = db.Column(db.Integer, db.ForeignKey('users.id')) # Added
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id')) # Added
     status = db.Column(db.String(20), default='booked') # booked, completed, cancelled
     
-    # Tambahan Penting: Agar bisa akses {{ booking.timeslot.name }}
+    # Relationships
     timeslot = db.relationship('TimeSlot') 
+    teacher = db.relationship('User', foreign_keys=[teacher_id]) # Added
+    subject = db.relationship('Subject') # Added
+    
     # Relasi ke attendance (One-to-One)
     attendance = db.relationship('Attendance', backref='booking', uselist=False, lazy=True)
 
@@ -134,4 +139,4 @@ class Attendance(db.Model):
     notes = db.Column(db.Text)
 
     # Tambahan: Agar tau siapa guru yang mengabsen
-    teacher = db.relationship('User')
+    teacher = db.relationship('User', foreign_keys=[teacher_id])

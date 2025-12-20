@@ -112,7 +112,7 @@
                             <td style="text-align: right; padding-right: 24px;">
                                 <a href="{{ url_for('admin.delete_schedule', sched_id=sched.id) }}"
                                     class="btn btn-ghost btn-sm text-danger"
-                                    onclick="return confirm('Hapus jadwal ini?')">
+                                    onclick="event.preventDefault(); confirmAction('Hapus jadwal ini?').then(res => { if(res) window.location.href = this.href; })">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             </td>
@@ -181,6 +181,99 @@
                 </form>
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
+
+        <!-- Manual / One-Time Session Override -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-calendar-check text-warning me-2"></i> Manual Session (Override)
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 24px;">Tanggal</th>
+                            <th>Jam</th>
+                            <th>Status</th>
+                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if manual_bookings %}
+                        {% for booking in manual_bookings %}
+                        <tr>
+                            <td style="padding-left: 24px;">
+                                <span class="fw-600">{{ booking.date.strftime('%d %b %Y') }}</span>
+                            </td>
+                            <td class="fw-600 text-brand">{{ booking.timeslot.name }}</td>
+                            <td>
+                                <span class="badge badge-warning">Scheduled</span>
+                            </td>
+                            <td style="text-align: right; padding-right: 24px;">
+                                <form action="{{ url_for('admin.delete_booking', booking_id=booking.id) }}"
+                                    method="POST" style="display:inline;" class="delete-form"
+                                    data-confirm="Apakah Anda yakin ingin menghapus sesi tambahan ini?">
+                                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <p>Tidak ada jadwal tambahan (override)</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer" style="background: var(--bg-body);">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="fas fa-plus-circle text-muted"></i>
+                    <span class="fw-600" style="font-size: 13px;">Tambah Sesi Manual (Override)</span>
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="add_manual_booking" value="1">
+
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="timeslot_id" class="form-control" required>
+                                <option value="">Pilih Sesi</option>
+                                {% for slot in timeslots %}
+                                <option value="{{ slot.id }}">{{ slot.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="subject_id" class="form-control">
+                                <option value="">Pilih Materi (Opsional)</option>
+                                {% for sub in subjects %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="teacher_id" class="form-control">
+                                <option value="">Pilih Pengajar (Opsional)</option>
+                                {% for t in teachers %}
+                                <option value="{{ t.id }}">{{ t.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 mt-3">
+                        <i class="fas fa-calendar-plus me-2"></i> Tambah Override
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endblock %}

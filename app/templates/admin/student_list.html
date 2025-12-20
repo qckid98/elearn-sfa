@@ -90,7 +90,8 @@
         <tbody>
           {% for student in students %}
           {% set enroll = student.enrollments[0] if student.enrollments else None %}
-          <tr>
+          <tr data-status="{{ enroll.status if enroll else 'inactive' }}"
+            data-program="{{ enroll.program.name|lower if enroll else '' }}" data-name="{{ student.name|lower }}">
             <td style="padding-left: 24px;">
               <div class="d-flex align-items-center gap-3">
                 <div class="avatar">
@@ -168,15 +169,41 @@
 
 {% block extra_js %}
 <script>
-  // Simple search filter
-  document.getElementById('searchInput').addEventListener('keyup', function () {
-    const searchValue = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#studentTable tbody tr');
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterProgram = document.getElementById('filterProgram');
+    const tableRows = document.querySelectorAll('#studentTable tbody tr');
 
-    rows.forEach(row => {
-      const text = row.textContent.toLowerCase();
-      row.style.display = text.includes(searchValue) ? '' : 'none';
-    });
+    function filterTable() {
+      const searchValue = searchInput.value.toLowerCase();
+      const statusValue = filterStatus.value.toLowerCase();
+      const programValue = filterProgram.value.toLowerCase();
+
+      tableRows.forEach(row => {
+        const name = row.dataset.name || '';
+        const status = row.dataset.status || 'inactive';
+        const program = row.dataset.program || '';
+
+        // Check conditions
+        const matchSearch = name.includes(searchValue);
+        const matchStatus = statusValue === '' || status === statusValue;
+        const matchProgram = programValue === '' || program.includes(programValue);
+
+        if (matchSearch && matchStatus && matchProgram) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Show/Hide "No Data" message if needed
+      // (Optional enhancement: verify if any visible rows remain)
+    }
+
+    searchInput.addEventListener('keyup', filterTable);
+    filterStatus.addEventListener('change', filterTable);
+    filterProgram.addEventListener('change', filterTable);
   });
 </script>
 {% endblock %}
