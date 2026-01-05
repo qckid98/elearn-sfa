@@ -6,9 +6,32 @@ from app.models import Enrollment, Subject, TeacherAvailability, TeacherSkill, S
 bp = Blueprint('onboarding', __name__, url_prefix='/onboarding')
 
 @bp.route('/schedule', methods=['GET', 'POST'])
+@bp.route('/schedule/<int:enrollment_id>', methods=['GET', 'POST'])
 @login_required
-def schedule_wizard():
-    enrollment = Enrollment.query.filter_by(student_id=current_user.id).first()
+def schedule_wizard(enrollment_id=None):
+    # If enrollment_id is provided, use it; otherwise find pending enrollment
+    if enrollment_id:
+        enrollment = Enrollment.query.filter_by(
+            id=enrollment_id, 
+            student_id=current_user.id
+        ).first()
+        if not enrollment:
+            flash('Enrollment tidak ditemukan.')
+            return redirect(url_for('main.dashboard'))
+    else:
+        # Find first enrollment that needs scheduling (pending_schedule status)
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            status='pending_schedule'
+        ).first()
+        
+        # If no pending, check if there's any enrollment
+        if not enrollment:
+            enrollment = Enrollment.query.filter_by(student_id=current_user.id).first()
+    
+    if not enrollment:
+        flash('Anda belum terdaftar di program manapun.')
+        return redirect(url_for('main.dashboard'))
     
     # Ambil semua subject yang WAJIB diambil di program ini
     required_subjects = [ps.subject_id for ps in enrollment.program.subjects]
@@ -23,7 +46,18 @@ def schedule_wizard():
         # Jika semua sudah dipilih
         enrollment.status = 'active'
         db.session.commit()
-        flash('Jadwal berhasil diatur! Selamat belajar.')
+        flash(f'Jadwal untuk program {enrollment.program.name} berhasil diatur! Selamat belajar.')
+        
+        # Check if there are other enrollments needing scheduling
+        next_pending = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            status='pending_schedule'
+        ).first()
+        
+        if next_pending:
+            flash(f'Anda masih perlu mengatur jadwal untuk program {next_pending.program.name}.')
+            return redirect(url_for('onboarding.schedule_wizard', enrollment_id=next_pending.id))
+        
         return redirect(url_for('main.dashboard'))
         
     # Ambil object Subject
@@ -69,6 +103,10 @@ def schedule_wizard():
         )
         db.session.add(new_sched)
         db.session.commit()
-        return redirect(url_for('onboarding.schedule_wizard'))
+        return redirect(url_for('onboarding.schedule_wizard', enrollment_id=enrollment.id))
 
-    return render_template('onboarding.html', subject=subject_obj, events=events)
+    return render_template('onboarding.html', 
+                           subject=subject_obj, 
+                           events=events,
+                           enrollment=enrollment,
+                           program_name=enrollment.program.name)

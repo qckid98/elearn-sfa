@@ -257,272 +257,314 @@
     </div>
   </div>
 
-  <!-- Stats Section - Student -->
-  <div class="row g-4 mb-4">
-    <!-- Featured Card - Sessions Remaining -->
-    <div class="col-lg-5 col-md-12">
-      <div class="featured-card d-flex align-items-center justify-content-center"
-        style="height: 100%; min-height: 250px;">
-        <div class="featured-card-content text-center w-100">
-          <div class="featured-card-label">SISA SESI ANDA</div>
-          <div class="featured-card-value">{{ enrollment.sessions_remaining }}</div>
-          <div class="featured-card-subtitle">{{ enrollment.program.name }}</div>
-          {% if enrollment.batch %}
-          <div class="featured-card-badge">{{ enrollment.batch.name }}</div>
-          {% endif %}
-        </div>
-      </div>
-      <!-- Progress Chart Removed from here -->
-    </div>
-
-    <!-- Info Cards -->
-    <div class="col-lg-7 col-md-12">
-      <!-- Manual Sessions / Overrides -->
-      {% if manual_bookings %}
-      <div class="card mb-4" style="border-left: 4px solid var(--warning);">
-        <div class="card-header">
-          <h6 class="card-title mb-0">
-            <i class="fas fa-calendar-plus text-warning me-2"></i> Jadwal Tambahan (Manual)
-          </h6>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table-modern">
-              <thead>
-                <tr>
-                  <th style="padding-left: 24px;">Hari/Tanggal</th>
-                  <th>Waktu</th>
-                  <th>Materi</th>
-                  <th>Pengajar</th>
-                  <th style="text-align: right; padding-right: 24px;">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for booking in manual_bookings %}
-                <tr>
-                  <td style="padding-left: 24px;">
-                    <div class="fw-600">{{ days[booking.date.weekday()] }}</div>
-                    <div class="text-muted" style="font-size: 13px;">{{ booking.date.strftime('%d %b %Y') }}</div>
-                  </td>
-                  <td>
-                    <div class="fw-600 text-brand">{{ booking.timeslot.name }}</div>
-                  </td>
-                  <td>
-                    {% if booking.subject %}
-                    <span>{{ booking.subject.name }}</span>
-                    {% else %}
-                    <span class="text-muted fst-italic" style="font-size: 13px;">-</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if booking.teacher %}
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
-                        {{ booking.teacher.name[0]|upper }}
-                      </div>
-                      <span style="font-size: 14px;">{{ booking.teacher.name }}</span>
-                    </div>
-                    {% else %}
-                    <span class="text-muted">-</span>
-                    {% endif %}
-                  </td>
-                  <td style="text-align: right; padding-right: 24px;">
-                    <span class="badge badge-warning" style="font-weight: 500;">Override</span>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Regular Schedule -->
-      <div class="card">
-        <div class="card-header">
-          <h6 class="card-title mb-0">
-            <i class="fas fa-calendar-week text-brand me-2"></i> Jadwal Rutin
-          </h6>
-          {% if not enrollment.schedules %}
-          <a href="{{ url_for('onboarding.schedule_wizard') }}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus me-1"></i> Atur Jadwal
-          </a>
-          {% endif %}
-        </div>
-        <div class="card-body p-0">
-          {% if enrollment.schedules %}
-          <div class="table-responsive">
-            <table class="table-modern">
-              <thead>
-                <tr>
-                  <th style="padding-left: 24px;">Hari</th>
-                  <th>Waktu</th>
-                  <th>Materi</th>
-                  <th>Pengajar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for sched in enrollment.schedules %}
-                <tr>
-                  <td style="padding-left: 24px;">
-                    <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
-                  </td>
-                  <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
-                  <td>{{ sched.subject.name }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="avatar avatar-sm">
-                        {{ sched.teacher.name[0]|upper }}
-                      </div>
-                      {{ sched.teacher.name }}
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <div class="text-center py-5">
-            <i class="fas fa-calendar-times fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
-            <p class="text-muted">Anda belum memiliki jadwal rutin.</p>
-            <a href="{{ url_for('onboarding.schedule_wizard') }}" class="btn btn-primary">
-              <i class="fas fa-plus me-1"></i> Atur Jadwal Sekarang
-            </a>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Progress Belajar Section -->
-  {% if student_progress %}
-  <div class="row g-4">
-    <!-- Progress Stats Cards -->
+  <!-- Multi-Program Selector (if student has multiple enrollments) -->
+  {% if enrollments_data|length > 1 %}
+  <div class="row mb-4">
     <div class="col-12">
-      <h5 class="fw-600 mb-3"><i class="fas fa-chart-line text-brand me-2"></i>Progress Belajar</h5>
-    </div>
-
-    <!-- Progress Bar Card -->
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-600">Progress Keseluruhan</span>
-            <span class="badge badge-primary fs-6">{{ student_progress.progress_pct }}%</span>
-          </div>
-          <div class="progress" style="height: 24px; border-radius: 12px;">
-            <div class="progress-bar" role="progressbar"
-              style="width: {{ student_progress.progress_pct }}%; background: linear-gradient(90deg, var(--brand-primary), var(--success));"
-              aria-valuenow="{{ student_progress.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
-              {% if student_progress.progress_pct > 10 %}
-              <span class="fw-500">{{ student_progress.completed_sessions }} / {{ student_progress.total_sessions }}
-                sesi</span>
-              {% endif %}
-            </div>
-          </div>
-          <div class="d-flex justify-content-between mt-2" style="font-size: 13px;">
-            <span class="text-muted">{{ student_progress.completed_sessions }} sesi selesai</span>
-            <span class="text-muted">{{ student_progress.remaining_sessions }} sesi tersisa</span>
-          </div>
+      <div class="card" style="border-left: 4px solid var(--brand-primary);">
+        <div class="card-header py-2">
+          <h6 class="mb-0"><i class="fas fa-graduation-cap me-2 text-brand"></i>Program Anda ({{ enrollments_data|length
+            }} Program)</h6>
         </div>
-      </div>
-    </div>
-
-    <!-- Attendance Summary Cards -->
-    <div class="col-md-4">
-      <div class="stats-card" style="border-left: 4px solid var(--success);">
-        <div class="stats-card-icon success">
-          <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stats-card-value">{{ student_progress.hadir }}</div>
-        <div class="stats-card-label">Hadir</div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="stats-card" style="border-left: 4px solid var(--warning);">
-        <div class="stats-card-icon warning">
-          <i class="fas fa-clock"></i>
-        </div>
-        <div class="stats-card-value">{{ student_progress.izin }}</div>
-        <div class="stats-card-label">Izin</div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="stats-card" style="border-left: 4px solid var(--danger);">
-        <div class="stats-card-icon danger">
-          <i class="fas fa-times-circle"></i>
-        </div>
-        <div class="stats-card-value">{{ student_progress.alpha }}</div>
-        <div class="stats-card-label">Alpha</div>
-      </div>
-    </div>
-
-    <!-- Session History -->
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi Terakhir</h6>
-          <span class="badge bg-secondary">{{ student_progress.session_history|length }} sesi</span>
-        </div>
-        <div class="card-body p-0">
-          {% if student_progress.session_history %}
-          <div class="table-responsive">
-            <table class="table table-modern mb-0">
-              <thead>
-                <tr>
-                  <th style="padding-left: 24px;">Tanggal</th>
-                  <th>Materi</th>
-                  <th>Waktu</th>
-                  <th>Pengajar</th>
-                  <th>Status</th>
-                  <th>Catatan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for session in student_progress.session_history %}
-                <tr>
-                  <td style="padding-left: 24px;">
-                    <div class="fw-600">{{ session.date.strftime('%d %b %Y') }}</div>
-                  </td>
-                  <td>{{ session.subject }}</td>
-                  <td><span class="badge bg-light text-dark">{{ session.timeslot }}</span></td>
-                  <td>{{ session.teacher }}</td>
-                  <td>
-                    {% if session.status == 'Hadir' %}
-                    <span class="badge bg-success">Hadir</span>
-                    {% elif session.status == 'Izin' %}
-                    <span class="badge bg-warning text-dark">Izin</span>
-                    {% else %}
-                    <span class="badge bg-danger">Alpha</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if session.notes %}
-                    <small class="text-muted" title="{{ session.notes }}">{{ session.notes[:30] }}{% if
-                      session.notes|length > 30 %}...{% endif %}</small>
-                    {% else %}
-                    <span class="text-muted">-</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+        <div class="card-body p-2">
+          <div class="d-flex flex-wrap gap-2">
+            {% for prog in enrollments_data %}
+            <button class="btn program-tab-btn {% if loop.first %}active{% endif %}"
+              data-enrollment-idx="{{ loop.index0 }}" onclick="switchProgram({{ loop.index0 }})">
+              <i class="fas fa-book-open me-1"></i>
+              {{ prog.program_name }}
+              <span class="badge bg-{{ 'success' if prog.status == 'active' else 'warning' }} ms-1">
+                {{ prog.remaining_sessions }} sesi
+              </span>
+            </button>
+            {% endfor %}
           </div>
-          {% else %}
-          <div class="text-center py-5">
-            <i class="fas fa-calendar-check fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
-            <p class="text-muted mb-0">Belum ada riwayat sesi. Mulai belajar sesuai jadwal!</p>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>
   </div>
   {% endif %}
+
+  <!-- Program Content Panels - one for each enrollment -->
+  {% for prog in enrollments_data %}
+  <div class="program-panel {% if not loop.first %}d-none{% endif %}" id="program-panel-{{ loop.index0 }}">
+
+    <!-- Stats Section - Student -->
+    <div class="row g-4 mb-4">
+      <!-- Featured Card - Sessions Remaining -->
+      <div class="col-lg-5 col-md-12">
+        <div class="featured-card d-flex align-items-center justify-content-center"
+          style="height: 100%; min-height: 250px;">
+          <div class="featured-card-content text-center w-100">
+            <div class="featured-card-label">SISA SESI ANDA</div>
+            <div class="featured-card-value">{{ prog.remaining_sessions }}</div>
+            <div class="featured-card-subtitle">{{ prog.program_name }}</div>
+            <div class="featured-card-badge mt-2">
+              {% if prog.status == 'active' %}
+              <span class="badge bg-success"><i class="fas fa-check me-1"></i>Aktif</span>
+              {% elif prog.status == 'pending_schedule' %}
+              <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Perlu Atur Jadwal</span>
+              {% else %}
+              <span class="badge bg-secondary">{{ prog.status }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Cards -->
+      <div class="col-lg-7 col-md-12">
+        <!-- Manual Sessions / Overrides for this enrollment -->
+        {% set enroll_bookings = manual_bookings|selectattr('enrollment_id', 'equalto', prog.enrollment_id)|list %}
+        {% if enroll_bookings %}
+        <div class="card mb-4" style="border-left: 4px solid var(--warning);">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-calendar-plus text-warning me-2"></i> Jadwal Tambahan (Manual)
+            </h6>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table-modern">
+                <thead>
+                  <tr>
+                    <th style="padding-left: 24px;">Hari/Tanggal</th>
+                    <th>Waktu</th>
+                    <th>Materi</th>
+                    <th>Pengajar</th>
+                    <th style="text-align: right; padding-right: 24px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for booking in enroll_bookings %}
+                  <tr>
+                    <td style="padding-left: 24px;">
+                      <div class="fw-600">{{ days[booking.date.weekday()] }}</div>
+                      <div class="text-muted" style="font-size: 13px;">{{ booking.date.strftime('%d %b %Y') }}</div>
+                    </td>
+                    <td>
+                      <div class="fw-600 text-brand">{{ booking.timeslot.name }}</div>
+                    </td>
+                    <td>
+                      {% if booking.subject %}
+                      <span>{{ booking.subject.name }}</span>
+                      {% else %}
+                      <span class="text-muted fst-italic" style="font-size: 13px;">-</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if booking.teacher %}
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
+                          {{ booking.teacher.name[0]|upper }}
+                        </div>
+                        <span style="font-size: 14px;">{{ booking.teacher.name }}</span>
+                      </div>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    <td style="text-align: right; padding-right: 24px;">
+                      <span class="badge badge-warning" style="font-weight: 500;">Override</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Regular Schedule for this enrollment -->
+        {% set current_enroll = enrollments|selectattr('id', 'equalto', prog.enrollment_id)|first %}
+        <div class="card">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-calendar-week text-brand me-2"></i> Jadwal Rutin - {{ prog.program_name }}
+            </h6>
+            {% if current_enroll and not current_enroll.schedules %}
+            <a href="{{ url_for('onboarding.schedule_wizard', enrollment_id=prog.enrollment_id) }}"
+              class="btn btn-primary btn-sm">
+              <i class="fas fa-plus me-1"></i> Atur Jadwal
+            </a>
+            {% endif %}
+          </div>
+          <div class="card-body p-0">
+            {% if current_enroll and current_enroll.schedules %}
+            <div class="table-responsive">
+              <table class="table-modern">
+                <thead>
+                  <tr>
+                    <th style="padding-left: 24px;">Hari</th>
+                    <th>Waktu</th>
+                    <th>Materi</th>
+                    <th>Pengajar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sched in current_enroll.schedules %}
+                  <tr>
+                    <td style="padding-left: 24px;">
+                      <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
+                    </td>
+                    <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
+                    <td>{{ sched.subject.name }}</td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-sm">
+                          {{ sched.teacher.name[0]|upper }}
+                        </div>
+                        {{ sched.teacher.name }}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-calendar-times fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+              <p class="text-muted">Jadwal untuk program ini belum diatur.</p>
+              <a href="{{ url_for('onboarding.schedule_wizard', enrollment_id=prog.enrollment_id) }}"
+                class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Atur Jadwal Sekarang
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Belajar Section -->
+    <div class="row g-4">
+      <!-- Progress Stats Cards -->
+      <div class="col-12">
+        <h5 class="fw-600 mb-3"><i class="fas fa-chart-line text-brand me-2"></i>Progress Belajar - {{ prog.program_name
+          }}</h5>
+      </div>
+
+      <!-- Progress Bar Card -->
+      <div class="col-12">
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-600">Progress Keseluruhan</span>
+              <span class="badge badge-primary fs-6">{{ prog.progress_pct }}%</span>
+            </div>
+            <div class="progress" style="height: 24px; border-radius: 12px;">
+              <div class="progress-bar" role="progressbar"
+                style="width: {{ prog.progress_pct }}%; background: linear-gradient(90deg, var(--brand-primary), var(--success));"
+                aria-valuenow="{{ prog.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+                {% if prog.progress_pct > 10 %}
+                <span class="fw-500">{{ prog.completed_sessions }} / {{ prog.total_sessions }}
+                  sesi</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-2" style="font-size: 13px;">
+              <span class="text-muted">{{ prog.completed_sessions }} sesi selesai</span>
+              <span class="text-muted">{{ prog.remaining_sessions }} sesi tersisa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Summary Cards -->
+      <div class="col-md-4">
+        <div class="stats-card" style="border-left: 4px solid var(--success);">
+          <div class="stats-card-icon success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stats-card-value">{{ prog.hadir }}</div>
+          <div class="stats-card-label">Hadir</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stats-card" style="border-left: 4px solid var(--warning);">
+          <div class="stats-card-icon warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stats-card-value">{{ prog.izin }}</div>
+          <div class="stats-card-label">Izin</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stats-card" style="border-left: 4px solid var(--danger);">
+          <div class="stats-card-icon danger">
+            <i class="fas fa-times-circle"></i>
+          </div>
+          <div class="stats-card-value">{{ prog.alpha }}</div>
+          <div class="stats-card-label">Alpha</div>
+        </div>
+      </div>
+
+      <!-- Session History -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi Terakhir</h6>
+            <span class="badge bg-secondary">{{ prog.session_history|length }} sesi</span>
+          </div>
+          <div class="card-body p-0">
+            {% if prog.session_history %}
+            <div class="table-responsive">
+              <table class="table table-modern mb-0">
+                <thead>
+                  <tr>
+                    <th style="padding-left: 24px;">Tanggal</th>
+                    <th>Materi</th>
+                    <th>Waktu</th>
+                    <th>Pengajar</th>
+                    <th>Status</th>
+                    <th>Catatan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for session in prog.session_history %}
+                  <tr>
+                    <td style="padding-left: 24px;">
+                      <div class="fw-600">{{ session.date.strftime('%d %b %Y') }}</div>
+                    </td>
+                    <td>{{ session.subject }}</td>
+                    <td><span class="badge bg-light text-dark">{{ session.timeslot }}</span></td>
+                    <td>{{ session.teacher }}</td>
+                    <td>
+                      {% if session.status == 'Hadir' %}
+                      <span class="badge bg-success">Hadir</span>
+                      {% elif session.status == 'Izin' %}
+                      <span class="badge bg-warning text-dark">Izin</span>
+                      {% else %}
+                      <span class="badge bg-danger">Alpha</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if session.notes %}
+                      <small class="text-muted" title="{{ session.notes }}">{{ session.notes[:30] }}{% if
+                        session.notes|length > 30 %}...{% endif %}</small>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-calendar-check fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+              <p class="text-muted mb-0">Belum ada riwayat sesi untuk program ini.</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 
   {% else %}
   <!-- ==================== NO ENROLLMENT ==================== -->
@@ -587,6 +629,51 @@
 
   .fc .fc-daygrid-event-dot {
     margin: 0 4px;
+  }
+
+  /* Program Tab Buttons for Multi-Enrollment */
+  .program-tab-btn {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .program-tab-btn:hover {
+    background: #e9ecef;
+    border-color: var(--brand-primary, #1e3a5f);
+  }
+
+  .program-tab-btn.active {
+    background: var(--brand-primary, #1e3a5f);
+    border-color: var(--brand-primary, #1e3a5f);
+    color: white;
+  }
+
+  .program-tab-btn.active .badge {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+  }
+
+  .program-panel {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>
 {% endblock %}
@@ -660,5 +747,26 @@
       console.log('Calendar loaded with', eventsData.length, 'events');
     }
   });
+
+  // Function to switch between program panels (multi-enrollment)
+  function switchProgram(idx) {
+    // Hide all panels
+    document.querySelectorAll('.program-panel').forEach(function (panel) {
+      panel.classList.add('d-none');
+    });
+    // Show selected panel
+    var targetPanel = document.getElementById('program-panel-' + idx);
+    if (targetPanel) {
+      targetPanel.classList.remove('d-none');
+    }
+    // Update button states
+    document.querySelectorAll('.program-tab-btn').forEach(function (btn) {
+      btn.classList.remove('active');
+    });
+    var activeBtn = document.querySelector('.program-tab-btn[data-enrollment-idx="' + idx + '"]');
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+    }
+  }
 </script>
 {% endblock %}

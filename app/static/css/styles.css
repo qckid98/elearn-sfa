@@ -167,6 +167,8 @@ a {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+  min-height: 0;
+  /* Critical for flexbox overflow to work */
 }
 
 .nav-section {
@@ -230,6 +232,10 @@ a {
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  /* Prevent footer from being hidden */
+  background: inherit;
+  /* Ensure background matches sidebar */
 }
 
 .sidebar-user {
@@ -1297,5 +1303,133 @@ a {
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* --- RESPONSIVE DESIGN --- */
+
+/* Tablet - Sidebar collapses */
+@media screen and (max-width: 1024px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .sidebar-brand-name {
+    font-size: 14px;
+  }
+
+  .sidebar-brand-tagline {
+    font-size: 10px;
+  }
+
+  .nav-item {
+    padding: 10px 14px;
+  }
+
+  .nav-item span {
+    font-size: 13px;
+  }
+
+  .content-body {
+    padding: 16px;
+  }
+}
+
+/* Small Tablet / Large Mobile - Sidebar becomes off-canvas */
+@media screen and (max-width: 768px) {
+  .mobile-toggle {
+    display: flex;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .header-user-info {
+    display: none;
+  }
+
+  .top-header {
+    padding: 0 16px;
+  }
+
+  .content-body {
+    padding: 12px;
+  }
+
+  /* Ensure sidebar footer is visible when sidebar is open */
+  .sidebar-footer {
+    padding: 12px;
+  }
+
+  .sidebar-user {
+    padding: 10px;
+  }
+
+  .sidebar-user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .sidebar-user-name {
+    font-size: 13px;
+  }
+
+  .sidebar-user-role {
+    font-size: 11px;
+  }
+}
+
+/* Mobile */
+@media screen and (max-width: 576px) {
+  .sidebar {
+    width: 100%;
+  }
+
+  .top-header {
+    height: 60px;
+  }
+
+  .header-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .content-body {
+    padding: 8px;
+  }
+
+  .card-header {
+    padding: 16px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .featured-card-value {
+    font-size: 36px;
+  }
+
+  .stats-card {
+    padding: 16px;
+  }
+
+  .stats-card-value {
+    font-size: 24px;
   }
 }

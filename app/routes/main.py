@@ -11,83 +11,96 @@ bp = Blueprint('main', __name__)
 @bp.route('/')
 @login_required
 def dashboard():
-    enrollment = Enrollment.query.filter_by(student_id=current_user.id).first()
+    # Fetch ALL enrollments for multi-program support
+    enrollments = Enrollment.query.filter_by(student_id=current_user.id).all()
+    
+    # For backward compatibility, keep single enrollment reference
+    enrollment = enrollments[0] if enrollments else None
     
     # Mapping Hari
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
     manual_bookings = []
     student_progress = None
+    enrollments_data = []  # List of all enrollment progress data
     
-    if enrollment:
+    if enrollments:
+        # Gather bookings from ALL enrollments
+        enrollment_ids = [e.id for e in enrollments]
         manual_bookings = Booking.query.filter(
-            Booking.enrollment_id == enrollment.id,
+            Booking.enrollment_id.in_(enrollment_ids),
             Booking.status != 'completed',
             Booking.date >= date.today()
         ).order_by(Booking.date).all()
         
-        # --- STUDENT PROGRESS DATA ---
-        # Get all completed bookings for this enrollment
-        completed_bookings = Booking.query.filter(
-            Booking.enrollment_id == enrollment.id,
-            Booking.status == 'completed'
-        ).all()
+        # Build progress data for EACH enrollment
+        for enroll in enrollments:
+            # Get all completed bookings for this enrollment
+            completed_bookings = Booking.query.filter(
+                Booking.enrollment_id == enroll.id,
+                Booking.status == 'completed'
+            ).all()
+            
+            # Get attendance records for completed bookings
+            booking_ids = [b.id for b in completed_bookings]
+            attendance_records = Attendance.query.filter(
+                Attendance.booking_id.in_(booking_ids)
+            ).order_by(Attendance.date.desc()).limit(10).all() if booking_ids else []
+            
+            # Calculate attendance stats
+            hadir_count = Attendance.query.filter(
+                Attendance.booking_id.in_(booking_ids),
+                Attendance.status == 'Hadir'
+            ).count() if booking_ids else 0
+            
+            izin_count = Attendance.query.filter(
+                Attendance.booking_id.in_(booking_ids),
+                Attendance.status == 'Izin'
+            ).count() if booking_ids else 0
+            
+            alpha_count = Attendance.query.filter(
+                Attendance.booking_id.in_(booking_ids),
+                Attendance.status == 'Alpha'
+            ).count() if booking_ids else 0
+            
+            # Calculate progress percentage
+            total_sessions = enroll.program.total_sessions
+            completed_sessions = total_sessions - enroll.sessions_remaining
+            progress_pct = int((completed_sessions / total_sessions) * 100) if total_sessions > 0 else 0
+            
+            # Build session history with details
+            session_history = []
+            for att in attendance_records:
+                booking = Booking.query.get(att.booking_id)
+                if booking:
+                    session_history.append({
+                        'date': att.date,
+                        'subject': booking.subject.name if booking.subject else '-',
+                        'timeslot': booking.timeslot.name if booking.timeslot else '-',
+                        'status': att.status,
+                        'notes': att.notes,
+                        'teacher': booking.teacher.name if booking.teacher else '-'
+                    })
+            
+            enroll_progress = {
+                'enrollment_id': enroll.id,
+                'program_name': enroll.program.name,
+                'program_id': enroll.program.id,
+                'status': enroll.status,
+                'completed_sessions': completed_sessions,
+                'total_sessions': total_sessions,
+                'remaining_sessions': enroll.sessions_remaining,
+                'progress_pct': progress_pct,
+                'hadir': hadir_count,
+                'izin': izin_count,
+                'alpha': alpha_count,
+                'session_history': session_history
+            }
+            enrollments_data.append(enroll_progress)
         
-        # Get attendance records for completed bookings
-        booking_ids = [b.id for b in completed_bookings]
-        attendance_records = Attendance.query.filter(
-            Attendance.booking_id.in_(booking_ids)
-        ).order_by(Attendance.date.desc()).limit(10).all() if booking_ids else []
-        
-        # Calculate attendance stats
-        total_attendance = Attendance.query.filter(
-            Attendance.booking_id.in_(booking_ids)
-        ).count() if booking_ids else 0
-        
-        hadir_count = Attendance.query.filter(
-            Attendance.booking_id.in_(booking_ids),
-            Attendance.status == 'Hadir'
-        ).count() if booking_ids else 0
-        
-        izin_count = Attendance.query.filter(
-            Attendance.booking_id.in_(booking_ids),
-            Attendance.status == 'Izin'
-        ).count() if booking_ids else 0
-        
-        alpha_count = Attendance.query.filter(
-            Attendance.booking_id.in_(booking_ids),
-            Attendance.status == 'Alpha'
-        ).count() if booking_ids else 0
-        
-        # Calculate progress percentage
-        total_sessions = enrollment.program.total_sessions
-        completed_sessions = total_sessions - enrollment.sessions_remaining
-        progress_pct = int((completed_sessions / total_sessions) * 100) if total_sessions > 0 else 0
-        
-        # Build session history with details
-        session_history = []
-        for att in attendance_records:
-            booking = Booking.query.get(att.booking_id)
-            if booking:
-                session_history.append({
-                    'date': att.date,
-                    'subject': booking.subject.name if booking.subject else '-',
-                    'timeslot': booking.timeslot.name if booking.timeslot else '-',
-                    'status': att.status,
-                    'notes': att.notes,
-                    'teacher': booking.teacher.name if booking.teacher else '-'
-                })
-        
-        student_progress = {
-            'completed_sessions': completed_sessions,
-            'total_sessions': total_sessions,
-            'remaining_sessions': enrollment.sessions_remaining,
-            'progress_pct': progress_pct,
-            'hadir': hadir_count,
-            'izin': izin_count,
-            'alpha': alpha_count,
-            'session_history': session_history
-        }
+        # For backward compatibility - use first enrollment's progress
+        if enrollments_data:
+            student_progress = enrollments_data[0]
     
     # Teacher Calendar Data
     teacher_calendar_events = []
@@ -145,7 +158,9 @@ def dashboard():
         }
     
     return render_template('dashboard.html', 
-                           enrollment=enrollment, 
+                           enrollment=enrollment,
+                           enrollments=enrollments,
+                           enrollments_data=enrollments_data,
                            days=days,
                            manual_bookings=manual_bookings,
                            teacher_calendar_events=teacher_calendar_events,

@@ -8,14 +8,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (mobileToggle) {
     mobileToggle.addEventListener('click', function () {
-      sidebar.classList.toggle('open');
+      sidebar.classList.toggle('show');
       sidebarOverlay.classList.toggle('show');
     });
   }
 
   if (sidebarOverlay) {
     sidebarOverlay.addEventListener('click', function () {
-      sidebar.classList.remove('open');
+      sidebar.classList.remove('show');
       sidebarOverlay.classList.remove('show');
     });
   }

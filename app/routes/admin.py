@@ -25,77 +25,120 @@ def student_list():
     return render_template('admin/student_list.html', students=students)
 
 @bp.route('/student/<int:user_id>', methods=['GET', 'POST'])
+@bp.route('/student/<int:user_id>/<int:enrollment_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def student_detail(user_id):
+def student_detail(user_id, enrollment_id=None):
     student = User.query.get_or_404(user_id)
-    enrollment = Enrollment.query.filter_by(student_id=student.id).first()
+    
+    # Fetch ALL enrollments for this student (multi-program support)
+    enrollments = Enrollment.query.filter_by(student_id=student.id).all()
+    
+    # Select which enrollment to manage
+    if enrollment_id:
+        enrollment = Enrollment.query.filter_by(id=enrollment_id, student_id=student.id).first()
+    else:
+        enrollment = enrollments[0] if enrollments else None
+    
+    # Get all programs for "add new enrollment" dropdown
+    all_programs = Program.query.all()
+    # Get IDs of programs student is already enrolled in
+    enrolled_program_ids = [e.program_id for e in enrollments]
     
     if request.method == 'POST':
-        if 'update_info' in request.form:
-            enrollment.sessions_remaining = int(request.form['sessions_remaining'])
-            enrollment.status = request.form['status']
-            db.session.commit()
-            flash('Info siswa diperbarui.')
-        
-        elif 'add_schedule' in request.form:
-            new_sched = StudentSchedule(
-                enrollment_id=enrollment.id,
-                day_of_week=int(request.form['day']),
-                timeslot_id=int(request.form['timeslot_id']),
-                subject_id=int(request.form['subject_id']),
-                teacher_id=int(request.form['teacher_id'])
-            )
-            db.session.add(new_sched)
-            db.session.commit()
-            flash('Jadwal manual ditambahkan.')
-        
-        elif 'add_manual_booking' in request.form:
-            booking_date_str = request.form['date']
-            booking_date = date.fromisoformat(booking_date_str)
-            timeslot_id = int(request.form['timeslot_id'])
+        # Handle adding a new enrollment (new program for existing student)
+        if 'add_enrollment' in request.form:
+            new_program_id = int(request.form['program_id'])
             
-            # Additional fields for teacher/subject
-            teacher_id = request.form.get('teacher_id')
-            subject_id = request.form.get('subject_id')
-            
-            if teacher_id: teacher_id = int(teacher_id)
-            if subject_id: subject_id = int(subject_id)
-            
-            # Check duplicate
-            existing = Booking.query.filter_by(
-                enrollment_id=enrollment.id, 
-                date=booking_date, 
-                timeslot_id=timeslot_id
-            ).first()
-            
-            if existing:
-                flash('Booking untuk tanggal dan jam tersebut sudah ada!', 'error')
+            # Check if already enrolled
+            if new_program_id in enrolled_program_ids:
+                flash('Siswa sudah terdaftar di program ini!', 'error')
             else:
-                new_booking = Booking(
-                    enrollment_id=enrollment.id,
-                    date=booking_date,
-                    timeslot_id=timeslot_id,
-                    teacher_id=teacher_id, # Added
-                    subject_id=subject_id, # Added
-                    status='booked'
+                new_prog = Program.query.get(new_program_id)
+                batch_id = request.form.get('batch_id')
+                if batch_id:
+                    batch_id = int(batch_id)
+                
+                new_enroll = Enrollment(
+                    student_id=student.id,
+                    program_id=new_program_id,
+                    batch_id=batch_id if new_prog.is_batch_based else None,
+                    sessions_remaining=new_prog.total_sessions,
+                    status='pending_schedule'
                 )
-                db.session.add(new_booking)
+                db.session.add(new_enroll)
                 db.session.commit()
-                flash('Override jadwal (Sesi Tambahan) berhasil dibuat.')
+                flash(f'Siswa berhasil didaftarkan ke program {new_prog.name}!')
+                return redirect(url_for('admin.student_detail', user_id=user_id, enrollment_id=new_enroll.id))
+        
+        elif enrollment:  # Only process if enrollment exists
+            if 'update_info' in request.form:
+                enrollment.sessions_remaining = int(request.form['sessions_remaining'])
+                enrollment.status = request.form['status']
+                db.session.commit()
+                flash('Info siswa diperbarui.')
+            
+            elif 'add_schedule' in request.form:
+                new_sched = StudentSchedule(
+                    enrollment_id=enrollment.id,
+                    day_of_week=int(request.form['day']),
+                    timeslot_id=int(request.form['timeslot_id']),
+                    subject_id=int(request.form['subject_id']),
+                    teacher_id=int(request.form['teacher_id'])
+                )
+                db.session.add(new_sched)
+                db.session.commit()
+                flash('Jadwal manual ditambahkan.')
+            
+            elif 'add_manual_booking' in request.form:
+                booking_date_str = request.form['date']
+                booking_date = date.fromisoformat(booking_date_str)
+                timeslot_id = int(request.form['timeslot_id'])
+                
+                # Additional fields for teacher/subject
+                teacher_id = request.form.get('teacher_id')
+                subject_id = request.form.get('subject_id')
+                
+                if teacher_id: teacher_id = int(teacher_id)
+                if subject_id: subject_id = int(subject_id)
+                
+                # Check duplicate
+                existing = Booking.query.filter_by(
+                    enrollment_id=enrollment.id, 
+                    date=booking_date, 
+                    timeslot_id=timeslot_id
+                ).first()
+                
+                if existing:
+                    flash('Booking untuk tanggal dan jam tersebut sudah ada!', 'error')
+                else:
+                    new_booking = Booking(
+                        enrollment_id=enrollment.id,
+                        date=booking_date,
+                        timeslot_id=timeslot_id,
+                        teacher_id=teacher_id,
+                        subject_id=subject_id,
+                        status='booked'
+                    )
+                    db.session.add(new_booking)
+                    db.session.commit()
+                    flash('Override jadwal (Sesi Tambahan) berhasil dibuat.')
 
-        return redirect(url_for('admin.student_detail', user_id=user_id))
+        return redirect(url_for('admin.student_detail', user_id=user_id, enrollment_id=enrollment.id if enrollment else None))
 
-    booking_date_cutoff = date.today()
-    manual_bookings = Booking.query.filter(
-        Booking.enrollment_id == enrollment.id,
-        Booking.status != 'completed',
-        Booking.date >= booking_date_cutoff
-    ).order_by(Booking.date).all()
-
-    # --- STUDENT PROGRESS DATA ---
+    # Data for template
+    manual_bookings = []
     student_progress = None
+    
     if enrollment:
+        booking_date_cutoff = date.today()
+        manual_bookings = Booking.query.filter(
+            Booking.enrollment_id == enrollment.id,
+            Booking.status != 'completed',
+            Booking.date >= booking_date_cutoff
+        ).order_by(Booking.date).all()
+    
+        # --- STUDENT PROGRESS DATA ---
         # Get completed bookings
         completed_bookings = Booking.query.filter(
             Booking.enrollment_id == enrollment.id,
@@ -145,11 +188,16 @@ def student_detail(user_id):
     subjects = Subject.query.all()
     timeslots = TimeSlot.query.all()
     teachers = User.query.filter_by(role='teacher').all()
+    batches = Batch.query.filter_by(is_active=True).all()
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
 
     return render_template('admin/student_detail.html', 
                            student=student, 
-                           enrollment=enrollment, 
+                           enrollment=enrollment,
+                           enrollments=enrollments,
+                           all_programs=all_programs,
+                           enrolled_program_ids=enrolled_program_ids,
+                           batches=batches,
                            subjects=subjects, 
                            timeslots=timeslots, 
                            teachers=teachers, 

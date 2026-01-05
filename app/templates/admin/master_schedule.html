@@ -134,16 +134,19 @@
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
-    overflow: hidden;
+    overflow-x: auto;
+    /* Allow horizontal scroll */
+    overflow-y: visible;
     box-shadow: var(--shadow-sm);
+    max-width: 100%;
   }
 
   .schedule-grid {
     display: grid;
-    /* 1 Kolom Waktu (130px) + 7 Kolom Hari (Flexible) */
-    grid-template-columns: 130px repeat(7, 1fr);
-    min-width: 1400px;
-    overflow-x: auto;
+    /* 1 Kolom Waktu (110px) + 7 Kolom Hari (Flexible) */
+    grid-template-columns: 110px repeat(7, minmax(120px, 1fr));
+    min-width: 960px;
+    /* Reduced from 1400px */
   }
 
   /* Header Styles - RED THEME FIXED */
@@ -397,7 +400,53 @@
 
   @media (max-width: 1200px) {
     .schedule-grid {
-      min-width: 1200px;
+      min-width: 900px;
+    }
+
+    .slot-cell {
+      padding: 8px;
+      min-height: 100px;
+    }
+
+    .student-card {
+      padding: 6px 8px;
+    }
+
+    .student-name {
+      font-size: 11px;
+    }
+
+    .student-details {
+      font-size: 10px;
+    }
+
+    .header-row-title {
+      padding: 12px 8px;
+    }
+
+    .slot-name {
+      font-size: 12px;
+    }
+
+    .slot-time {
+      font-size: 10px;
+    }
+  }
+
+  @media (max-width: 992px) {
+    .schedule-grid {
+      min-width: 850px;
+      grid-template-columns: 90px repeat(7, minmax(100px, 1fr));
+    }
+
+    .header-sidebar,
+    .header-main {
+      padding: 10px 8px;
+      font-size: 12px;
+    }
+
+    .day-name {
+      font-size: 12px;
     }
   }
 </style>
