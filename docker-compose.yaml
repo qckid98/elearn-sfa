@@ -54,13 +54,14 @@ services:
       - APP_DEBUG=true
       - TZ=Asia/Jakarta
     volumes:
-      - wa_credentials:/app/credentials 
+      - wa_credentials:/app/credentials
     networks:
       - app_network
 
 volumes:
   postgres_data:
   wa_credentials:
+
 
 networks:
   app_network:

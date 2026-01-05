@@ -86,6 +86,9 @@ def view_form(timeslot_id):
     if current_user.role != 'teacher':
         return "Access Denied"
     
+    from datetime import timedelta
+    from app.models import StudentSchedule
+    
     today = date.today()
     timeslot = TimeSlot.query.get_or_404(timeslot_id)
     
@@ -95,9 +98,65 @@ def view_form(timeslot_id):
         timeslot_id=timeslot_id
     ).filter(Booking.status != 'completed').all()
     
+    # --- UPCOMING SCHEDULES (7 hari ke depan) ---
+    upcoming = []
+    days_name = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    for i in range(1, 8):  # Next 7 days
+        future_date = today + timedelta(days=i)
+        day_of_week = future_date.weekday()  # 0=Monday
+        
+        # 1. Cari dari regular schedules yang diajar oleh teacher ini DAN sesuai timeslot
+        regular_schedules = StudentSchedule.query.filter_by(
+            day_of_week=day_of_week,
+            teacher_id=current_user.id,
+            timeslot_id=timeslot_id  # Filter by current session
+        ).all()
+        
+        for sched in regular_schedules:
+            # Cek apakah sudah ada booking untuk jadwal ini
+            existing_booking = Booking.query.filter_by(
+                enrollment_id=sched.enrollment_id,
+                date=future_date,
+                timeslot_id=sched.timeslot_id
+            ).first()
+            
+            if not existing_booking:
+                upcoming.append({
+                    'date': future_date,
+                    'day_name': days_name[day_of_week],
+                    'student_name': sched.enrollment.student.name,
+                    'program_name': sched.enrollment.program.name,
+                    'subject_name': sched.subject.name,
+                    'timeslot_name': sched.timeslot.name,
+                    'type': 'regular'
+                })
+        
+        # 2. Cari dari future bookings yang diajar oleh teacher ini DAN sesuai timeslot
+        future_bookings = Booking.query.filter_by(
+            date=future_date,
+            teacher_id=current_user.id,
+            timeslot_id=timeslot_id  # Filter by current session
+        ).filter(Booking.status != 'completed').all()
+        
+        for booking in future_bookings:
+            upcoming.append({
+                'date': future_date,
+                'day_name': days_name[day_of_week],
+                'student_name': booking.enrollment.student.name,
+                'program_name': booking.enrollment.program.name,
+                'subject_name': booking.subject.name if booking.subject else '-',
+                'timeslot_name': booking.timeslot.name if booking.timeslot else '-',
+                'type': 'booking'
+            })
+    
+    # Sort by date
+    upcoming.sort(key=lambda x: x['date'])
+    
     return render_template(
         'attendance_form.html', 
         bookings=bookings, 
         timeslot=timeslot,
-        today_date=today.strftime("%d %B %Y")
+        today_date=today.strftime("%d %B %Y"),
+        upcoming_schedules=upcoming
     )

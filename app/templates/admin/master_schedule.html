@@ -4,121 +4,401 @@
 
 {% block content %}
 <!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h4 class="fw-700 mb-1">Master Schedule</h4>
-    <p class="text-muted mb-0">Monitoring kepadatan kelas secara real-time</p>
+<div class="schedule-header mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h4 class="fw-700 mb-1" style="color: #d32f2f;">
+        <i class="fas fa-calendar-alt me-2"></i>Master Schedule
+      </h4>
+      <p class="text-muted mb-0">Monitoring kepadatan kelas secara real-time</p>
+    </div>
+    <div class="d-flex gap-3 align-items-center">
+      <!-- Summary Stats -->
+      <div class="schedule-stat">
+        <div class="schedule-stat-value">{{ total_students }}</div>
+        <div class="schedule-stat-label">Total Siswa</div>
+      </div>
+      <div class="schedule-stat">
+        <div class="schedule-stat-value">{{ total_schedules }}</div>
+        <div class="schedule-stat-label">Total Jadwal</div>
+      </div>
+    </div>
   </div>
-  <span class="badge badge-secondary" style="font-size: 14px; padding: 10px 16px;">
-    <i class="fas fa-calendar-alt me-2"></i> Monitoring Kelas
-  </span>
+</div>
+
+<!-- Legend Bar -->
+<div class="legend-bar mb-4">
+  <div class="legend-item">
+    <span class="legend-dot" style="background: var(--success);"></span>
+    <span>1-2 Siswa</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background: var(--warning);"></span>
+    <span>3-4 Siswa</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background: var(--danger);"></span>
+    <span>5+ Siswa (Padat)</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot empty"></span>
+    <span>Kosong</span>
+  </div>
 </div>
 
 <!-- Schedule Grid -->
-<div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table-modern" style="min-width: 900px;">
-        <thead style="background: var(--sidebar-bg); color: white;">
-          <tr>
-            <th style="padding: 16px 24px; color: white;">Hari / Sesi</th>
-            {% for slot in timeslots %}
-            <th style="padding: 16px; color: white; text-align: center;">
-              <div class="fw-600">{{ slot.name }}</div>
-              <div style="font-size: 11px; opacity: 0.7; font-weight: 400;">
-                {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}
-              </div>
-            </th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for i in range(7) %}
-          <tr>
-            <td style="padding: 16px 24px; background: var(--bg-body);">
-              <span class="fw-700">{{ days[i] }}</span>
-            </td>
-            {% for slot in timeslots %}
-            <td style="padding: 12px; vertical-align: top; min-width: 180px;">
-              {% set sched_list = schedule_map[i][slot.id] %}
-              {% if sched_list %}
-              <!-- Has schedules -->
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-info">
-                  <i class="fas fa-users me-1"></i> {{ sched_list|length }} Siswa
-                </span>
-              </div>
+<div class="schedule-grid-container">
+  <div class="schedule-grid">
+    <!-- Header Row: DAYS (Senin - Minggu) -->
+    <div class="schedule-grid-header">
+      <div class="schedule-cell header-sidebar">
+        <i class="fas fa-clock me-2"></i>Waktu
+      </div>
+      {% for i in range(7) %}
+      <div class="schedule-cell header-main">
+        <div class="day-name">{{ days[i] }}</div>
+        {% if day_totals and day_totals[i] > 0 %}
+        <span class="badge bg-white text-danger mt-1 fw-bold" style="font-size: 10px;">{{ day_totals[i] }} Sesi</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
 
-              <div class="schedule-items" style="max-height: 150px; overflow-y: auto;">
-                {% for item in sched_list %}
-                <div class="schedule-item p-2 rounded mb-2"
-                  style="background: var(--bg-body); border-left: 3px solid var(--brand-primary);">
-                  <div class="fw-600" style="font-size: 13px;">
-                    {{ item.enrollment.student.name }}
-                  </div>
-                  <div class="text-muted" style="font-size: 11px;">
-                    <i class="fas fa-book me-1"></i> {{ item.subject.name }}
-                  </div>
-                  <div class="text-muted" style="font-size: 11px;">
-                    <i class="fas fa-chalkboard-teacher me-1"></i> {{ item.teacher.name }}
-                  </div>
-                </div>
-                {% endfor %}
+    <!-- Time Rows (Sesi 1, Sesi 2...) -->
+    {% for slot in timeslots %}
+    <div class="schedule-grid-row">
+      <!-- Waktu Column -->
+      <div class="schedule-cell header-row-title">
+        <div class="slot-name">{{ slot.name }}</div>
+        <div class="slot-time">{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</div>
+      </div>
+
+      <!-- Content Columns (Senin-Minggu for this Slot) -->
+      {% for i in range(7) %}
+      {% set sched_list = schedule_map[i][slot.id] %}
+      <div
+        class="schedule-cell slot-cell {% if sched_list|length >= 5 %}density-high{% elif sched_list|length >= 3 %}density-medium{% elif sched_list|length >= 1 %}density-low{% else %}density-empty{% endif %}">
+
+        {% if sched_list %}
+        <div class="slot-header">
+          <span class="student-count">{{ sched_list|length }}</span>
+        </div>
+        <div class="slot-items">
+          {% for item in sched_list %}
+          {% if item.enrollment and item.enrollment.student %}
+          <div class="student-card detailed">
+            <div class="d-flex align-items-center mb-1 gap-2">
+              <div class="student-avatar-sm">{{ item.enrollment.student.name[0]|upper }}</div>
+              <div class="student-name text-truncate fw-bold text-dark">{{ item.enrollment.student.name }}</div>
+            </div>
+
+            <div class="student-details">
+              <div class="detail-row">
+                <i class="fas fa-graduation-cap text-muted"></i>
+                <span class="text-truncate">{{ item.enrollment.program.name }}</span>
               </div>
-              {% else %}
-              <!-- Empty slot -->
-              <div class="empty-slot d-flex align-items-center justify-content-center"
-                style="height: 80px; background: var(--bg-body); border-radius: var(--radius-md); opacity: 0.5;">
-                <span class="text-muted" style="font-size: 12px;">
-                  <i class="fas fa-minus me-1"></i> Kosong
-                </span>
+              <div class="detail-row">
+                <i class="fas fa-book text-muted"></i>
+                <span class="text-truncate fw-500 text-primary">{{ item.subject.name if item.subject else '-' }}</span>
               </div>
-              {% endif %}
-            </td>
-            {% endfor %}
-          </tr>
+              <div class="detail-row">
+                <i class="fas fa-chalkboard-teacher text-muted"></i>
+                <span class="text-truncate">{{ item.teacher.name if item.teacher else '-' }}</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="student-card student-unknown">
+            <i class="fas fa-exclamation-circle me-1"></i> Data Error
+          </div>
+          {% endif %}
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
+        {% else %}
+        <!-- Empty Space -->
+        {% endif %}
+
+      </div>
+      {% endfor %}
     </div>
+    {% endfor %}
   </div>
 </div>
 
-<!-- Legend -->
-<div class="d-flex gap-4 mt-4">
-  <div class="d-flex align-items-center gap-2">
-    <div style="width: 16px; height: 16px; background: var(--brand-primary); border-radius: 4px;"></div>
-    <span class="text-muted" style="font-size: 13px;">Jadwal Aktif</span>
-  </div>
-  <div class="d-flex align-items-center gap-2">
-    <div
-      style="width: 16px; height: 16px; background: var(--bg-body); border-radius: 4px; border: 1px solid var(--border-color);">
-    </div>
-    <span class="text-muted" style="font-size: 13px;">Slot Kosong</span>
-  </div>
-</div>
+{% endblock %}
 
+{% block extra_css %}
 <style>
-  .schedule-items::-webkit-scrollbar {
-    width: 4px;
+  /* Base Layout */
+  .schedule-grid-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
 
-  .schedule-items::-webkit-scrollbar-track {
+  .schedule-grid {
+    display: grid;
+    /* 1 Kolom Waktu (130px) + 7 Kolom Hari (Flexible) */
+    grid-template-columns: 130px repeat(7, 1fr);
+    min-width: 1400px;
+    overflow-x: auto;
+  }
+
+  /* Header Styles - RED THEME FIXED */
+  .schedule-grid-header {
+    display: contents;
+  }
+
+  .header-sidebar {
+    background: #d32f2f !important;
+    /* Force RED */
+    color: white !important;
+    padding: 16px;
+    font-weight: 700;
+    text-align: center;
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+
+  .header-main {
+    background: #d32f2f !important;
+    /* Force RED */
+    color: white !important;
+    padding: 12px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Row Layout */
+  .schedule-grid-row {
+    display: contents;
+  }
+
+  /* Cells */
+  .schedule-cell {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     background: var(--bg-body);
   }
 
-  .schedule-items::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
+  .header-row-title {
+    background: #f8f9fa;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: 600;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    border-right: 2px solid #e0e0e0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
   }
 
-  .schedule-item {
-    transition: transform 0.2s, box-shadow 0.2s;
+  .slot-name {
+    font-size: 14px;
+    color: #d32f2f;
+    margin-bottom: 4px;
+    font-weight: 700;
   }
 
-  .schedule-item:hover {
-    transform: translateX(4px);
-    box-shadow: var(--shadow-sm);
+  .slot-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .slot-cell {
+    padding: 10px;
+    min-height: 120px;
+    vertical-align: top;
+    transition: background 0.2s;
+  }
+
+  .slot-cell:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  /* Density Backgrounds */
+  .density-empty {
+    background: #ffffff;
+  }
+
+  .density-low {
+    background: #f0fff4;
+  }
+
+  /* Greenish */
+  .density-medium {
+    background: #fffaf0;
+  }
+
+  /* Yellowish */
+  .density-high {
+    background: #fff5f5;
+  }
+
+  /* Reddish */
+
+  /* Slot Content */
+  .slot-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+
+  .student-count {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--text-secondary);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  .slot-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Detailed Student Card */
+  .student-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-left: 3px solid #d32f2f;
+    padding: 8px 10px;
+    border-radius: 6px;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s;
+  }
+
+  .student-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .student-avatar-sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #d32f2f;
+    color: white;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .student-name {
+    font-size: 12px;
+  }
+
+  .student-details {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #eee;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .detail-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+  }
+
+  .detail-row i {
+    width: 14px;
+    text-align: center;
+    font-size: 10px;
+  }
+
+  .student-unknown {
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 11px;
+    text-align: center;
+    border-color: #dc3545;
+    border-left-color: #dc3545;
+  }
+
+  /* Stats & Header */
+  .schedule-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+
+  .schedule-stat-value {
+    font-weight: 700;
+    color: #d32f2f;
+    font-size: 18px;
+  }
+
+  .schedule-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .legend-bar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.empty {
+    background: #fff;
+    border: 1px solid #ddd;
+  }
+
+  @media (max-width: 1200px) {
+    .schedule-grid {
+      min-width: 1200px;
+    }
   }
 </style>
 {% endblock %}

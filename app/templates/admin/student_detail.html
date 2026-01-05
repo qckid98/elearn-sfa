@@ -73,6 +73,112 @@
 
     <!-- Right Column - Schedule -->
     <div class="col-lg-8">
+
+        <!-- Progress Tracker Section -->
+        {% if student_progress %}
+        <div class="card mb-4">
+            <div class="card-header border-0 bg-white pb-0">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-line text-brand me-2"></i> Progress Belajar
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-600 text-muted" style="font-size: 13px;">Progress Keseluruhan</span>
+                        <span class="badge badge-primary">{{ student_progress.progress_pct }}%</span>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
+                        <div class="progress-bar" role="progressbar"
+                            style="width: {{ student_progress.progress_pct }}%; background: linear-gradient(90deg, #d32f2f, #ff6b6b);"
+                            aria-valuenow="{{ student_progress.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2" style="font-size: 11px;">
+                        <span class="text-muted">{{ student_progress.completed_sessions }} Sesi Selesai</span>
+                        <span class="text-muted">{{ student_progress.remaining_sessions }} Sesi Tersisa</span>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-4">
+                        <div class="p-3 rounded text-center"
+                            style="background: var(--success-light); border: 1px solid rgba(40, 167, 69, 0.2);">
+                            <div class="h4 fw-700 text-success mb-0">{{ student_progress.hadir }}</div>
+                            <div class="small text-success opacity-75 fw-600">Hadir</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 rounded text-center"
+                            style="background: var(--warning-light); border: 1px solid rgba(255, 193, 7, 0.2);">
+                            <div class="h4 fw-700 text-warning mb-0">{{ student_progress.izin }}</div>
+                            <div class="small text-warning opacity-75 fw-600">Izin</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 rounded text-center"
+                            style="background: var(--danger-light); border: 1px solid rgba(220, 53, 69, 0.2);">
+                            <div class="h4 fw-700 text-danger mb-0">{{ student_progress.alpha }}</div>
+                            <div class="small text-danger opacity-75 fw-600">Alpha</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session History Accordion -->
+                {% if student_progress.session_history %}
+                <div class="accordion" id="sessionHistoryAccordion_Admin">
+                    {% for session in student_progress.session_history %}
+                    <div class="accordion-item border mb-2 rounded overflow-hidden">
+                        <h2 class="accordion-header" id="heading_admin_{{ loop.index }}">
+                            <button class="accordion-button collapsed p-3 bg-light shadow-none" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapse_admin_{{ loop.index }}"
+                                aria-expanded="false" aria-controls="collapse_admin_{{ loop.index }}">
+                                <div class="d-flex justify-content-between w-100 align-items-center me-2">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="badge bg-white text-dark border">{{ session.date.strftime('%d %b')
+                                            }}</div>
+                                        <div>
+                                            <div class="fw-600 text-dark" style="font-size: 13px;">{{ session.subject }}
+                                            </div>
+                                            <div class="text-muted small">{{ session.teacher }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span
+                                            class="badge badge-{{ 'success' if session.status == 'Hadir' else 'warning' if session.status == 'Izin' else 'danger' }}">
+                                            {{ session.status }}
+                                        </span>
+                                        {% if session.notes %}
+                                        <i class="fas fa-sticky-note text-warning" title="Ada Catatan"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse_admin_{{ loop.index }}" class="accordion-collapse collapse"
+                            aria-labelledby="heading_admin_{{ loop.index }}"
+                            data-bs-parent="#sessionHistoryAccordion_Admin">
+                            <div class="accordion-body bg-white border-top p-3">
+                                <h6 class="fw-600 text-muted mb-2" style="font-size: 12px;">CATATAN SESI:</h6>
+                                <p class="mb-0 text-dark" style="font-size: 13px; line-height: 1.6;">
+                                    {{ session.notes if session.notes else "Tidak ada catatan." }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 bg-light rounded">
+                    <p class="text-muted mb-0 small">Belum ada riwayat sesi selesai.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Current Schedule -->
         <div class="card mb-4">
             <div class="card-header">

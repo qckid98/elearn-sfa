@@ -140,3 +140,23 @@ class Attendance(db.Model):
 
     # Tambahan: Agar tau siapa guru yang mengabsen
     teacher = db.relationship('User', foreign_keys=[teacher_id])
+
+# 7. TOOLS MODEL
+class Tool(db.Model):
+    __tablename__ = 'tools'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))  # e.g., "Drawing", "Sewing", "Digital"
+    
+    programs = db.relationship('ProgramTool', backref='tool', lazy=True)
+
+class ProgramTool(db.Model):
+    __tablename__ = 'program_tools'
+    id = db.Column(db.Integer, primary_key=True)
+    program_id = db.Column(db.Integer, db.ForeignKey('programs.id'))
+    tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'))
+    quantity = db.Column(db.Integer, default=1)  # Jumlah tools yang dibutuhkan
+    notes = db.Column(db.String(200))  # Catatan tambahan
+    
+    program = db.relationship('Program', backref='tools')

@@ -18,13 +18,14 @@ def create_app():
     login.init_app(app)
 
     # --- BAGIAN REGISTRASI BLUEPRINT ---
-    from app.routes import auth, main, onboarding, attendance, admin # Tambahkan 'admin' disini
+    from app.routes import auth, main, onboarding, attendance, admin, teacher
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
     app.register_blueprint(onboarding.bp)
     app.register_blueprint(attendance.bp)
-    app.register_blueprint(admin.bp) # DAFTARKAN DISINI
+    app.register_blueprint(admin.bp)
+    app.register_blueprint(teacher.bp)
 
     # Context Processor untuk menyisipkan waktu server ke semua template
     from datetime import datetime

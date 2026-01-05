@@ -1,7 +1,7 @@
 from app.utils.whatsapp import send_wa_message
 from flask import Blueprint, render_template, request, flash, url_for, redirect
 from flask_login import login_required, current_user
-from app.models import User, Enrollment, Program, Batch, Booking
+from app.models import User, Enrollment, Program, Batch, Booking, Attendance
 from app import db
 import uuid
 from datetime import date
@@ -17,17 +17,140 @@ def dashboard():
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
     manual_bookings = []
+    student_progress = None
+    
     if enrollment:
         manual_bookings = Booking.query.filter(
             Booking.enrollment_id == enrollment.id,
             Booking.status != 'completed',
             Booking.date >= date.today()
         ).order_by(Booking.date).all()
+        
+        # --- STUDENT PROGRESS DATA ---
+        # Get all completed bookings for this enrollment
+        completed_bookings = Booking.query.filter(
+            Booking.enrollment_id == enrollment.id,
+            Booking.status == 'completed'
+        ).all()
+        
+        # Get attendance records for completed bookings
+        booking_ids = [b.id for b in completed_bookings]
+        attendance_records = Attendance.query.filter(
+            Attendance.booking_id.in_(booking_ids)
+        ).order_by(Attendance.date.desc()).limit(10).all() if booking_ids else []
+        
+        # Calculate attendance stats
+        total_attendance = Attendance.query.filter(
+            Attendance.booking_id.in_(booking_ids)
+        ).count() if booking_ids else 0
+        
+        hadir_count = Attendance.query.filter(
+            Attendance.booking_id.in_(booking_ids),
+            Attendance.status == 'Hadir'
+        ).count() if booking_ids else 0
+        
+        izin_count = Attendance.query.filter(
+            Attendance.booking_id.in_(booking_ids),
+            Attendance.status == 'Izin'
+        ).count() if booking_ids else 0
+        
+        alpha_count = Attendance.query.filter(
+            Attendance.booking_id.in_(booking_ids),
+            Attendance.status == 'Alpha'
+        ).count() if booking_ids else 0
+        
+        # Calculate progress percentage
+        total_sessions = enrollment.program.total_sessions
+        completed_sessions = total_sessions - enrollment.sessions_remaining
+        progress_pct = int((completed_sessions / total_sessions) * 100) if total_sessions > 0 else 0
+        
+        # Build session history with details
+        session_history = []
+        for att in attendance_records:
+            booking = Booking.query.get(att.booking_id)
+            if booking:
+                session_history.append({
+                    'date': att.date,
+                    'subject': booking.subject.name if booking.subject else '-',
+                    'timeslot': booking.timeslot.name if booking.timeslot else '-',
+                    'status': att.status,
+                    'notes': att.notes,
+                    'teacher': booking.teacher.name if booking.teacher else '-'
+                })
+        
+        student_progress = {
+            'completed_sessions': completed_sessions,
+            'total_sessions': total_sessions,
+            'remaining_sessions': enrollment.sessions_remaining,
+            'progress_pct': progress_pct,
+            'hadir': hadir_count,
+            'izin': izin_count,
+            'alpha': alpha_count,
+            'session_history': session_history
+        }
+    
+    # Teacher Calendar Data
+    teacher_calendar_events = []
+    if current_user.role == 'teacher':
+        # Get all bookings for this teacher (past and future)
+        teacher_bookings = Booking.query.filter(
+            Booking.teacher_id == current_user.id
+        ).order_by(Booking.date).all()
+        
+        for booking in teacher_bookings:
+            # Determine event color based on status
+            if booking.status == 'completed':
+                color = '#28a745'  # Green for completed
+            elif booking.status == 'cancelled':
+                color = '#6c757d'  # Gray for cancelled
+            else:
+                color = '#007bff'  # Blue for upcoming/booked
+            
+            # Build event data for FullCalendar
+            event = {
+                'id': booking.id,
+                'title': f"{booking.enrollment.student.name}",
+                'start': f"{booking.date}T{booking.timeslot.start_time.strftime('%H:%M:%S')}",
+                'end': f"{booking.date}T{booking.timeslot.end_time.strftime('%H:%M:%S')}",
+                'color': color,
+                'extendedProps': {
+                    'student': booking.enrollment.student.name,
+                    'subject': booking.subject.name if booking.subject else '-',
+                    'timeslot': booking.timeslot.name,
+                    'status': booking.status,
+                    'program': booking.enrollment.program.name
+                }
+            }
+            teacher_calendar_events.append(event)
+    
+    # Admin Stats
+    stats = None
+    if current_user.role == 'admin':
+        # Count total students
+        total_students = User.query.filter_by(role='student').count()
+        # Count total teachers
+        total_teachers = User.query.filter_by(role='teacher').count()
+        # Count total active programs
+        total_programs = Program.query.count()
+        # Count sessions today (attendance records for today)
+        total_sessions = Attendance.query.filter(
+            Attendance.date == date.today()
+        ).count()
+        
+        stats = {
+            'total_students': total_students,
+            'total_teachers': total_teachers,
+            'total_programs': total_programs,
+            'total_sessions': total_sessions
+        }
     
     return render_template('dashboard.html', 
                            enrollment=enrollment, 
                            days=days,
-                           manual_bookings=manual_bookings)
+                           manual_bookings=manual_bookings,
+                           teacher_calendar_events=teacher_calendar_events,
+                           student_progress=student_progress,
+                           stats=stats)
 
 # --- ROUTE UNTUK ADMIN MENDAFTARKAN SISWA (Simpel) ---
 @bp.route('/admin/invite', methods=['GET', 'POST'])

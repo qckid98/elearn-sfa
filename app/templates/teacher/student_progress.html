@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block title %}Progress {{ student.name }} - Fashion School{% endblock %}
+{% block page_title %}Progress Siswa{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Back Button & Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('teacher.student_list') }}" class="btn btn-secondary mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Kembali ke Daftar Siswa
+            </a>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <div class="student-avatar-lg">
+                            {{ student.name[0]|upper if student.name else '?' }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h4 class="mb-1 fw-bold">{{ student.name }}</h4>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-graduation-cap me-1"></i> {{ enrollment.program.name }}
+                                {% if enrollment.batch %}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-users me-1"></i> {{ enrollment.batch.name }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <div class="h2 mb-0 text-primary fw-bold">{{ progress_pct }}%</div>
+                            <small class="text-muted">Progress Keseluruhan</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-card-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stats-card-value">{{ completed_sessions }}</div>
+                <div class="stats-card-label">Sesi Selesai</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-card-icon warning">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stats-card-value">{{ remaining_sessions }}</div>
+                <div class="stats-card-label">Sesi Tersisa</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-card-icon primary">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stats-card-value">{{ total_program_sessions }}</div>
+                <div class="stats-card-label">Total Program</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-card-icon info">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stats-card-value">{{ attendance_summary.hadir }}</div>
+                <div class="stats-card-label">Kehadiran</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column - Attendance Summary & Schedule -->
+        <div class="col-lg-4">
+            <!-- Attendance Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Ringkasan Kehadiran</h6>
+                </div>
+                <div class="card-body">
+                    <div class="attendance-summary">
+                        <div class="att-item">
+                            <div class="att-icon success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="att-info">
+                                <div class="att-label">Hadir</div>
+                                <div class="att-value">{{ attendance_summary.hadir }} sesi</div>
+                            </div>
+                        </div>
+                        <div class="att-item">
+                            <div class="att-icon warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="att-info">
+                                <div class="att-label">Izin</div>
+                                <div class="att-value">{{ attendance_summary.izin }} sesi</div>
+                            </div>
+                        </div>
+                        <div class="att-item">
+                            <div class="att-icon danger">
+                                <i class="fas fa-times"></i>
+                            </div>
+                            <div class="att-info">
+                                <div class="att-label">Alpha</div>
+                                <div class="att-value">{{ attendance_summary.alpha }} sesi</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regular Schedule -->
+            {% if schedules %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i>Jadwal Reguler</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for schedule in schedules %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">{{ days[schedule.day_of_week] }}</div>
+                                <small class="text-muted">{{ schedule.subject.name }}</small>
+                            </div>
+                            <span class="badge bg-light text-dark">{{ schedule.timeslot.name }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Session History -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi</h6>
+                    <span class="badge bg-secondary">{{ session_history|length }} sesi</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if session_history %}
+                    <div class="session-accordion">
+                        {% for session in session_history %}
+                        <div class="session-item" data-session-id="{{ loop.index }}">
+                            <div class="session-header" onclick="toggleSession({{ loop.index }})">
+                                <div class="session-main-info">
+                                    <div class="session-date">
+                                        <div class="fw-bold">{{ session.date.strftime('%d %b %Y') }}</div>
+                                        <small class="text-muted">{{ session.date.strftime('%A') }}</small>
+                                    </div>
+                                    <div class="session-subject">
+                                        <i class="fas fa-book me-1 text-muted"></i>
+                                        {{ session.subject }}
+                                    </div>
+                                    <div class="session-time">
+                                        <i class="fas fa-clock me-1 text-muted"></i>
+                                        {{ session.timeslot }}
+                                    </div>
+                                </div>
+                                <div class="session-badges">
+                                    {% if session.status == 'completed' %}
+                                    <span class="badge bg-success">Selesai</span>
+                                    {% elif session.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Dibatalkan</span>
+                                    {% else %}
+                                    <span class="badge bg-primary">Terjadwal</span>
+                                    {% endif %}
+
+                                    {% if session.attendance == 'Hadir' %}
+                                    <span class="badge bg-success-light text-success">Hadir</span>
+                                    {% elif session.attendance == 'Izin' %}
+                                    <span class="badge bg-warning-light text-warning">Izin</span>
+                                    {% elif session.attendance == 'Alpha' %}
+                                    <span class="badge bg-danger-light text-danger">Alpha</span>
+                                    {% endif %}
+
+                                    {% if session.notes %}
+                                    <span class="badge bg-info-light text-info">
+                                        <i class="fas fa-comment-alt me-1"></i>Ada Catatan
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="session-expand-icon">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="session-content" id="session-content-{{ loop.index }}">
+                                <div class="session-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label"><i class="fas fa-calendar me-2"></i>Tanggal</span>
+                                        <span class="detail-value">{{ session.date.strftime('%A, %d %B %Y') }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"><i class="fas fa-book me-2"></i>Mata Pelajaran</span>
+                                        <span class="detail-value">{{ session.subject }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"><i class="fas fa-clock me-2"></i>Waktu</span>
+                                        <span class="detail-value">{{ session.timeslot }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"><i class="fas fa-info-circle me-2"></i>Status
+                                            Sesi</span>
+                                        <span class="detail-value">
+                                            {% if session.status == 'completed' %}Selesai
+                                            {% elif session.status == 'cancelled' %}Dibatalkan
+                                            {% else %}Terjadwal{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label"><i
+                                                class="fas fa-user-check me-2"></i>Kehadiran</span>
+                                        <span class="detail-value">{{ session.attendance if session.attendance else
+                                            'Belum diabsen' }}</span>
+                                    </div>
+                                    {% if session.notes %}
+                                    <div class="detail-notes">
+                                        <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan Progress
+                                        </div>
+                                        <div class="notes-content">{{ session.notes }}</div>
+                                    </div>
+                                    {% else %}
+                                    <div class="detail-notes empty">
+                                        <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan Progress
+                                        </div>
+                                        <div class="notes-content text-muted">Tidak ada catatan untuk sesi ini</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">Belum ada riwayat sesi dengan siswa ini.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .student-avatar-lg {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: var(--brand-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 24px;
+    }
+
+    .attendance-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .att-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        background: var(--bg-body);
+    }
+
+    .att-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .att-icon.success {
+        background: var(--success-light);
+        color: var(--success);
+    }
+
+    .att-icon.warning {
+        background: var(--warning-light);
+        color: var(--warning);
+    }
+
+    .att-icon.danger {
+        background: var(--danger-light);
+        color: var(--danger);
+    }
+
+    .att-info {
+        flex: 1;
+    }
+
+    .att-label {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .att-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .bg-success-light {
+        background: var(--success-light) !important;
+    }
+
+    .bg-warning-light {
+        background: var(--warning-light) !important;
+    }
+
+    .bg-danger-light {
+        background: var(--danger-light) !important;
+    }
+
+    .bg-info-light {
+        background: rgba(13, 202, 240, 0.15) !important;
+    }
+
+    /* Session Accordion Styles */
+    .session-accordion {
+        padding: 0;
+    }
+
+    .session-item {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .session-item:last-child {
+        border-bottom: none;
+    }
+
+    .session-header {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        gap: 16px;
+    }
+
+    .session-header:hover {
+        background: var(--bg-body);
+    }
+
+    .session-item.expanded .session-header {
+        background: var(--bg-body);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .session-main-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        min-width: 0;
+    }
+
+    .session-date {
+        min-width: 100px;
+    }
+
+    .session-subject {
+        flex: 1;
+        font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    .session-time {
+        font-size: 14px;
+        color: var(--text-muted);
+        min-width: 80px;
+    }
+
+    .session-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .session-expand-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: transform 0.3s ease;
+    }
+
+    .session-item.expanded .session-expand-icon {
+        transform: rotate(180deg);
+    }
+
+    .session-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        background: var(--bg-body);
+    }
+
+    .session-item.expanded .session-content {
+        max-height: 500px;
+    }
+
+    .session-details {
+        padding: 20px;
+    }
+
+    .detail-row {
+        display: flex;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        width: 180px;
+        font-size: 13px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .detail-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .detail-notes {
+        margin-top: 16px;
+        padding: 16px;
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        border-left: 4px solid var(--brand-primary);
+    }
+
+    .detail-notes.empty {
+        border-left-color: var(--text-muted);
+    }
+
+    .notes-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+    }
+
+    .notes-content {
+        font-size: 14px;
+        color: var(--text-primary);
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .session-main-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .session-header {
+            flex-wrap: wrap;
+            padding: 12px 16px;
+        }
+
+        .session-badges {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .detail-row {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-label {
+            width: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleSession(sessionId) {
+        const item = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
+        const wasExpanded = item.classList.contains('expanded');
+
+        // Close all other sessions
+        document.querySelectorAll('.session-item.expanded').forEach(el => {
+            el.classList.remove('expanded');
+        });
+
+        // Toggle current session
+        if (!wasExpanded) {
+            item.classList.add('expanded');
+        }
+    }
+</script>
+{% endblock %}

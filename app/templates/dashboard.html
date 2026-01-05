@@ -13,7 +13,7 @@
   <div class="row mb-4">
     <div class="col-12">
       <h2 class="fw-700 mb-1">Selamat Datang, {{ current_user.name }}! 👋</h2>
-      <p class="text-muted mb-0">Kelola sistem akademik Fashion School dari sini.</p>
+      <p class="text-muted mb-0">Kelola sistem akademik Sparks Fashion Academy dari sini.</p>
     </div>
   </div>
 
@@ -175,15 +175,72 @@
     </div>
   </div>
 
-  <!-- Chart Placeholder -->
+  <!-- Calendar Legend -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex align-items-center gap-4 flex-wrap">
+        <h5 class="fw-600 mb-0"><i class="fas fa-calendar-alt me-2 text-brand"></i>Jadwal Mengajar</h5>
+        <div class="d-flex gap-3 ms-auto" style="font-size: 13px;">
+          <span><i class="fas fa-circle text-primary me-1"></i> Upcoming</span>
+          <span><i class="fas fa-circle text-success me-1"></i> Selesai</span>
+          <span><i class="fas fa-circle text-secondary me-1"></i> Dibatalkan</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Calendar -->
   <div class="row">
     <div class="col-12">
-      <div class="chart-container">
-        <div class="chart-header">
-          <h6 class="chart-title">Statistik Mengajar Bulan Ini</h6>
+      <div class="card">
+        <div class="card-body p-3">
+          <div id="teacherCalendar" style="min-height: 500px;"
+            data-events='{{ teacher_calendar_events|tojson|safe if teacher_calendar_events else "[]" }}'></div>
         </div>
-        <div class="chart-placeholder">
-          <i class="fas fa-chart-line me-2"></i> Chart akan ditampilkan di sini
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Detail Modal -->
+  <div class="modal fade" id="eventDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-calendar-day me-2"></i>Detail Jadwal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="text-muted" style="font-size: 12px;">SISWA</label>
+            <div class="fw-600" id="modalStudent">-</div>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="text-muted" style="font-size: 12px;">TANGGAL</label>
+              <div class="fw-600" id="modalDate">-</div>
+            </div>
+            <div class="col-6 mb-3">
+              <label class="text-muted" style="font-size: 12px;">WAKTU</label>
+              <div class="fw-600" id="modalTime">-</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="text-muted" style="font-size: 12px;">MATERI</label>
+              <div class="fw-600" id="modalSubject">-</div>
+            </div>
+            <div class="col-6 mb-3">
+              <label class="text-muted" style="font-size: 12px;">PROGRAM</label>
+              <div class="fw-600" id="modalProgram">-</div>
+            </div>
+          </div>
+          <div>
+            <label class="text-muted" style="font-size: 12px;">STATUS</label>
+            <div id="modalStatus">-</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
         </div>
       </div>
     </div>
@@ -196,7 +253,7 @@
   <div class="row mb-4">
     <div class="col-12">
       <h2 class="fw-700 mb-1">Halo, {{ current_user.name }}! 👋</h2>
-      <p class="text-muted mb-0">Selamat belajar di Fashion School.</p>
+      <p class="text-muted mb-0">Selamat belajar di Sparks Fashion Academy.</p>
     </div>
   </div>
 
@@ -340,19 +397,132 @@
     </div>
   </div>
 
-  <!-- Progress Chart -->
-  <div class="row">
+  <!-- Progress Belajar Section -->
+  {% if student_progress %}
+  <div class="row g-4">
+    <!-- Progress Stats Cards -->
     <div class="col-12">
-      <div class="chart-container">
-        <div class="chart-header">
-          <h6 class="chart-title">Progress Belajar</h6>
+      <h5 class="fw-600 mb-3"><i class="fas fa-chart-line text-brand me-2"></i>Progress Belajar</h5>
+    </div>
+
+    <!-- Progress Bar Card -->
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-600">Progress Keseluruhan</span>
+            <span class="badge badge-primary fs-6">{{ student_progress.progress_pct }}%</span>
+          </div>
+          <div class="progress" style="height: 24px; border-radius: 12px;">
+            <div class="progress-bar" role="progressbar"
+              style="width: {{ student_progress.progress_pct }}%; background: linear-gradient(90deg, var(--brand-primary), var(--success));"
+              aria-valuenow="{{ student_progress.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+              {% if student_progress.progress_pct > 10 %}
+              <span class="fw-500">{{ student_progress.completed_sessions }} / {{ student_progress.total_sessions }}
+                sesi</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="d-flex justify-content-between mt-2" style="font-size: 13px;">
+            <span class="text-muted">{{ student_progress.completed_sessions }} sesi selesai</span>
+            <span class="text-muted">{{ student_progress.remaining_sessions }} sesi tersisa</span>
+          </div>
         </div>
-        <div class="chart-placeholder" style="min-height: 300px;">
-          <i class="fas fa-chart-line me-2"></i> Chart Perkembangan Belajar akan ditampilkan di sini
+      </div>
+    </div>
+
+    <!-- Attendance Summary Cards -->
+    <div class="col-md-4">
+      <div class="stats-card" style="border-left: 4px solid var(--success);">
+        <div class="stats-card-icon success">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stats-card-value">{{ student_progress.hadir }}</div>
+        <div class="stats-card-label">Hadir</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stats-card" style="border-left: 4px solid var(--warning);">
+        <div class="stats-card-icon warning">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stats-card-value">{{ student_progress.izin }}</div>
+        <div class="stats-card-label">Izin</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stats-card" style="border-left: 4px solid var(--danger);">
+        <div class="stats-card-icon danger">
+          <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stats-card-value">{{ student_progress.alpha }}</div>
+        <div class="stats-card-label">Alpha</div>
+      </div>
+    </div>
+
+    <!-- Session History -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi Terakhir</h6>
+          <span class="badge bg-secondary">{{ student_progress.session_history|length }} sesi</span>
+        </div>
+        <div class="card-body p-0">
+          {% if student_progress.session_history %}
+          <div class="table-responsive">
+            <table class="table table-modern mb-0">
+              <thead>
+                <tr>
+                  <th style="padding-left: 24px;">Tanggal</th>
+                  <th>Materi</th>
+                  <th>Waktu</th>
+                  <th>Pengajar</th>
+                  <th>Status</th>
+                  <th>Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for session in student_progress.session_history %}
+                <tr>
+                  <td style="padding-left: 24px;">
+                    <div class="fw-600">{{ session.date.strftime('%d %b %Y') }}</div>
+                  </td>
+                  <td>{{ session.subject }}</td>
+                  <td><span class="badge bg-light text-dark">{{ session.timeslot }}</span></td>
+                  <td>{{ session.teacher }}</td>
+                  <td>
+                    {% if session.status == 'Hadir' %}
+                    <span class="badge bg-success">Hadir</span>
+                    {% elif session.status == 'Izin' %}
+                    <span class="badge bg-warning text-dark">Izin</span>
+                    {% else %}
+                    <span class="badge bg-danger">Alpha</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if session.notes %}
+                    <small class="text-muted" title="{{ session.notes }}">{{ session.notes[:30] }}{% if
+                      session.notes|length > 30 %}...{% endif %}</small>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-calendar-check fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+            <p class="text-muted mb-0">Belum ada riwayat sesi. Mulai belajar sesuai jadwal!</p>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
+  {% endif %}
 
   {% else %}
   <!-- ==================== NO ENROLLMENT ==================== -->
@@ -370,16 +540,124 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<style>
+  /* FullCalendar Custom Styling */
+  #teacherCalendar {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .fc .fc-button-primary {
+    background-color: var(--brand-primary, #1e3a5f);
+    border-color: var(--brand-primary, #1e3a5f);
+  }
+
+  .fc .fc-button-primary:hover {
+    background-color: #2d4a6f;
+    border-color: #2d4a6f;
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active {
+    background-color: #0d2137;
+    border-color: #0d2137;
+  }
+
+  .fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(30, 58, 95, 0.08);
+  }
+
+  .fc-event {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+  }
+
+  .fc-event:hover {
+    filter: brightness(0.9);
+  }
+
+  .fc .fc-daygrid-event-dot {
+    margin: 0 4px;
+  }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
-  // Chart initialization placeholder
-  // TODO: Replace with actual data from backend
   document.addEventListener('DOMContentLoaded', function () {
-    const chartEl = document.getElementById('chartEnrollment');
+    var chartEl = document.getElementById('chartEnrollment');
     if (chartEl && typeof Chart !== 'undefined') {
-      // Chart will be initialized here when data is available
-      console.log('Chart.js loaded and ready');
+      console.log('Chart.js loaded');
+    }
+
+    var calendarEl = document.getElementById('teacherCalendar');
+    if (calendarEl && typeof FullCalendar !== 'undefined') {
+      var eventsData = [];
+      try {
+        var eventsAttr = calendarEl.getAttribute('data-events');
+        if (eventsAttr) {
+          eventsData = JSON.parse(eventsAttr);
+        }
+      } catch (e) {
+        console.error('Error parsing calendar events:', e);
+      }
+
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'id',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        buttonText: {
+          today: 'Hari Ini',
+          month: 'Bulan',
+          week: 'Minggu',
+          day: 'Hari'
+        },
+        events: eventsData,
+        eventClick: function (info) {
+          var event = info.event;
+          var props = event.extendedProps;
+          document.getElementById('modalStudent').textContent = props.student;
+          document.getElementById('modalSubject').textContent = props.subject;
+          document.getElementById('modalProgram').textContent = props.program;
+          document.getElementById('modalTime').textContent = props.timeslot;
+          var eventDate = event.start;
+          var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+          document.getElementById('modalDate').textContent = eventDate.toLocaleDateString('id-ID', opts);
+          var statusHtml = '';
+          if (props.status === 'completed') {
+            statusHtml = '<span class="badge bg-success">Selesai</span>';
+          } else if (props.status === 'cancelled') {
+            statusHtml = '<span class="badge bg-secondary">Dibatalkan</span>';
+          } else {
+            statusHtml = '<span class="badge bg-primary">Upcoming</span>';
+          }
+          document.getElementById('modalStatus').innerHTML = statusHtml;
+          var modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+          modal.show();
+        },
+        eventDisplay: 'block',
+        dayMaxEvents: 3,
+        moreLinkText: function (num) {
+          return '+' + num + ' lainnya';
+        }
+      });
+      calendar.render();
+      console.log('Calendar loaded with', eventsData.length, 'events');
     }
   });
 </script>

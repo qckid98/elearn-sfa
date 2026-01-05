@@ -7,7 +7,7 @@
   .login-wrapper {
     min-height: 100vh;
     display: flex;
-    background: linear-gradient(135deg, #1e3a5f 0%, #0f1f35 100%);
+    background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
   }
 
   .login-illustration {
@@ -33,7 +33,7 @@
     right: -30%;
     width: 80%;
     height: 150%;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 50%;
   }
 
@@ -47,13 +47,13 @@
   .login-illustration-icon {
     width: 120px;
     height: 120px;
-    background: rgba(255, 255, 255, 0.1);
+    background: white;
     border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 32px;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   }
 
   .login-illustration-icon i {
@@ -227,10 +227,11 @@
   <div class="login-illustration">
     <div class="login-illustration-content">
       <div class="login-illustration-icon">
-        <i class="fas fa-cut"></i>
+        <img src="{{ url_for('static', filename='img/sfa-logo.png') }}" alt="SFA Logo"
+          style="width: 60px; height: auto;">
       </div>
-      <h1>Fashion School</h1>
-      <p>Sistem Manajemen Akademik untuk Sekolah Fashion terbaik. Kelola siswa, pengajar, dan jadwal dengan mudah.</p>
+      <h1>Sparks Fashion Academy</h1>
+      <p>Sistem Manajemen Akademik Sparks Fashion Academy.</p>
     </div>
   </div>
 
@@ -240,9 +241,10 @@
       <!-- Logo (Mobile) -->
       <div class="login-logo d-lg-none">
         <div class="login-logo-icon">
-          <i class="fas fa-cut"></i>
+          <img src="{{ url_for('static', filename='img/sfa-logo.png') }}" alt="SFA Logo"
+            style="width: 24px; height: auto;">
         </div>
-        <div class="login-logo-text">FASHION<span>SCHOOL</span></div>
+        <div class="login-logo-text">SPARKS<span>FASHION<span>ACADEMY</span></div>
       </div>
 
       <!-- Header -->

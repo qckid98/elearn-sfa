@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block page_title %}Data Tools{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <h4 class="fw-700 mb-1" style="color: #d32f2f;">
+            <i class="fas fa-tools me-2"></i>Data Tools
+        </h4>
+        <p class="text-muted mb-0">Kelola tools yang dibutuhkan untuk setiap program</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Panel: Tools List -->
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-palette text-brand me-2"></i>Daftar Tools
+                </h6>
+                <span class="badge bg-secondary">{{ tools|length }} Tools</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for tool in tools %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                        <div>
+                            <div class="fw-600">{{ tool.name }}</div>
+                            {% if tool.category %}
+                            <span class="badge badge-secondary small">{{ tool.category }}</span>
+                            {% endif %}
+                            {% if tool.description %}
+                            <div class="text-muted small mt-1">{{ tool.description }}</div>
+                            {% endif %}
+                        </div>
+                        <form action="{{ url_for('admin.delete_tool', tool_id=tool.id) }}" method="POST"
+                            class="d-inline">
+                            <button type="submit" class="btn btn-ghost btn-sm text-danger"
+                                onclick="return confirm('Hapus tool ini?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-toolbox fa-2x mb-3" style="opacity: 0.3;"></i>
+                        <p class="mb-0">Belum ada tools</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Add Tool Form -->
+            <div class="card-footer" style="background: var(--bg-body);">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="fas fa-plus-circle text-muted"></i>
+                    <span class="fw-600" style="font-size: 13px;">Tambah Tool Baru</span>
+                </div>
+                <form method="POST" action="{{ url_for('admin.add_tool') }}">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <input type="text" name="name" class="form-control"
+                                placeholder="Nama Tool (contoh: Watercolor)" required>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="category" class="form-control">
+                                <option value="">-- Kategori --</option>
+                                <option value="Drawing">Drawing</option>
+                                <option value="Sewing">Sewing</option>
+                                <option value="Digital">Digital</option>
+                                <option value="Coloring">Coloring</option>
+                                <option value="Pattern">Pattern</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" name="description" class="form-control"
+                                placeholder="Deskripsi (opsional)">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        <i class="fas fa-plus me-2"></i>Tambah Tool
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Program Tools Assignment -->
+    <div class="col-lg-7">
+        <!-- Assign Tool Form -->
+        <div class="card mb-4" style="border-left: 4px solid #d32f2f;">
+            <div class="card-body">
+                <h6 class="fw-700 mb-3"><i class="fas fa-link text-brand me-2"></i>Assign Tool ke Program</h6>
+                <form method="POST" action="{{ url_for('admin.assign_tool_to_program') }}">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <select name="tool_id" class="form-control" required>
+                                <option value="">-- Pilih Tool --</option>
+                                {% for tool in tools %}
+                                <option value="{{ tool.id }}">{{ tool.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="program_id" class="form-control" required>
+                                <option value="">-- Pilih Program --</option>
+                                {% for program in programs %}
+                                <option value="{{ program.id }}">{{ program.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" name="quantity" class="form-control" placeholder="Qty" value="1"
+                                min="1">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Programs with Tools -->
+        {% for program in programs %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-graduation-cap text-warning me-2"></i>{{ program.name }}
+                </h6>
+                <span class="badge badge-primary">{{ program.tools|length }} Tools</span>
+            </div>
+            <div class="card-body p-0">
+                {% if program.tools %}
+                <table class="table-modern mb-0">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 24px;">Tool</th>
+                            <th class="text-center">Kategori</th>
+                            <th class="text-center">Qty</th>
+                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pt in program.tools %}
+                        <tr>
+                            <td style="padding-left: 24px;">
+                                <div class="fw-600">{{ pt.tool.name }}</div>
+                                {% if pt.notes %}
+                                <div class="text-muted small">{{ pt.notes }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if pt.tool.category %}
+                                <span class="badge badge-secondary">{{ pt.tool.category }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-primary">{{ pt.quantity }}</span>
+                            </td>
+                            <td style="text-align: right; padding-right: 24px;">
+                                <form action="{{ url_for('admin.unassign_tool', pt_id=pt.id) }}" method="POST"
+                                    class="d-inline">
+                                    <button type="submit" class="btn btn-ghost btn-sm text-danger"
+                                        onclick="return confirm('Hapus tool dari program ini?')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-0 small">Belum ada tools yang di-assign</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .list-group-item:hover {
+        background-color: #fff5f5;
+    }
+</style>
+{% endblock %}
