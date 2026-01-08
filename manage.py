@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import User, Program, Subject, ProgramSubject, TimeSlot, TeacherSkill, TeacherAvailability, Batch, Enrollment, StudentSchedule, Booking, Tool, ProgramTool
+from app.models import User, Program, Subject, ProgramSubject, TimeSlot, TeacherSkill, TeacherAvailability, Batch, Enrollment, StudentSchedule, Booking, Tool, ProgramTool, ProgramClass, ClassEnrollment
 from datetime import time, date, timedelta
 
 app = create_app()
@@ -27,31 +27,110 @@ def seed():
     else:
         print("ℹ️  Admin already exists")
 
-    # 2. Subjects
+    # 2. Subjects (untuk silabus)
     design = get_or_create(Subject, name="Fashion Design")
     pcsw = get_or_create(Subject, name="PCSW (Pola)")
     cad = get_or_create(Subject, name="CAD")
+    exploration = get_or_create(Subject, name="Exploration")
     business = get_or_create(Subject, name="Fashion Business")
     
-    # 3. Programs
-    prog_3in1 = get_or_create(Program, name="FF 3 in 1", total_sessions=96)
-    prog_ft = get_or_create(Program, name="Fast Track (FT)", is_batch_based=True)
+    db.session.commit()
+    print("✅ Subjects created")
+    
+    # 3. Programs dengan Classes
+    # max_izin: FF/SPF regular classes = 8, Exploration = 3, Batch = 0
+    programs_data = [
+        {
+            "name": "Fashion Foundation",
+            "is_batch_based": False,
+            "classes": [
+                {"name": "Fashion Design", "sessions": 48, "per_week": 2, "batch": False, "max_izin": 8, "order": 1},
+                {"name": "PCSW", "sessions": 48, "per_week": 2, "batch": False, "max_izin": 8, "order": 2},
+                {"name": "CAD", "sessions": 16, "per_week": 0, "batch": True, "max_izin": 0, "order": 3},
+            ]
+        },
+        {
+            "name": "SPF",
+            "is_batch_based": False,
+            "classes": [
+                {"name": "Fashion Design", "sessions": 16, "per_week": 1, "batch": False, "max_izin": 8, "order": 1},
+                {"name": "PCSW", "sessions": 48, "per_week": 2, "batch": False, "max_izin": 8, "order": 2},
+            ]
+        },
+        {
+            "name": "Fast Track",
+            "is_batch_based": True,
+            "classes": [
+                {"name": "Fast Track", "sessions": 13, "per_week": 0, "batch": True, "max_izin": 0, "order": 1},
+            ]
+        },
+        {
+            "name": "FF Exploration",
+            "is_batch_based": False,
+            "classes": [
+                {"name": "FF Exploration", "sessions": 4, "per_week": 1, "batch": False, "max_izin": 3, "order": 1},
+            ]
+        },
+        {
+            "name": "SPF Exploration",
+            "is_batch_based": False,
+            "classes": [
+                {"name": "SPF Exploration", "sessions": 4, "per_week": 1, "batch": False, "max_izin": 3, "order": 1},
+            ]
+        },
+    ]
+    
+    for prog_data in programs_data:
+        prog = get_or_create(Program, name=prog_data["name"])
+        prog.is_batch_based = prog_data["is_batch_based"]
+        db.session.flush()
+        
+        for cls_data in prog_data["classes"]:
+            existing_class = ProgramClass.query.filter_by(
+                program_id=prog.id, 
+                name=cls_data["name"]
+            ).first()
+            
+            if not existing_class:
+                program_class = ProgramClass(
+                    program_id=prog.id,
+                    name=cls_data["name"],
+                    total_sessions=cls_data["sessions"],
+                    sessions_per_week=cls_data["per_week"],
+                    is_batch_based=cls_data["batch"],
+                    max_izin=cls_data["max_izin"],
+                    order=cls_data["order"]
+                )
+                db.session.add(program_class)
+                izin_info = f", max izin: {cls_data['max_izin']}" if cls_data['max_izin'] > 0 else ""
+                print(f"  ✅ Class '{cls_data['name']}' ({cls_data['sessions']} sesi{izin_info}) added to {prog.name}")
+        
+        print(f"✅ Program '{prog.name}' created")
     
     db.session.commit()
-
-    # Link Program -> Subject
-    def link_prog_subject(prog, subj):
-        if not ProgramSubject.query.filter_by(program_id=prog.id, subject_id=subj.id).first():
-            db.session.add(ProgramSubject(program_id=prog.id, subject_id=subj.id))
-
-    link_prog_subject(prog_3in1, design)
-    link_prog_subject(prog_3in1, pcsw)
-    link_prog_subject(prog_3in1, cad)
     
     # 4. TimeSlots
-    s1 = get_or_create(TimeSlot, name="Sesi 1", start_time=time(00,1), end_time=time(13,0))
-    s2 = get_or_create(TimeSlot, name="Sesi 2", start_time=time(13,1), end_time=time(23,59))
+    # Pagi: 09:30-12:30 (Offline)
+    # Siang: 13:30-16:30 (Offline)
+    # Malam: 18:30-21:00 (Online)
+    timeslots_data = [
+        {"name": "Sesi Pagi", "start": time(9, 30), "end": time(12, 30), "online": False},
+        {"name": "Sesi Siang", "start": time(13, 30), "end": time(16, 30), "online": False},
+        {"name": "Sesi Malam", "start": time(18, 30), "end": time(21, 0), "online": True},
+    ]
+    
+    for ts in timeslots_data:
+        slot = TimeSlot.query.filter_by(name=ts["name"]).first()
+        if not slot:
+            slot = TimeSlot(name=ts["name"], start_time=ts["start"], end_time=ts["end"], is_online=ts["online"])
+            db.session.add(slot)
+        else:
+            slot.start_time = ts["start"]
+            slot.end_time = ts["end"]
+            slot.is_online = ts["online"]
+    
     db.session.commit()
+    print("✅ TimeSlots created: Pagi (09:30-12:30 Offline), Siang (13:30-16:30 Offline), Malam (18:30-21:00 Online)")
 
     # 5. Teachers with Skills and Availability
     teachers_data = [
@@ -61,9 +140,9 @@ def seed():
             "phone": "6281200001111",
             "skills": ["Fashion Design"],
             "availability": [
-                (0, "Sesi 1"), (0, "Sesi 2"),  # Senin
-                (2, "Sesi 1"), (2, "Sesi 2"),  # Rabu
-                (4, "Sesi 1"),                  # Jumat pagi
+                (0, "Sesi Pagi"), (0, "Sesi Siang"),  # Senin
+                (2, "Sesi Pagi"), (2, "Sesi Siang"),  # Rabu
+                (4, "Sesi Pagi"),                      # Jumat
             ]
         },
         {
@@ -72,9 +151,9 @@ def seed():
             "phone": "6281200002222",
             "skills": ["PCSW (Pola)"],
             "availability": [
-                (1, "Sesi 1"), (1, "Sesi 2"),  # Selasa
-                (3, "Sesi 1"), (3, "Sesi 2"),  # Kamis
-                (5, "Sesi 1"),                  # Sabtu pagi
+                (1, "Sesi Pagi"), (1, "Sesi Siang"),  # Selasa
+                (3, "Sesi Pagi"), (3, "Sesi Siang"),  # Kamis
+                (5, "Sesi Pagi"),                      # Sabtu
             ]
         },
         {
@@ -83,20 +162,20 @@ def seed():
             "phone": "6281200003333",
             "skills": ["CAD"],
             "availability": [
-                (0, "Sesi 2"),                  # Senin siang
-                (2, "Sesi 1"), (2, "Sesi 2"),  # Rabu
-                (4, "Sesi 1"), (4, "Sesi 2"),  # Jumat
+                (0, "Sesi Siang"),                     # Senin
+                (2, "Sesi Pagi"), (2, "Sesi Siang"),  # Rabu
+                (4, "Sesi Pagi"), (4, "Sesi Siang"),  # Jumat
             ]
         },
         {
             "email": "teacher4@school.com",
-            "name": "Ms. Ratna (Business)",
+            "name": "Ms. Ratna (Exploration)",
             "phone": "6281200004444",
-            "skills": ["Fashion Business"],
+            "skills": ["Exploration"],
             "availability": [
-                (1, "Sesi 1"),                  # Selasa pagi
-                (3, "Sesi 2"),                  # Kamis siang
-                (5, "Sesi 1"), (5, "Sesi 2"),  # Sabtu
+                (1, "Sesi Pagi"),                      # Selasa
+                (3, "Sesi Siang"),                     # Kamis
+                (5, "Sesi Pagi"), (5, "Sesi Siang"),  # Sabtu
             ]
         },
         {
@@ -105,24 +184,24 @@ def seed():
             "phone": "6281200005555",
             "skills": ["Fashion Design", "PCSW (Pola)"],
             "availability": [
-                (0, "Sesi 1"),                  # Senin pagi
-                (1, "Sesi 2"),                  # Selasa siang
-                (2, "Sesi 1"),                  # Rabu pagi
-                (3, "Sesi 2"),                  # Kamis siang
-                (4, "Sesi 1"),                  # Jumat pagi
+                (0, "Sesi Pagi"), (0, "Sesi Malam"),  # Senin
+                (1, "Sesi Siang"), (1, "Sesi Malam"), # Selasa
+                (2, "Sesi Pagi"),                      # Rabu
+                (3, "Sesi Siang"), (3, "Sesi Malam"), # Kamis
+                (4, "Sesi Pagi"),                      # Jumat
             ]
         },
         {
             "email": "teacher6@school.com",
             "name": "Ms. Dian (Full-Time)",
             "phone": "6281200006666",
-            "skills": ["Fashion Design", "CAD", "Fashion Business"],
+            "skills": ["Fashion Design", "CAD", "PCSW (Pola)"],
             "availability": [
-                (0, "Sesi 1"), (0, "Sesi 2"),  # Senin
-                (1, "Sesi 1"), (1, "Sesi 2"),  # Selasa
-                (2, "Sesi 1"), (2, "Sesi 2"),  # Rabu
-                (3, "Sesi 1"), (3, "Sesi 2"),  # Kamis
-                (4, "Sesi 1"), (4, "Sesi 2"),  # Jumat
+                (0, "Sesi Pagi"), (0, "Sesi Siang"), (0, "Sesi Malam"),  # Senin
+                (1, "Sesi Pagi"), (1, "Sesi Siang"), (1, "Sesi Malam"),  # Selasa
+                (2, "Sesi Pagi"), (2, "Sesi Siang"), (2, "Sesi Malam"),  # Rabu
+                (3, "Sesi Pagi"), (3, "Sesi Siang"), (3, "Sesi Malam"),  # Kamis
+                (4, "Sesi Pagi"), (4, "Sesi Siang"), (4, "Sesi Malam"),  # Jumat
             ]
         },
     ]
@@ -139,13 +218,11 @@ def seed():
             db.session.add(teacher)
             db.session.flush()
             
-            # Add skills
             for skill_name in t_data["skills"]:
                 subj = Subject.query.filter_by(name=skill_name).first()
                 if subj:
                     db.session.add(TeacherSkill(teacher_id=teacher.id, subject_id=subj.id))
             
-            # Add availabilities
             for day, slot_name in t_data["availability"]:
                 slot = TimeSlot.query.filter_by(name=slot_name).first()
                 if slot:
@@ -157,184 +234,7 @@ def seed():
 
     db.session.commit()
     
-    # 6. Students with Enrollments and Matching Schedules
-    # Schedule based on teacher availability:
-    # Ms. Sarah (Design): Mon (S1,S2), Wed (S1,S2), Fri (S1)
-    # Mr. Budi (Pola): Tue (S1,S2), Thu (S1,S2), Sat (S1)
-    # Ms. Anita (CAD): Mon (S2), Wed (S1,S2), Fri (S1,S2)
-    # Ms. Ratna (Business): Tue (S1), Thu (S2), Sat (S1,S2)
-    # Mr. Eko (Multi): Mon (S1), Tue (S2), Wed (S1), Thu (S2), Fri (S1)
-    # Ms. Dian (Full): Mon-Fri (S1,S2)
-    
-    students_data = [
-        {
-            "email": "siswa1@school.com", 
-            "name": "Rina Wijaya", 
-            "phone": "6281234567001", 
-            "sessions_remaining": 96,
-            "schedule": {
-                "day": 0,  # Senin
-                "timeslot": "Sesi 1",
-                "teacher_email": "teacher1@school.com",  # Ms. Sarah available Mon S1
-                "subject": "Fashion Design"
-            }
-        },
-        {
-            "email": "siswa2@school.com", 
-            "name": "Dewi Lestari", 
-            "phone": "6281234567002", 
-            "sessions_remaining": 36,
-            "schedule": {
-                "day": 1,  # Selasa
-                "timeslot": "Sesi 1",
-                "teacher_email": "teacher2@school.com",  # Mr. Budi available Tue S1
-                "subject": "PCSW (Pola)"
-            }
-        },
-        {
-            "email": "siswa3@school.com", 
-            "name": "Siti Nurhaliza", 
-            "phone": "6281234567003", 
-            "sessions_remaining": 24,
-            "schedule": {
-                "day": 2,  # Rabu
-                "timeslot": "Sesi 2",
-                "teacher_email": "teacher3@school.com",  # Ms. Anita available Wed S2
-                "subject": "CAD"
-            }
-        },
-        {
-            "email": "siswa4@school.com", 
-            "name": "Putri Ayu", 
-            "phone": "6281234567004", 
-            "sessions_remaining": 12,
-            "schedule": {
-                "day": 3,  # Kamis
-                "timeslot": "Sesi 2",
-                "teacher_email": "teacher4@school.com",  # Ms. Ratna available Thu S2
-                "subject": "Fashion Business"
-            }
-        },
-        {
-            "email": "siswa5@school.com", 
-            "name": "Maya Sari", 
-            "phone": "6281234567005", 
-            "sessions_remaining": 96,
-            "schedule": {
-                "day": 4,  # Jumat
-                "timeslot": "Sesi 1",
-                "teacher_email": "teacher6@school.com",  # Ms. Dian available Fri S1
-                "subject": "Fashion Design"
-            }
-        },
-    ]
-    
-    prog_3in1 = Program.query.filter_by(name="FF 3 in 1").first()
-    
-    for s_data in students_data:
-        existing_student = User.query.filter_by(email=s_data["email"]).first()
-        
-        if not existing_student:
-            student = User(
-                email=s_data["email"],
-                name=s_data["name"],
-                role='student',
-                phone_number=s_data["phone"]
-            )
-            student.set_password('siswa123')
-            db.session.add(student)
-            db.session.flush()
-            
-            # Create enrollment
-            enrollment = Enrollment(
-                student_id=student.id,
-                program_id=prog_3in1.id,
-                sessions_remaining=s_data["sessions_remaining"],
-                status='active'
-            )
-            db.session.add(enrollment)
-            db.session.flush()
-            
-            # Get schedule data
-            sched = s_data["schedule"]
-            timeslot = TimeSlot.query.filter_by(name=sched["timeslot"]).first()
-            teacher = User.query.filter_by(email=sched["teacher_email"]).first()
-            subject = Subject.query.filter_by(name=sched["subject"]).first()
-            
-            schedule = StudentSchedule(
-                enrollment_id=enrollment.id,
-                subject_id=subject.id,
-                teacher_id=teacher.id,
-                day_of_week=sched["day"],
-                timeslot_id=timeslot.id
-            )
-            db.session.add(schedule)
-            
-            # Create upcoming booking
-            today = date.today()
-            days_until = (sched["day"] - today.weekday()) % 7
-            if days_until == 0:
-                days_until = 7
-            booking_date = today + timedelta(days=days_until)
-            
-            booking = Booking(
-                enrollment_id=enrollment.id,
-                date=booking_date,
-                timeslot_id=timeslot.id,
-                teacher_id=teacher.id,
-                subject_id=subject.id,
-                status='booked'
-            )
-            db.session.add(booking)
-            
-            print(f"✅ Student {s_data['name']} created with enrollment")
-        else:
-            # Update existing student's schedule to match teacher availability
-            enrollment = Enrollment.query.filter_by(student_id=existing_student.id).first()
-            if enrollment:
-                # Delete old schedules and bookings
-                StudentSchedule.query.filter_by(enrollment_id=enrollment.id).delete()
-                Booking.query.filter_by(enrollment_id=enrollment.id).delete()
-                
-                # Create new matching schedule
-                sched = s_data["schedule"]
-                timeslot = TimeSlot.query.filter_by(name=sched["timeslot"]).first()
-                teacher = User.query.filter_by(email=sched["teacher_email"]).first()
-                subject = Subject.query.filter_by(name=sched["subject"]).first()
-                
-                schedule = StudentSchedule(
-                    enrollment_id=enrollment.id,
-                    subject_id=subject.id,
-                    teacher_id=teacher.id,
-                    day_of_week=sched["day"],
-                    timeslot_id=timeslot.id
-                )
-                db.session.add(schedule)
-                
-                # Create new booking
-                today = date.today()
-                days_until = (sched["day"] - today.weekday()) % 7
-                if days_until == 0:
-                    days_until = 7
-                booking_date = today + timedelta(days=days_until)
-                
-                booking = Booking(
-                    enrollment_id=enrollment.id,
-                    date=booking_date,
-                    timeslot_id=timeslot.id,
-                    teacher_id=teacher.id,
-                    subject_id=subject.id,
-                    status='booked'
-                )
-                db.session.add(booking)
-                
-                print(f"🔄 Student {s_data['name']} schedule updated to match teacher availability")
-            else:
-                print(f"⚠️  Student {s_data['email']} has no enrollment")
-    
-    db.session.commit()
-    
-    # 7. Tools
+    # 6. Tools
     tools_data = [
         {"name": "Watercolor Set", "category": "Coloring", "description": "Set cat air 24 warna"},
         {"name": "Palette", "category": "Coloring", "description": "Palette untuk mencampur warna"},
@@ -359,18 +259,23 @@ def seed():
     print("✅ Tools created")
     
     # Assign tools to programs
-    prog_3in1 = Program.query.filter_by(name="FF 3 in 1").first()
-    prog_ft = Program.query.filter_by(name="Fast Track (FT)").first()
+    prog_ff = Program.query.filter_by(name="Fashion Foundation").first()
+    prog_spf = Program.query.filter_by(name="SPF").first()
+    prog_ft = Program.query.filter_by(name="Fast Track").first()
     
-    # Tools for 3in1 program
-    tools_3in1 = ["Watercolor Set", "Palette", "Kuas Set", "Sketching Paper", "Pensil Warna", "Marker Fashion", "Pita Ukur", "Penggaris Pola", "Software CAD License"]
-    for tool_name in tools_3in1:
+    tools_ff = ["Watercolor Set", "Palette", "Kuas Set", "Sketching Paper", "Pensil Warna", "Marker Fashion", "Pita Ukur", "Penggaris Pola", "Software CAD License"]
+    for tool_name in tools_ff:
         tool = Tool.query.filter_by(name=tool_name).first()
-        if tool and not ProgramTool.query.filter_by(program_id=prog_3in1.id, tool_id=tool.id).first():
-            db.session.add(ProgramTool(program_id=prog_3in1.id, tool_id=tool.id, quantity=1))
+        if tool and prog_ff and not ProgramTool.query.filter_by(program_id=prog_ff.id, tool_id=tool.id).first():
+            db.session.add(ProgramTool(program_id=prog_ff.id, tool_id=tool.id, quantity=1))
     
-    # Tools for FT program
-    tools_ft = ["Mesin Jahit", "Gunting Kain", "Pita Ukur", "Penggaris Pola", "Graphics Tablet"]
+    tools_spf = ["Watercolor Set", "Kuas Set", "Sketching Paper", "Pita Ukur", "Penggaris Pola"]
+    for tool_name in tools_spf:
+        tool = Tool.query.filter_by(name=tool_name).first()
+        if tool and prog_spf and not ProgramTool.query.filter_by(program_id=prog_spf.id, tool_id=tool.id).first():
+            db.session.add(ProgramTool(program_id=prog_spf.id, tool_id=tool.id, quantity=1))
+    
+    tools_ft = ["Mesin Jahit", "Gunting Kain", "Pita Ukur", "Penggaris Pola"]
     for tool_name in tools_ft:
         tool = Tool.query.filter_by(name=tool_name).first()
         if tool and prog_ft and not ProgramTool.query.filter_by(program_id=prog_ft.id, tool_id=tool.id).first():
@@ -379,9 +284,121 @@ def seed():
     db.session.commit()
     print("✅ Tools assigned to programs")
     
-    print("=== SEEDING SELESAI ===")
+    # 8. Test Student dengan Enrollment dan ClassEnrollments
+    test_student = User.query.filter_by(email='student@test.com').first()
+    if not test_student:
+        test_student = User(
+            email='student@test.com',
+            name='Test Student',
+            phone_number='6281234567890',
+            role='student'
+        )
+        test_student.set_password('student123')
+        db.session.add(test_student)
+        db.session.flush()
+        
+        # Create enrollment for Fashion Foundation
+        prog_ff = Program.query.filter_by(name='Fashion Foundation').first()
+        if prog_ff:
+            enrollment = Enrollment(
+                student_id=test_student.id,
+                program_id=prog_ff.id,
+                status='active'
+            )
+            db.session.add(enrollment)
+            db.session.flush()
+            
+            # Auto-create ClassEnrollments
+            for pc in prog_ff.classes:
+                ce = ClassEnrollment(
+                    enrollment_id=enrollment.id,
+                    program_class_id=pc.id,
+                    sessions_remaining=pc.total_sessions,
+                    izin_used=0,
+                    status='active'
+                )
+                db.session.add(ce)
+            
+            db.session.commit()
+            
+            # Create test bookings for izin testing
+            from datetime import timedelta
+            
+            # Get class enrollments
+            fd_ce = ClassEnrollment.query.join(ProgramClass).filter(
+                ClassEnrollment.enrollment_id == enrollment.id,
+                ProgramClass.name == 'Fashion Design'
+            ).first()
+            
+            pcsw_ce = ClassEnrollment.query.join(ProgramClass).filter(
+                ClassEnrollment.enrollment_id == enrollment.id,
+                ProgramClass.name == 'PCSW'
+            ).first()
+            
+            cad_ce = ClassEnrollment.query.join(ProgramClass).filter(
+                ClassEnrollment.enrollment_id == enrollment.id,
+                ProgramClass.name == 'CAD'
+            ).first()
+            
+            timeslot_pagi = TimeSlot.query.filter_by(name='Sesi Pagi').first()
+            timeslot_siang = TimeSlot.query.filter_by(name='Sesi Siang').first()
+            
+            teacher = User.query.filter_by(role='teacher').first()
+            fd_subject = Subject.query.filter_by(name='Fashion Design').first()
+            
+            # Booking 1: Tomorrow (can izin)
+            tomorrow = date.today() + timedelta(days=1)
+            booking1 = Booking(
+                enrollment_id=enrollment.id,
+                class_enrollment_id=fd_ce.id if fd_ce else None,
+                date=tomorrow,
+                timeslot_id=timeslot_pagi.id if timeslot_pagi else 1,
+                teacher_id=teacher.id if teacher else None,
+                subject_id=fd_subject.id if fd_subject else None,
+                status='booked'
+            )
+            db.session.add(booking1)
+            
+            # Booking 2: Next week (can izin)
+            next_week = date.today() + timedelta(days=7)
+            booking2 = Booking(
+                enrollment_id=enrollment.id,
+                class_enrollment_id=pcsw_ce.id if pcsw_ce else None,
+                date=next_week,
+                timeslot_id=timeslot_siang.id if timeslot_siang else 2,
+                teacher_id=teacher.id if teacher else None,
+                subject_id=Subject.query.filter_by(name='PCSW').first().id if Subject.query.filter_by(name='PCSW').first() else None,
+                status='booked'
+            )
+            db.session.add(booking2)
+            
+            # Booking 3: CAD (no izin allowed - batch)
+            booking3 = Booking(
+                enrollment_id=enrollment.id,
+                class_enrollment_id=cad_ce.id if cad_ce else None,
+                date=next_week + timedelta(days=1),
+                timeslot_id=timeslot_pagi.id if timeslot_pagi else 1,
+                teacher_id=teacher.id if teacher else None,
+                subject_id=Subject.query.filter_by(name='CAD').first().id if Subject.query.filter_by(name='CAD').first() else None,
+                status='booked'
+            )
+            db.session.add(booking3)
+            
+            db.session.commit()
+            print(f"✅ Test Student created: student@test.com / student123")
+            print(f"   Enrolled in: {prog_ff.name} ({len(prog_ff.classes)} classes)")
+            print(f"   Test bookings: 3 (tomorrow, next week, next week+1)")
+    else:
+        print("ℹ️  Test student already exists")
+    
+    print("\n=== SEEDING SELESAI ===")
+    print("\n📊 Summary:")
+    for prog in Program.query.all():
+        print(f"  • {prog.name}: {prog.total_sessions} total sesi ({len(prog.classes)} kelas)")
+        for cls in prog.classes:
+            batch_tag = " [BATCH]" if cls.is_batch_based else f" [{cls.sessions_per_week}x/minggu]"
+            print(f"      - {cls.name}: {cls.total_sessions} sesi{batch_tag}")
 
-# INI BAGIAN PENTING: Langsung jalankan fungsi seed(), bukan app.run()
 if __name__ == '__main__':
     with app.app_context():
         seed()

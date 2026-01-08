@@ -314,13 +314,13 @@
 
       <!-- Info Cards -->
       <div class="col-lg-7 col-md-12">
-        <!-- Manual Sessions / Overrides for this enrollment -->
+        <!-- Upcoming Bookings for this enrollment -->
         {% set enroll_bookings = manual_bookings|selectattr('enrollment_id', 'equalto', prog.enrollment_id)|list %}
         {% if enroll_bookings %}
-        <div class="card mb-4" style="border-left: 4px solid var(--warning);">
+        <div class="card mb-4" style="border-left: 4px solid var(--brand-primary);">
           <div class="card-header">
             <h6 class="card-title mb-0">
-              <i class="fas fa-calendar-plus text-warning me-2"></i> Jadwal Tambahan (Manual)
+              <i class="fas fa-calendar-alt text-brand me-2"></i> Jadwal Mendatang
             </h6>
           </div>
           <div class="card-body p-0">
@@ -330,9 +330,10 @@
                   <tr>
                     <th style="padding-left: 24px;">Hari/Tanggal</th>
                     <th>Waktu</th>
-                    <th>Materi</th>
+                    <th>Kelas</th>
                     <th>Pengajar</th>
-                    <th style="text-align: right; padding-right: 24px;">Status</th>
+                    <th>Status</th>
+                    <th style="text-align: right; padding-right: 24px;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -344,9 +345,13 @@
                     </td>
                     <td>
                       <div class="fw-600 text-brand">{{ booking.timeslot.name }}</div>
+                      <div class="text-muted" style="font-size: 11px;">{{ booking.timeslot.start_time.strftime('%H:%M')
+                        }}</div>
                     </td>
                     <td>
-                      {% if booking.subject %}
+                      {% if booking.class_enrollment %}
+                      <span>{{ booking.class_enrollment.program_class.name }}</span>
+                      {% elif booking.subject %}
                       <span>{{ booking.subject.name }}</span>
                       {% else %}
                       <span class="text-muted fst-italic" style="font-size: 13px;">-</span>
@@ -364,10 +369,75 @@
                       <span class="text-muted">-</span>
                       {% endif %}
                     </td>
+                    <td>
+                      {% if booking.status == 'booked' %}
+                      <span class="badge badge-primary">Terjadwal</span>
+                      {% elif booking.status == 'izin' %}
+                      <span class="badge badge-warning">Izin</span>
+                      {% else %}
+                      <span class="badge badge-secondary">{{ booking.status }}</span>
+                      {% endif %}
+                    </td>
                     <td style="text-align: right; padding-right: 24px;">
-                      <span class="badge badge-warning" style="font-weight: 500;">Override</span>
+                      {% if booking.status == 'booked' and booking.class_enrollment %}
+                      {% if booking.class_enrollment.program_class.max_izin > 0 and
+                      booking.class_enrollment.izin_remaining > 0 %}
+                      <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                        data-bs-target="#izinBookingModal{{ booking.id }}">
+                        <i class="fas fa-hand-paper me-1"></i> Izin
+                      </button>
+                      {% elif booking.class_enrollment.program_class.max_izin == 0 %}
+                      <span class="text-muted" style="font-size: 12px;">No izin</span>
+                      {% else %}
+                      <span class="text-muted" style="font-size: 12px;">Kuota habis</span>
+                      {% endif %}
+                      {% elif booking.status == 'izin' %}
+                      <span class="text-muted" style="font-size: 12px;"><i class="fas fa-check"></i> Diizinkan</span>
+                      {% endif %}
                     </td>
                   </tr>
+
+                  <!-- Modal for izin confirmation -->
+                  {% if booking.status == 'booked' and booking.class_enrollment and
+                  booking.class_enrollment.program_class.max_izin > 0 and booking.class_enrollment.izin_remaining > 0 %}
+                  <div class="modal fade" id="izinBookingModal{{ booking.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title"><i class="fas fa-calendar-times me-2 text-warning"></i>Request Izin
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Perhatian!</strong> Izin harus diajukan minimal 1 jam sebelum jadwal dimulai.
+                          </div>
+                          <p class="mb-2">Anda yakin ingin mengajukan izin untuk:</p>
+                          <ul class="mb-3">
+                            <li><strong>Kelas:</strong> {{ booking.class_enrollment.program_class.name }}</li>
+                            <li><strong>Tanggal:</strong> {{ days[booking.date.weekday()] }}, {{
+                              booking.date.strftime('%d %b %Y') }}</li>
+                            <li><strong>Waktu:</strong> {{ booking.timeslot.name }} ({{
+                              booking.timeslot.start_time.strftime('%H:%M') }})</li>
+                          </ul>
+                          <p class="text-muted mb-0">Sisa kuota izin setelah ini: <strong>{{
+                              booking.class_enrollment.izin_remaining - 1 }}</strong> dari {{
+                            booking.class_enrollment.program_class.max_izin }}</p>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                          <form action="{{ url_for('main.request_izin', booking_id=booking.id) }}" method="POST"
+                            class="d-inline">
+                            <button type="submit" class="btn btn-warning">
+                              <i class="fas fa-check me-1"></i> Ya, Ajukan Izin
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
@@ -376,8 +446,9 @@
         </div>
         {% endif %}
 
-        <!-- Regular Schedule for this enrollment -->
+        <!-- Regular Schedule for this enrollment (only show if no upcoming bookings) -->
         {% set current_enroll = enrollments|selectattr('id', 'equalto', prog.enrollment_id)|first %}
+        {% if not enroll_bookings %}
         <div class="card">
           <div class="card-header">
             <h6 class="card-title mb-0">
@@ -435,6 +506,7 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
       </div>
     </div>
 
@@ -472,32 +544,61 @@
         </div>
       </div>
 
-      <!-- Attendance Summary Cards -->
-      <div class="col-md-4">
-        <div class="stats-card" style="border-left: 4px solid var(--success);">
-          <div class="stats-card-icon success">
-            <i class="fas fa-check-circle"></i>
+      <div class="col-12">
+        <div class="card mb-4" style="border-left: 4px solid var(--brand-primary);">
+          <div class="card-header">
+            <h6 class="card-title mb-0"><i class="fas fa-list-ul text-brand me-2"></i>Detail Progress per Kelas</h6>
           </div>
-          <div class="stats-card-value">{{ prog.hadir }}</div>
-          <div class="stats-card-label">Hadir</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="stats-card" style="border-left: 4px solid var(--warning);">
-          <div class="stats-card-icon warning">
-            <i class="fas fa-clock"></i>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table-modern">
+                <thead>
+                  <tr>
+                    <th style="padding-left: 24px;">Kelas/Materi</th>
+                    <th class="text-center">Hadir</th>
+                    <th class="text-center">Izin</th>
+                    <th class="text-center">Alpha</th>
+                    <th class="text-center" style="padding-right: 24px;">Sisa Sesi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ce in prog.class_enrollments %}
+                  <tr>
+                    <td style="padding-left: 24px;">
+                      <div class="fw-600">{{ ce.class_name }}</div>
+                      {% if ce.is_batch %}
+                      <span class="badge badge-secondary" style="font-size: 10px;">Batch</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <span class="badge badge-success">{{ ce.hadir }}</span>
+                    </td>
+                    <td class="text-center">
+                      {% if ce.max_izin > 0 %}
+                      <span
+                        class="badge {% if ce.izin_used > ce.max_izin %}badge-danger{% elif ce.izin_used > 0 %}badge-warning{% else %}badge-secondary{% endif %}">
+                        {{ ce.izin_used }}/{{ ce.max_izin }}
+                      </span>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if ce.alpha > 0 %}
+                      <span class="badge badge-danger">{{ ce.alpha }}</span>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center" style="padding-right: 24px;">
+                      <span class="fw-600 text-brand">{{ ce.sessions_remaining }}/{{ ce.total_sessions }}</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="stats-card-value">{{ prog.izin }}</div>
-          <div class="stats-card-label">Izin</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="stats-card" style="border-left: 4px solid var(--danger);">
-          <div class="stats-card-icon danger">
-            <i class="fas fa-times-circle"></i>
-          </div>
-          <div class="stats-card-value">{{ prog.alpha }}</div>
-          <div class="stats-card-label">Alpha</div>
         </div>
       </div>
 

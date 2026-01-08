@@ -3,8 +3,9 @@
 {% block page_title %}Edit Program{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8 col-lg-6">
+<div class="row g-4">
+  <!-- Left Column - Program Info -->
+  <div class="col-lg-5">
     <!-- Breadcrumb -->
     <div class="d-flex align-items-center gap-3 mb-4">
       <a href="{{ url_for('admin.program_manage') }}" class="btn btn-secondary btn-icon"
@@ -17,22 +18,27 @@
       </div>
     </div>
 
-    <!-- Edit Form Card -->
+    <!-- Program Info Card -->
     <div class="card" style="border-top: 4px solid var(--warning);">
       <div class="card-body p-4">
         <form method="POST">
+          <input type="hidden" name="update_program" value="1">
+
           <!-- Program Name -->
           <div class="form-group">
             <label class="form-label">Nama Program</label>
             <input type="text" name="name" class="form-control" value="{{ program.name }}" required />
           </div>
 
-          <!-- Total Sessions -->
+          <!-- Total Sessions (Read-only, computed) -->
           <div class="form-group">
             <label class="form-label">Total Sesi</label>
-            <input type="number" name="total_sessions" class="form-control" value="{{ program.total_sessions }}"
-              required />
-            <div class="form-hint">Jumlah pertemuan dalam program ini</div>
+            <div class="d-flex align-items-center gap-2 p-3 rounded" style="background: var(--bg-body);">
+              <span class="fw-700 text-brand" style="font-size: 24px;">{{ program.total_sessions }}</span>
+              <span class="text-muted">sesi</span>
+              <span class="badge badge-secondary ms-2">Computed from Classes</span>
+            </div>
+            <div class="form-hint">Total sesi dihitung otomatis dari jumlah kelas</div>
           </div>
 
           <!-- Batch Toggle -->
@@ -43,26 +49,9 @@
                 {% if program.is_batch_based %}checked{% endif %} />
               <div>
                 <div class="fw-600">Sistem Batch</div>
-                <div class="text-muted" style="font-size: 12px;">Fast Track dengan jadwal tetap</div>
+                <div class="text-muted" style="font-size: 12px;">Program dengan jadwal tetap</div>
               </div>
             </label>
-          </div>
-
-          <!-- Subject Selection -->
-          <div class="form-group">
-            <label class="form-label">Pilih Materi</label>
-            <div class="p-3 rounded" style="background: var(--bg-body); max-height: 250px; overflow-y: auto;">
-              {% for sub in subjects %}
-              <label class="d-flex align-items-center gap-2 mb-2 p-2 rounded"
-                style="cursor: pointer; transition: background 0.2s;">
-                <input class="form-check-input" type="checkbox" name="subjects" value="{{ sub.id }}"
-                  style="width: 18px; height: 18px;" {% if sub.id in current_sub_ids %}checked{% endif %} />
-                <span>{{ sub.name }}</span>
-              </label>
-              {% else %}
-              <p class="text-muted mb-0" style="font-size: 13px;">Tidak ada materi tersedia</p>
-              {% endfor %}
-            </div>
           </div>
 
           <!-- Action Buttons -->
@@ -71,23 +60,95 @@
               <i class="fas fa-times me-2"></i> Batal
             </a>
             <button type="submit" class="btn btn-primary flex-fill">
-              <i class="fas fa-save me-2"></i> Simpan Perubahan
+              <i class="fas fa-save me-2"></i> Simpan
             </button>
           </div>
         </form>
       </div>
     </div>
   </div>
-</div>
 
-{% if program.is_batch_based %}
-<!-- Batch Management Section -->
-<div class="row justify-content-center mt-4">
-  <div class="col-md-8 col-lg-6">
+  <!-- Right Column - Class Management -->
+  <div class="col-lg-7">
+    <!-- Class List -->
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-600">Daftar Batch</h5>
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBatchModal">
+        <h5 class="mb-0 fw-600">
+          <i class="fas fa-layer-group me-2 text-brand"></i> Daftar Kelas
+        </h5>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addClassModal">
+          <i class="fas fa-plus me-1"></i> Tambah Kelas
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th class="ps-4">Nama Kelas</th>
+                <th class="text-center">Sesi</th>
+                <th class="text-center">Jadwal</th>
+                <th class="text-center">Tipe</th>
+                <th class="text-end pe-4">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cls in program.classes %}
+              <tr>
+                <td class="ps-4">
+                  <div class="fw-600">{{ cls.name }}</div>
+                  <div class="text-muted" style="font-size: 11px;">Order: {{ cls.order }}</div>
+                </td>
+                <td class="text-center">
+                  <span class="fw-700 text-brand">{{ cls.total_sessions }}</span>
+                </td>
+                <td class="text-center">
+                  {% if cls.is_batch_based %}
+                  <span class="text-muted">-</span>
+                  {% else %}
+                  <span>{{ cls.sessions_per_week }}x / minggu</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if cls.is_batch_based %}
+                  <span class="badge badge-warning">Batch</span>
+                  {% else %}
+                  <span class="badge badge-success">Regular</span>
+                  {% endif %}
+                </td>
+                <td class="text-end pe-4">
+                  <form action="{{ url_for('admin.delete_class', class_id=cls.id) }}" method="POST"
+                    class="d-inline delete-form" data-confirm="Hapus kelas {{ cls.name }}?">
+                    <button type="submit" class="btn btn-sm btn-outline text-danger"
+                      style="border-color: var(--danger);">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                  <i class="fas fa-layer-group fa-2x mb-2" style="opacity: 0.3;"></i>
+                  <p class="mb-0">Belum ada kelas dalam program ini</p>
+                  <p class="mb-0" style="font-size: 12px;">Klik "Tambah Kelas" untuk menambahkan</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if program.is_batch_based %}
+    <!-- Batch Management Section -->
+    <div class="card mt-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-600">
+          <i class="fas fa-users me-2 text-warning"></i> Daftar Batch
+        </h5>
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#addBatchModal">
           <i class="fas fa-plus me-1"></i> Tambah Batch
         </button>
       </div>
@@ -115,47 +176,73 @@
                   {% endif %}
                 </td>
                 <td class="text-end pe-4">
-                  <button class="btn btn-sm btn-outline btn-icon" data-bs-toggle="modal"
-                    data-bs-target="#editBatchModal{{ batch.id }}">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <div class="mb-3">
-                    <label class="form-label">Nama Batch</label>
-                    <input type="text" name="name" class="form-control" value="{{ batch.name }}" required>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Kuota Maksimal</label>
-                    <input type="number" name="max_students" class="form-control" value="{{ batch.max_students }}"
-                      required>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="is_active" id="isActive{{ batch.id }}" {% if
-                      batch.is_active %}checked{% endif %}>
-                    <label class="form-check-label" for="isActive{{ batch.id }}">
-                      Batch Aktif (Buka Pendaftaran)
-                    </label>
-                  </div>
+                  <form action="{{ url_for('admin.delete_batch', batch_id=batch.id) }}" method="POST"
+                    class="d-inline delete-form" data-confirm="Hapus batch ini?">
+                    <button type="submit" class="btn btn-sm btn-outline text-danger"
+                      style="border-color: var(--danger);">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">Belum ada batch yang dibuat.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Tambah Kelas Baru</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('admin.add_class') }}" method="POST">
+        <input type="hidden" name="program_id" value="{{ program.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nama Kelas</label>
+            <input type="text" name="name" class="form-control" placeholder="Contoh: Fashion Design" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Jumlah Sesi</label>
+            <input type="number" name="total_sessions" class="form-control" value="16" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Jadwal per Minggu</label>
+            <select name="sessions_per_week" class="form-control">
+              <option value="1">1x per minggu</option>
+              <option value="2">2x per minggu</option>
+            </select>
+            <div class="form-hint">Berapa kali pertemuan per minggu untuk kelas ini</div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="is_batch_based" id="classBatch">
+            <label class="form-check-label" for="classBatch">
+              Kelas Batch (jadwal ditentukan admin)
+            </label>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan</button>
+          <button type="submit" class="btn btn-primary">Tambah Kelas</button>
         </div>
-        </form>
-      </div>
+      </form>
     </div>
   </div>
-  {% else %}
-  <tr>
-    <td colspan="4" class="text-center py-4 text-muted">Belum ada batch yang dibuat.</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-  </table>
-</div>
-</div>
-</div>
 </div>
 
+{% if program.is_batch_based %}
 <!-- Add Batch Modal -->
 <div class="modal fade" id="addBatchModal" tabindex="-1">
   <div class="modal-dialog">

@@ -1,7 +1,7 @@
 from app.utils.whatsapp import send_wa_message
 from flask import Blueprint, render_template, request, flash, url_for, redirect
 from flask_login import login_required, current_user
-from app.models import User, Enrollment, Program, Batch, Booking, Attendance
+from app.models import User, Enrollment, Program, Batch, Booking, Attendance, ClassEnrollment
 from app import db
 import uuid
 from datetime import date
@@ -53,10 +53,8 @@ def dashboard():
                 Attendance.status == 'Hadir'
             ).count() if booking_ids else 0
             
-            izin_count = Attendance.query.filter(
-                Attendance.booking_id.in_(booking_ids),
-                Attendance.status == 'Izin'
-            ).count() if booking_ids else 0
+            # Izin count from class_enrollments.izin_used (not from Attendance status)
+            izin_count = sum(ce.izin_used for ce in enroll.class_enrollments)
             
             alpha_count = Attendance.query.filter(
                 Attendance.booking_id.in_(booking_ids),
@@ -82,6 +80,34 @@ def dashboard():
                         'teacher': booking.teacher.name if booking.teacher else '-'
                     })
             
+            # Build class enrollments data with detailed stats
+            class_enrollments_data = []
+            for ce in enroll.class_enrollments:
+                # Calculate per-class attendance
+                class_hadir = Attendance.query.join(Booking).filter(
+                    Booking.class_enrollment_id == ce.id,
+                    Attendance.status == 'Hadir'
+                ).count()
+                
+                class_alpha = Attendance.query.join(Booking).filter(
+                    Booking.class_enrollment_id == ce.id,
+                    Attendance.status == 'Alpha'
+                ).count()
+                
+                class_enrollments_data.append({
+                    'id': ce.id,
+                    'class_name': ce.program_class.name,
+                    'sessions_remaining': ce.sessions_remaining,
+                    'total_sessions': ce.program_class.total_sessions,
+                    'max_izin': ce.program_class.max_izin,
+                    'izin_used': ce.izin_used,
+                    'izin_remaining': ce.izin_remaining,
+                    'status': ce.status,
+                    'is_batch': ce.program_class.is_batch_based,
+                    'hadir': class_hadir,
+                    'alpha': class_alpha
+                })
+            
             enroll_progress = {
                 'enrollment_id': enroll.id,
                 'program_name': enroll.program.name,
@@ -94,7 +120,8 @@ def dashboard():
                 'hadir': hadir_count,
                 'izin': izin_count,
                 'alpha': alpha_count,
-                'session_history': session_history
+                'session_history': session_history,
+                'class_enrollments': class_enrollments_data
             }
             enrollments_data.append(enroll_progress)
         
@@ -224,7 +251,7 @@ def admin_invite():
                     student_id=new_user.id,
                     program_id=program_id,
                     batch_id=batch_id,
-                    sessions_remaining=prog.total_sessions
+                    status='pending_schedule'
                 )
                 db.session.add(enroll)
                 db.session.commit()
@@ -242,3 +269,56 @@ def admin_invite():
     programs = Program.query.all()
     batches = Batch.query.filter_by(is_active=True).all()
     return render_template('admin_invite.html', programs=programs, batches=batches)
+
+# --- ROUTE UNTUK STUDENT REQUEST IZIN ---
+@bp.route('/request-izin/<int:booking_id>', methods=['POST'])
+@login_required
+def request_izin(booking_id):
+    from datetime import datetime, timedelta
+    
+    if current_user.role != 'student':
+        flash('Akses ditolak.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get booking and verify ownership
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.enrollment.student_id != current_user.id:
+        flash('Anda tidak memiliki akses ke booking ini.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Check if booking is still 'booked' status
+    if booking.status != 'booked':
+        flash(f'Booking ini sudah berstatus "{booking.status}", tidak bisa diizinkan.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Calculate booking datetime
+    booking_datetime = datetime.combine(booking.date, booking.timeslot.start_time)
+    now = datetime.now()
+    time_until_booking = booking_datetime - now
+    
+    # Check H-1 jam rule: must be at least 1 hour before
+    if time_until_booking < timedelta(hours=1):
+        flash('Izin harus diajukan minimal 1 jam sebelum jadwal dimulai.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get class enrollment to check izin quota
+    ce = booking.class_enrollment
+    if ce:
+        if ce.program_class.max_izin == 0:
+            flash(f'Kelas {ce.program_class.name} tidak memiliki kuota izin.', 'error')
+            return redirect(url_for('main.dashboard'))
+        
+        if ce.izin_remaining <= 0:
+            flash(f'Kuota izin untuk kelas {ce.program_class.name} sudah habis.', 'error')
+            return redirect(url_for('main.dashboard'))
+        
+        # Update izin used
+        ce.izin_used += 1
+    
+    # Change booking status to 'izin' (session NOT consumed, will shift to next schedule)
+    booking.status = 'izin'
+    db.session.commit()
+    
+    class_name = ce.program_class.name if ce else 'kelas'
+    flash(f'Izin berhasil diajukan untuk {class_name} tanggal {booking.date.strftime("%d %b %Y")}. Sesi akan digeser ke jadwal berikutnya.', 'success')
+    return redirect(url_for('main.dashboard'))

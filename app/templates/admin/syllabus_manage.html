@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block page_title %}Silabus - {{ program_class.name }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_syllabus.index') }}">Silabus</a></li>
+                <li class="breadcrumb-item active">{{ program_class.name }}</li>
+            </ol>
+        </nav>
+        <h4 class="fw-700 mb-1" style="color: #d32f2f;">
+            <i class="fas fa-book me-2"></i>{{ program_class.name }}
+        </h4>
+        <p class="text-muted mb-0">{{ program_class.program.name }}</p>
+    </div>
+    <a href="{{ url_for('admin_syllabus.index') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Kembali
+    </a>
+</div>
+
+<!-- Session Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stats-card" style="border-left: 4px solid var(--brand-primary);">
+            <div class="stats-card-icon primary">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stats-card-value">{{ program_class.total_sessions }}</div>
+            <div class="stats-card-label">Total Sesi Kelas</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card" style="border-left: 4px solid var(--success);">
+            <div class="stats-card-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stats-card-value">{{ total_syllabus_sessions }}</div>
+            <div class="stats-card-label">Sesi Tercakup</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card"
+            style="border-left: 4px solid {% if remaining_sessions == 0 %}var(--success){% else %}var(--warning){% endif %};">
+            <div class="stats-card-icon {% if remaining_sessions == 0 %}success{% else %}warning{% endif %}">
+                <i class="fas {% if remaining_sessions == 0 %}fa-check{% else %}fa-exclamation-triangle{% endif %}"></i>
+            </div>
+            <div class="stats-card-value">{{ remaining_sessions }}</div>
+            <div class="stats-card-label">Sisa Sesi</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Syllabus List -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-list-ol text-brand me-2"></i>Daftar Topik Silabus
+                </h6>
+                <span class="badge bg-secondary">{{ syllabus_items|length }} Topik</span>
+            </div>
+            <div class="card-body p-0">
+                {% if syllabus_items %}
+                <table class="table-modern mb-0">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 24px; width: 50px;">#</th>
+                            <th>Nama Topik</th>
+                            <th class="text-center">Sesi</th>
+                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set cumulative = namespace(sessions=0) %}
+                        {% for item in syllabus_items %}
+                        <tr>
+                            <td style="padding-left: 24px;">{{ item.order }}</td>
+                            <td>
+                                <div class="fw-600">{{ item.topic_name }}</div>
+                                <small class="text-muted">Sesi {{ cumulative.sessions + 1 }} - {{ cumulative.sessions +
+                                    item.sessions }}</small>
+                                {% set cumulative.sessions = cumulative.sessions + item.sessions %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-primary">{{ item.sessions }}</span>
+                            </td>
+                            <td style="text-align: right; padding-right: 24px;">
+                                <button class="btn btn-ghost btn-sm text-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editModal{{ item.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form
+                                    action="{{ url_for('admin_syllabus.delete', class_id=program_class.id, syllabus_id=item.id) }}"
+                                    method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-ghost btn-sm text-danger"
+                                        onclick="return confirm('Hapus topik ini?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Edit Modal -->
+                        <div class="modal fade" id="editModal{{ item.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form
+                                        action="{{ url_for('admin_syllabus.edit', class_id=program_class.id, syllabus_id=item.id) }}"
+                                        method="POST">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Topik</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Nama Topik</label>
+                                                <input type="text" name="topic_name" class="form-control"
+                                                    value="{{ item.topic_name }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Jumlah Sesi</label>
+                                                <input type="number" name="sessions" class="form-control"
+                                                    value="{{ item.sessions }}" min="1" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" class="btn btn-primary">Simpan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-book-open fa-3x mb-3" style="opacity: 0.3;"></i>
+                    <p class="mb-0">Belum ada topik silabus</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Form -->
+    <div class="col-lg-5">
+        <div class="card" style="border-left: 4px solid var(--brand-primary);">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-plus-circle text-brand me-2"></i>Tambah Topik Baru
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if remaining_sessions > 0 %}
+                <form method="POST" action="{{ url_for('admin_syllabus.add', class_id=program_class.id) }}">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Topik</label>
+                        <input type="text" name="topic_name" class="form-control"
+                            placeholder="Contoh: Pengenalan Desain Fashion" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jumlah Sesi</label>
+                        <input type="number" name="sessions" class="form-control" value="1" min="1"
+                            max="{{ remaining_sessions }}" required>
+                        <div class="form-text">Maksimal {{ remaining_sessions }} sesi tersisa</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-2"></i>Tambah Topik
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Silabus Lengkap!</strong><br>
+                    Semua {{ program_class.total_sessions }} sesi sudah tercakup dalam silabus.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

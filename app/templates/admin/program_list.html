@@ -31,71 +31,81 @@
       </div>
     </div>
 
-    <!-- Program Table -->
-    <div class="card">
-      <div class="card-body p-0">
-        <table class="table-modern">
-          <thead>
-            <tr>
-              <th style="padding-left: 24px;">Nama Program</th>
-              <th>Total Sesi</th>
-              <th>Tipe</th>
-              <th style="text-align: right; padding-right: 24px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for prog in programs %}
-            <tr>
-              <td style="padding-left: 24px;">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="avatar" style="background: var(--warning-light); color: var(--warning);">
-                    <i class="fas fa-book"></i>
-                  </div>
-                  <div>
-                    <div class="fw-600">{{ prog.name }}</div>
-                    <div class="text-muted" style="font-size: 12px;">ID: #{{ prog.id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
+    <!-- Program Cards -->
+    {% for prog in programs %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar"
+              style="background: var(--warning-light); color: var(--warning); width: 48px; height: 48px; font-size: 20px;">
+              <i class="fas fa-book"></i>
+            </div>
+            <div>
+              <h5 class="fw-700 mb-1">{{ prog.name }}</h5>
+              <div class="d-flex align-items-center gap-3">
                 <span class="fw-600 text-brand" style="font-size: 18px;">{{ prog.total_sessions }}</span>
-                <span class="text-muted">Sesi</span>
-              </td>
-              <td>
+                <span class="text-muted">Total Sesi</span>
                 {% if prog.is_batch_based %}
-                <span class="badge badge-warning">
-                  <i class="fas fa-users me-1"></i> Batch Based
-                </span>
-                {% else %}
-                <span class="badge badge-success">
-                  <i class="fas fa-sync me-1"></i> Rolling
+                <span class="badge badge-warning ms-2">
+                  <i class="fas fa-users me-1"></i> Batch
                 </span>
                 {% endif %}
-              </td>
-              <td style="text-align: right; padding-right: 24px;">
-                <a href="{{ url_for('admin.program_edit', prog_id=prog.id) }}" class="btn btn-secondary btn-sm">
-                  <i class="fas fa-edit me-1"></i> Edit
-                </a>
-                <form action="{{ url_for('admin.delete_program', prog_id=prog.id) }}" method="POST"
-                  class="d-inline delete-form" data-confirm="Yakin ingin menghapus program ini?">
-                  <button type="submit" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </form>
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" class="text-center py-5 text-muted">
-                <i class="fas fa-book-open fa-2x mb-3" style="opacity: 0.3;"></i>
-                <p>Belum ada program yang dibuat</p>
-              </td>
-            </tr>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.program_edit', prog_id=prog.id) }}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-edit me-1"></i> Edit
+            </a>
+            <form action="{{ url_for('admin.delete_program', prog_id=prog.id) }}" method="POST"
+              class="d-inline delete-form" data-confirm="Yakin ingin menghapus program ini?">
+              <button type="submit" class="btn btn-outline btn-sm text-danger" style="border-color: var(--danger);">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Classes List -->
+        {% if prog.classes %}
+        <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-color);">
+          <div class="text-muted mb-2" style="font-size: 12px; font-weight: 600;">KELAS DALAM PROGRAM:</div>
+          <div class="d-flex flex-wrap gap-2">
+            {% for cls in prog.classes %}
+            <div class="d-flex align-items-center gap-2 px-3 py-2 rounded"
+              style="background: var(--bg-body); font-size: 13px;">
+              <span class="fw-600">{{ cls.name }}</span>
+              <span class="badge {{ 'badge-warning' if cls.is_batch_based else 'badge-secondary' }}"
+                style="font-size: 11px;">
+                {{ cls.total_sessions }} sesi
+                {% if cls.is_batch_based %}
+                <i class="fas fa-users ms-1"></i>
+                {% elif cls.sessions_per_week == 2 %}
+                • 2x/mgg
+                {% else %}
+                • 1x/mgg
+                {% endif %}
+              </span>
+            </div>
             {% endfor %}
-          </tbody>
-        </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="mt-3 pt-3 text-muted" style="border-top: 1px solid var(--border-color); font-size: 13px;">
+          <i class="fas fa-info-circle me-1"></i> Belum ada kelas dalam program ini
+        </div>
+        {% endif %}
       </div>
     </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5 text-muted">
+        <i class="fas fa-book-open fa-2x mb-3" style="opacity: 0.3;"></i>
+        <p>Belum ada program yang dibuat</p>
+      </div>
+    </div>
+    {% endfor %}
   </div>
 
   <!-- Right Column - Add Program Form -->
@@ -110,13 +120,7 @@
         <form method="POST">
           <div class="form-group">
             <label class="form-label">Nama Program</label>
-            <input type="text" name="name" class="form-control" required placeholder="Contoh: Fashion Design Basic" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Total Sesi</label>
-            <input type="number" name="total_sessions" class="form-control" required value="12" />
-            <div class="form-hint">Jumlah pertemuan dalam program ini</div>
+            <input type="text" name="name" class="form-control" required placeholder="Contoh: Fashion Foundation" />
           </div>
 
           <div class="form-group">
@@ -126,24 +130,14 @@
                 style="width: 20px; height: 20px;" />
               <div>
                 <div class="fw-600">Sistem Batch</div>
-                <div class="text-muted" style="font-size: 12px;">Fast Track dengan jadwal tetap</div>
+                <div class="text-muted" style="font-size: 12px;">Program dengan jadwal tetap (Fast Track)</div>
               </div>
             </label>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Pilih Materi</label>
-            <div class="p-3 rounded" style="background: var(--bg-body); max-height: 200px; overflow-y: auto;">
-              {% for sub in subjects %}
-              <label class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;">
-                <input class="form-check-input" type="checkbox" name="subjects" value="{{ sub.id }}"
-                  style="width: 18px; height: 18px;" />
-                <span>{{ sub.name }}</span>
-              </label>
-              {% else %}
-              <p class="text-muted mb-0" style="font-size: 13px;">Belum ada materi yang tersedia</p>
-              {% endfor %}
-            </div>
+          <div class="alert" style="background: var(--info-light); color: var(--info); font-size: 13px;">
+            <i class="fas fa-info-circle me-1"></i>
+            Setelah program dibuat, Anda dapat menambahkan <strong>Kelas</strong> di halaman Edit Program.
           </div>
 
           <button type="submit" class="btn btn-primary w-100">

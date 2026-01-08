@@ -147,6 +147,54 @@ def student_progress(student_id):
     
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
+    # === PORTFOLIO DATA FOR TAB ===
+    from app.models import Syllabus, Portfolio
+    portfolio_data = []
+    
+    for ce in enrollment.class_enrollments:
+        syllabus_items = Syllabus.query.filter_by(
+            program_class_id=ce.program_class_id
+        ).order_by(Syllabus.order).all()
+        
+        # Calculate completion based on sessions
+        total = ce.program_class.total_sessions
+        remaining = ce.sessions_remaining or 0
+        sessions_completed = total - remaining
+        cumulative = 0
+        completed_topics = 0
+        
+        syllabus_with_status = []
+        for s in syllabus_items:
+            cumulative += s.sessions
+            is_complete = sessions_completed >= cumulative
+            is_current = not is_complete and sessions_completed >= (cumulative - s.sessions)
+            
+            # Get portfolio for this syllabus item
+            portfolio = Portfolio.query.filter_by(
+                class_enrollment_id=ce.id,
+                syllabus_id=s.id
+            ).first()
+            
+            syllabus_with_status.append({
+                'syllabus': s,
+                'is_complete': is_complete,
+                'is_current': is_current,
+                'portfolio': portfolio,
+                'cumulative_end': cumulative
+            })
+            
+            if is_complete:
+                completed_topics += 1
+        
+        portfolio_data.append({
+            'class_enrollment': ce,
+            'program_class': ce.program_class,
+            'syllabus_items': syllabus_with_status,
+            'completed_topics': completed_topics,
+            'total_topics': len(syllabus_items),
+            'sessions_completed': sessions_completed
+        })
+    
     return render_template('teacher/student_progress.html',
                            student=student,
                            enrollment=enrollment,
@@ -157,4 +205,5 @@ def student_progress(student_id):
                            progress_pct=progress_pct,
                            attendance_summary=attendance_summary,
                            schedules=schedules,
-                           days=days)
+                           days=days,
+                           portfolio_data=portfolio_data)

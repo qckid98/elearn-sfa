@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment
 from datetime import date
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -63,21 +63,30 @@ def student_detail(user_id, enrollment_id=None):
                     student_id=student.id,
                     program_id=new_program_id,
                     batch_id=batch_id if new_prog.is_batch_based else None,
-                    sessions_remaining=new_prog.total_sessions,
                     status='pending_schedule'
                 )
                 db.session.add(new_enroll)
+                db.session.flush()
+                
+                # Auto-create ClassEnrollments for each class in the program
+                for program_class in new_prog.classes:
+                    class_enroll = ClassEnrollment(
+                        enrollment_id=new_enroll.id,
+                        program_class_id=program_class.id,
+                        sessions_remaining=program_class.total_sessions,
+                        status='active'
+                    )
+                    db.session.add(class_enroll)
+                
                 db.session.commit()
                 flash(f'Siswa berhasil didaftarkan ke program {new_prog.name}!')
                 return redirect(url_for('admin.student_detail', user_id=user_id, enrollment_id=new_enroll.id))
         
         elif enrollment:  # Only process if enrollment exists
             if 'update_info' in request.form:
-                enrollment.sessions_remaining = int(request.form['sessions_remaining'])
                 enrollment.status = request.form['status']
                 db.session.commit()
                 flash('Info siswa diperbarui.')
-            
             elif 'add_schedule' in request.form:
                 new_sched = StudentSchedule(
                     enrollment_id=enrollment.id,
@@ -190,6 +199,55 @@ def student_detail(user_id, enrollment_id=None):
     teachers = User.query.filter_by(role='teacher').all()
     batches = Batch.query.filter_by(is_active=True).all()
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    # === PORTFOLIO DATA FOR TAB ===
+    from app.models import Syllabus, Portfolio
+    portfolio_data = []
+    
+    if enrollment:
+        for ce in enrollment.class_enrollments:
+            syllabus_items = Syllabus.query.filter_by(
+                program_class_id=ce.program_class_id
+            ).order_by(Syllabus.order).all()
+            
+            # Calculate completion based on sessions
+            total = ce.program_class.total_sessions
+            remaining = ce.sessions_remaining or 0
+            sessions_completed = total - remaining
+            cumulative = 0
+            completed_topics = 0
+            
+            syllabus_with_status = []
+            for s in syllabus_items:
+                cumulative += s.sessions
+                is_complete = sessions_completed >= cumulative
+                is_current = not is_complete and sessions_completed >= (cumulative - s.sessions)
+                
+                # Get portfolio for this syllabus item
+                portfolio = Portfolio.query.filter_by(
+                    class_enrollment_id=ce.id,
+                    syllabus_id=s.id
+                ).first()
+                
+                syllabus_with_status.append({
+                    'syllabus': s,
+                    'is_complete': is_complete,
+                    'is_current': is_current,
+                    'portfolio': portfolio,
+                    'cumulative_end': cumulative
+                })
+                
+                if is_complete:
+                    completed_topics += 1
+            
+            portfolio_data.append({
+                'class_enrollment': ce,
+                'program_class': ce.program_class,
+                'syllabus_items': syllabus_with_status,
+                'completed_topics': completed_topics,
+                'total_topics': len(syllabus_items),
+                'sessions_completed': sessions_completed
+            })
 
     return render_template('admin/student_detail.html', 
                            student=student, 
@@ -203,7 +261,8 @@ def student_detail(user_id, enrollment_id=None):
                            teachers=teachers, 
                            days=days, 
                            manual_bookings=manual_bookings,
-                           student_progress=student_progress)
+                           student_progress=student_progress,
+                           portfolio_data=portfolio_data)
 
 @bp.route('/booking/delete/<int:booking_id>', methods=['POST'])
 @login_required
@@ -267,24 +326,16 @@ def master_schedule():
 def program_manage():
     if request.method == 'POST':
         name = request.form['name']
-        sessions = int(request.form['total_sessions'])
         is_batch = True if request.form.get('is_batch_based') else False
         
-        new_prog = Program(name=name, total_sessions=sessions, is_batch_based=is_batch)
+        new_prog = Program(name=name, is_batch_based=is_batch)
         db.session.add(new_prog)
         db.session.commit()
-        
-        # Add Subjects
-        sub_ids = request.form.getlist('subjects')
-        for sid in sub_ids:
-            db.session.add(ProgramSubject(program_id=new_prog.id, subject_id=int(sid)))
-        db.session.commit()
-        flash('Program ditambahkan.')
-        return redirect(url_for('admin.program_manage'))
+        flash('Program ditambahkan. Silakan tambahkan kelas di halaman edit.')
+        return redirect(url_for('admin.program_edit', prog_id=new_prog.id))
 
     programs = Program.query.all()
-    subjects = Subject.query.all()
-    return render_template('admin/program_list.html', programs=programs, subjects=subjects)
+    return render_template('admin/program_list.html', programs=programs)
 
 @bp.route('/program/edit/<int:prog_id>', methods=['GET', 'POST'])
 @login_required
@@ -293,18 +344,57 @@ def program_edit(prog_id):
     prog = Program.query.get_or_404(prog_id)
     if request.method == 'POST':
         prog.name = request.form['name']
-        prog.total_sessions = int(request.form['total_sessions'])
         prog.is_batch_based = True if request.form.get('is_batch_based') else False
-        
-        ProgramSubject.query.filter_by(program_id=prog.id).delete()
-        for sid in request.form.getlist('subjects'):
-            db.session.add(ProgramSubject(program_id=prog.id, subject_id=int(sid)))
         db.session.commit()
         flash('Program diupdate.')
-        return redirect(url_for('admin.program_manage'))
+        return redirect(url_for('admin.program_edit', prog_id=prog.id))
 
-    current_sub_ids = [ps.subject_id for ps in prog.subjects]
-    return render_template('admin/program_edit.html', program=prog, subjects=Subject.query.all(), current_sub_ids=current_sub_ids)
+    return render_template('admin/program_edit.html', program=prog)
+
+# --- CLASS MANAGEMENT ---
+@bp.route('/class/add', methods=['POST'])
+@login_required
+@admin_required
+def add_class():
+    program_id = int(request.form['program_id'])
+    name = request.form['name']
+    total_sessions = int(request.form['total_sessions'])
+    sessions_per_week = int(request.form.get('sessions_per_week', 1))
+    is_batch = True if request.form.get('is_batch_based') else False
+    
+    # Get next order number
+    max_order = db.session.query(db.func.max(ProgramClass.order)).filter_by(program_id=program_id).scalar() or 0
+    
+    new_class = ProgramClass(
+        program_id=program_id,
+        name=name,
+        total_sessions=total_sessions,
+        sessions_per_week=sessions_per_week,
+        is_batch_based=is_batch,
+        order=max_order + 1
+    )
+    db.session.add(new_class)
+    db.session.commit()
+    flash(f'Kelas "{name}" berhasil ditambahkan.')
+    return redirect(url_for('admin.program_edit', prog_id=program_id))
+
+@bp.route('/class/delete/<int:class_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_class(class_id):
+    cls = ProgramClass.query.get_or_404(class_id)
+    program_id = cls.program_id
+    class_name = cls.name
+    
+    # Check for enrolled students in this class
+    if ClassEnrollment.query.filter_by(program_class_id=class_id).first():
+        flash(f'Gagal: Masih ada siswa yang terdaftar di kelas {class_name}.', 'error')
+        return redirect(url_for('admin.program_edit', prog_id=program_id))
+    
+    db.session.delete(cls)
+    db.session.commit()
+    flash(f'Kelas "{class_name}" dihapus.')
+    return redirect(url_for('admin.program_edit', prog_id=program_id))
 
 # --- BATCH MANAGEMENT ---
 @bp.route('/batch/add', methods=['POST'])

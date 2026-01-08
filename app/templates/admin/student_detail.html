@@ -145,315 +145,463 @@
         {% endif %}
     </div>
 
-    <!-- Right Column - Schedule -->
+    <!-- Right Column - Tabs -->
     <div class="col-lg-8">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-4" id="studentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="detail-tab" data-bs-toggle="tab" data-bs-target="#detail-content"
+                    type="button" role="tab">
+                    <i class="fas fa-user me-2"></i>Detail Siswa
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="portfolio-tab" data-bs-toggle="tab" data-bs-target="#portfolio-content"
+                    type="button" role="tab">
+                    <i class="fas fa-folder-open me-2"></i>Portfolio
+                </button>
+            </li>
+        </ul>
 
-        <!-- Progress Tracker Section -->
-        {% if student_progress %}
-        <div class="card mb-4">
-            <div class="card-header border-0 bg-white pb-0">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-chart-line text-brand me-2"></i> Progress Belajar
-                </h6>
-            </div>
-            <div class="card-body">
-                <!-- Progress Bar -->
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-600 text-muted" style="font-size: 13px;">Progress Keseluruhan</span>
-                        <span class="badge badge-primary">{{ student_progress.progress_pct }}%</span>
-                    </div>
-                    <div class="progress" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
-                        <div class="progress-bar" role="progressbar"
-                            style="width: {{ student_progress.progress_pct }}%; background: linear-gradient(90deg, #d32f2f, #ff6b6b);"
-                            aria-valuenow="{{ student_progress.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-2" style="font-size: 11px;">
-                        <span class="text-muted">{{ student_progress.completed_sessions }} Sesi Selesai</span>
-                        <span class="text-muted">{{ student_progress.remaining_sessions }} Sesi Tersisa</span>
-                    </div>
-                </div>
+        <!-- Tab Content -->
+        <div class="tab-content" id="studentTabsContent">
+            <!-- Detail Tab -->
+            <div class="tab-pane fade show active" id="detail-content" role="tabpanel">
 
-                <!-- Stats Cards -->
-                <div class="row g-3 mb-4">
-                    <div class="col-4">
-                        <div class="p-3 rounded text-center"
-                            style="background: var(--success-light); border: 1px solid rgba(40, 167, 69, 0.2);">
-                            <div class="h4 fw-700 text-success mb-0">{{ student_progress.hadir }}</div>
-                            <div class="small text-success opacity-75 fw-600">Hadir</div>
-                        </div>
+                <!-- Progress Tracker Section -->
+                {% if student_progress %}
+                <div class="card mb-4">
+                    <div class="card-header border-0 bg-white pb-0">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-chart-line text-brand me-2"></i> Progress Belajar
+                        </h6>
                     </div>
-                    <div class="col-4">
-                        <div class="p-3 rounded text-center"
-                            style="background: var(--warning-light); border: 1px solid rgba(255, 193, 7, 0.2);">
-                            <div class="h4 fw-700 text-warning mb-0">{{ student_progress.izin }}</div>
-                            <div class="small text-warning opacity-75 fw-600">Izin</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="p-3 rounded text-center"
-                            style="background: var(--danger-light); border: 1px solid rgba(220, 53, 69, 0.2);">
-                            <div class="h4 fw-700 text-danger mb-0">{{ student_progress.alpha }}</div>
-                            <div class="small text-danger opacity-75 fw-600">Alpha</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Session History Accordion -->
-                {% if student_progress.session_history %}
-                <div class="accordion" id="sessionHistoryAccordion_Admin">
-                    {% for session in student_progress.session_history %}
-                    <div class="accordion-item border mb-2 rounded overflow-hidden">
-                        <h2 class="accordion-header" id="heading_admin_{{ loop.index }}">
-                            <button class="accordion-button collapsed p-3 bg-light shadow-none" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#collapse_admin_{{ loop.index }}"
-                                aria-expanded="false" aria-controls="collapse_admin_{{ loop.index }}">
-                                <div class="d-flex justify-content-between w-100 align-items-center me-2">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="badge bg-white text-dark border">{{ session.date.strftime('%d %b')
-                                            }}</div>
-                                        <div>
-                                            <div class="fw-600 text-dark" style="font-size: 13px;">{{ session.subject }}
-                                            </div>
-                                            <div class="text-muted small">{{ session.teacher }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span
-                                            class="badge badge-{{ 'success' if session.status == 'Hadir' else 'warning' if session.status == 'Izin' else 'danger' }}">
-                                            {{ session.status }}
-                                        </span>
-                                        {% if session.notes %}
-                                        <i class="fas fa-sticky-note text-warning" title="Ada Catatan"></i>
-                                        {% endif %}
-                                    </div>
+                    <div class="card-body">
+                        <!-- Progress Bar -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-600 text-muted" style="font-size: 13px;">Progress Keseluruhan</span>
+                                <span class="badge badge-primary">{{ student_progress.progress_pct }}%</span>
+                            </div>
+                            <div class="progress" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {{ student_progress.progress_pct }}%; background: linear-gradient(90deg, #d32f2f, #ff6b6b);"
+                                    aria-valuenow="{{ student_progress.progress_pct }}" aria-valuemin="0"
+                                    aria-valuemax="100">
                                 </div>
-                            </button>
-                        </h2>
-                        <div id="collapse_admin_{{ loop.index }}" class="accordion-collapse collapse"
-                            aria-labelledby="heading_admin_{{ loop.index }}"
-                            data-bs-parent="#sessionHistoryAccordion_Admin">
-                            <div class="accordion-body bg-white border-top p-3">
-                                <h6 class="fw-600 text-muted mb-2" style="font-size: 12px;">CATATAN SESI:</h6>
-                                <p class="mb-0 text-dark" style="font-size: 13px; line-height: 1.6;">
-                                    {{ session.notes if session.notes else "Tidak ada catatan." }}
-                                </p>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2" style="font-size: 11px;">
+                                <span class="text-muted">{{ student_progress.completed_sessions }} Sesi Selesai</span>
+                                <span class="text-muted">{{ student_progress.remaining_sessions }} Sesi Tersisa</span>
                             </div>
                         </div>
+
+                        <!-- Stats Cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-4">
+                                <div class="p-3 rounded text-center"
+                                    style="background: var(--success-light); border: 1px solid rgba(40, 167, 69, 0.2);">
+                                    <div class="h4 fw-700 text-success mb-0">{{ student_progress.hadir }}</div>
+                                    <div class="small text-success opacity-75 fw-600">Hadir</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-3 rounded text-center"
+                                    style="background: var(--warning-light); border: 1px solid rgba(255, 193, 7, 0.2);">
+                                    <div class="h4 fw-700 text-warning mb-0">{{ student_progress.izin }}</div>
+                                    <div class="small text-warning opacity-75 fw-600">Izin</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-3 rounded text-center"
+                                    style="background: var(--danger-light); border: 1px solid rgba(220, 53, 69, 0.2);">
+                                    <div class="h4 fw-700 text-danger mb-0">{{ student_progress.alpha }}</div>
+                                    <div class="small text-danger opacity-75 fw-600">Alpha</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Session History Accordion -->
+                        {% if student_progress.session_history %}
+                        <div class="accordion" id="sessionHistoryAccordion_Admin">
+                            {% for session in student_progress.session_history %}
+                            <div class="accordion-item border mb-2 rounded overflow-hidden">
+                                <h2 class="accordion-header" id="heading_admin_{{ loop.index }}">
+                                    <button class="accordion-button collapsed p-3 bg-light shadow-none" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapse_admin_{{ loop.index }}"
+                                        aria-expanded="false" aria-controls="collapse_admin_{{ loop.index }}">
+                                        <div class="d-flex justify-content-between w-100 align-items-center me-2">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="badge bg-white text-dark border">{{
+                                                    session.date.strftime('%d %b')
+                                                    }}</div>
+                                                <div>
+                                                    <div class="fw-600 text-dark" style="font-size: 13px;">{{
+                                                        session.subject }}
+                                                    </div>
+                                                    <div class="text-muted small">{{ session.teacher }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span
+                                                    class="badge badge-{{ 'success' if session.status == 'Hadir' else 'warning' if session.status == 'Izin' else 'danger' }}">
+                                                    {{ session.status }}
+                                                </span>
+                                                {% if session.notes %}
+                                                <i class="fas fa-sticky-note text-warning" title="Ada Catatan"></i>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse_admin_{{ loop.index }}" class="accordion-collapse collapse"
+                                    aria-labelledby="heading_admin_{{ loop.index }}"
+                                    data-bs-parent="#sessionHistoryAccordion_Admin">
+                                    <div class="accordion-body bg-white border-top p-3">
+                                        <h6 class="fw-600 text-muted mb-2" style="font-size: 12px;">CATATAN SESI:</h6>
+                                        <p class="mb-0 text-dark" style="font-size: 13px; line-height: 1.6;">
+                                            {{ session.notes if session.notes else "Tidak ada catatan." }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 bg-light rounded">
+                            <p class="text-muted mb-0 small">Belum ada riwayat sesi selesai.</p>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-4 bg-light rounded">
-                    <p class="text-muted mb-0 small">Belum ada riwayat sesi selesai.</p>
                 </div>
                 {% endif %}
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- Current Schedule -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-calendar-alt text-brand me-2"></i> Jadwal Tetap
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <table class="table-modern">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 24px;">Hari</th>
-                            <th>Jam</th>
-                            <th>Materi</th>
-                            <th>Pengajar</th>
-                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if enrollment %}
-                        {% for sched in enrollment.schedules %}
-                        <tr>
-                            <td style="padding-left: 24px;">
-                                <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
-                            </td>
-                            <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
-                            <td>{{ sched.subject.name }}</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="avatar avatar-sm"
-                                        style="background: var(--success-light); color: var(--success);">
-                                        {{ sched.teacher.name[0]|upper }}
-                                    </div>
-                                    {{ sched.teacher.name }}
+                <!-- Current Schedule -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-calendar-alt text-brand me-2"></i> Jadwal Tetap
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="padding-left: 24px;">Hari</th>
+                                    <th>Jam</th>
+                                    <th>Materi</th>
+                                    <th>Pengajar</th>
+                                    <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if enrollment %}
+                                {% for sched in enrollment.schedules %}
+                                <tr>
+                                    <td style="padding-left: 24px;">
+                                        <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
+                                    </td>
+                                    <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
+                                    <td>{{ sched.subject.name }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar avatar-sm"
+                                                style="background: var(--success-light); color: var(--success);">
+                                                {{ sched.teacher.name[0]|upper }}
+                                            </div>
+                                            {{ sched.teacher.name }}
+                                        </div>
+                                    </td>
+                                    <td style="text-align: right; padding-right: 24px;">
+                                        <a href="{{ url_for('admin.delete_schedule', sched_id=sched.id) }}"
+                                            class="btn btn-ghost btn-sm text-danger"
+                                            onclick="event.preventDefault(); confirmAction('Hapus jadwal ini?').then(res => { if(res) window.location.href = this.href; })">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        <i class="fas fa-calendar-times fa-2x mb-3" style="opacity: 0.3;"></i>
+                                        <p>Belum ada jadwal tetap</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add Schedule Form -->
+                    <div class="card-footer" style="background: var(--bg-body);">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="fas fa-plus-circle text-muted"></i>
+                            <span class="fw-600" style="font-size: 13px;">Tambah Jadwal Manual (Override)</span>
+                        </div>
+
+                        <form method="POST">
+                            <input type="hidden" name="add_schedule" value="1">
+
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <select name="day" class="form-control" required>
+                                        <option value="">Pilih Hari</option>
+                                        {% for i in range(7) %}
+                                        <option value="{{ i }}">{{ days[i] }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                            </td>
-                            <td style="text-align: right; padding-right: 24px;">
-                                <a href="{{ url_for('admin.delete_schedule', sched_id=sched.id) }}"
-                                    class="btn btn-ghost btn-sm text-danger"
-                                    onclick="event.preventDefault(); confirmAction('Hapus jadwal ini?').then(res => { if(res) window.location.href = this.href; })">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="fas fa-calendar-times fa-2x mb-3" style="opacity: 0.3;"></i>
-                                <p>Belum ada jadwal tetap</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+                                <div class="col-md-3">
+                                    <select name="timeslot_id" class="form-control" required>
+                                        <option value="">Pilih Sesi</option>
+                                        {% for slot in timeslots %}
+                                        <option value="{{ slot.id }}">{{ slot.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="subject_id" class="form-control" required>
+                                        <option value="">Pilih Materi</option>
+                                        {% for sub in subjects %}
+                                        <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="teacher_id" class="form-control" required>
+                                        <option value="">Pilih Guru</option>
+                                        {% for t in teachers %}
+                                        <option value="{{ t.id }}">{{ t.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
 
-            <!-- Add Schedule Form -->
-            <div class="card-footer" style="background: var(--bg-body);">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <i class="fas fa-plus-circle text-muted"></i>
-                    <span class="fw-600" style="font-size: 13px;">Tambah Jadwal Manual (Override)</span>
+                            <button type="submit" class="btn btn-primary w-100 mt-3">
+                                <i class="fas fa-plus me-2"></i> Tambah Jadwal
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
-                <form method="POST">
-                    <input type="hidden" name="add_schedule" value="1">
-
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <select name="day" class="form-control" required>
-                                <option value="">Pilih Hari</option>
-                                {% for i in range(7) %}
-                                <option value="{{ i }}">{{ days[i] }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="timeslot_id" class="form-control" required>
-                                <option value="">Pilih Sesi</option>
-                                {% for slot in timeslots %}
-                                <option value="{{ slot.id }}">{{ slot.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="subject_id" class="form-control" required>
-                                <option value="">Pilih Materi</option>
-                                {% for sub in subjects %}
-                                <option value="{{ sub.id }}">{{ sub.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="teacher_id" class="form-control" required>
-                                <option value="">Pilih Guru</option>
-                                {% for t in teachers %}
-                                <option value="{{ t.id }}">{{ t.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                <!-- Manual / One-Time Session Override -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-calendar-check text-warning me-2"></i> Manual Session (Override)
+                        </h6>
                     </div>
+                    <div class="card-body p-0">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="padding-left: 24px;">Tanggal</th>
+                                    <th>Jam</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if manual_bookings %}
+                                {% for booking in manual_bookings %}
+                                <tr>
+                                    <td style="padding-left: 24px;">
+                                        <span class="fw-600">{{ booking.date.strftime('%d %b %Y') }}</span>
+                                    </td>
+                                    <td class="fw-600 text-brand">{{ booking.timeslot.name }}</td>
+                                    <td>
+                                        <span class="badge badge-warning">Scheduled</span>
+                                    </td>
+                                    <td style="text-align: right; padding-right: 24px;">
+                                        <form action="{{ url_for('admin.delete_booking', booking_id=booking.id) }}"
+                                            method="POST" style="display:inline;" class="delete-form"
+                                            data-confirm="Apakah Anda yakin ingin menghapus sesi tambahan ini?">
+                                            <button type="submit" class="btn btn-ghost btn-sm text-danger"
+                                                title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <p>Tidak ada jadwal tambahan (override)</p>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer" style="background: var(--bg-body);">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="fas fa-plus-circle text-muted"></i>
+                            <span class="fw-600" style="font-size: 13px;">Tambah Sesi Manual (Override)</span>
+                        </div>
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3">
-                        <i class="fas fa-plus me-2"></i> Tambah Jadwal
-                    </button>
-                </form>
-            </div>
-        </div>
+                        <form method="POST">
+                            <input type="hidden" name="add_manual_booking" value="1">
 
-        <!-- Manual / One-Time Session Override -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-calendar-check text-warning me-2"></i> Manual Session (Override)
-                </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="date" name="date" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <select name="timeslot_id" class="form-control" required>
+                                        <option value="">Pilih Sesi</option>
+                                        {% for slot in timeslots %}
+                                        <option value="{{ slot.id }}">{{ slot.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <select name="subject_id" class="form-control">
+                                        <option value="">Pilih Materi (Opsional)</option>
+                                        {% for sub in subjects %}
+                                        <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <select name="teacher_id" class="form-control">
+                                        <option value="">Pilih Pengajar (Opsional)</option>
+                                        {% for t in teachers %}
+                                        <option value="{{ t.id }}">{{ t.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning w-100 mt-3">
+                                <i class="fas fa-calendar-plus me-2"></i> Tambah Override
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <table class="table-modern">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 24px;">Tanggal</th>
-                            <th>Jam</th>
-                            <th>Status</th>
-                            <th style="text-align: right; padding-right: 24px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if manual_bookings %}
-                        {% for booking in manual_bookings %}
-                        <tr>
-                            <td style="padding-left: 24px;">
-                                <span class="fw-600">{{ booking.date.strftime('%d %b %Y') }}</span>
-                            </td>
-                            <td class="fw-600 text-brand">{{ booking.timeslot.name }}</td>
-                            <td>
-                                <span class="badge badge-warning">Scheduled</span>
-                            </td>
-                            <td style="text-align: right; padding-right: 24px;">
-                                <form action="{{ url_for('admin.delete_booking', booking_id=booking.id) }}"
-                                    method="POST" style="display:inline;" class="delete-form"
-                                    data-confirm="Apakah Anda yakin ingin menghapus sesi tambahan ini?">
-                                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+            <!-- End Detail Tab -->
+
+            <!-- Portfolio Tab -->
+            <div class="tab-pane fade" id="portfolio-content" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-folder-open text-brand me-2"></i>Portfolio Siswa
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if portfolio_data %}
+                        {% for data in portfolio_data %}
+                        <div class="portfolio-class-card mb-3">
+                            <div class="portfolio-class-header"
+                                onclick="this.parentElement.classList.toggle('expanded')">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                    <strong>{{ data.program_class.name }}</strong>
+                                    <span
+                                        class="badge {% if data.completed_topics == data.total_topics %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ data.completed_topics }}/{{ data.total_topics }}
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="mini-progress"
+                                        style="width: 60px; height: 4px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+                                        {% set progress = (data.sessions_completed / data.program_class.total_sessions *
+                                        100)|int if data.program_class.total_sessions > 0 else 0 %}
+                                        <div
+                                            style="width: {{ progress }}%; height: 100%; background: linear-gradient(90deg, #28a745, #20c997);">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ data.sessions_completed }}/{{
+                                        data.program_class.total_sessions }}</small>
+                                </div>
+                            </div>
+                            <div class="portfolio-class-content" style="display: none;">
+                                <table class="table table-sm mb-0">
+                                    <tbody>
+                                        {% for item in data.syllabus_items %}
+                                        <tr
+                                            class="{% if item.is_complete %}table-success{% elif item.is_current %}table-info{% endif %}">
+                                            <td style="width: 30px;">
+                                                {% if item.is_complete %}
+                                                <i class="fas fa-check text-success"></i>
+                                                {% elif item.is_current %}
+                                                <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                                {% else %}
+                                                <i class="far fa-circle text-muted" style="font-size: 0.5rem;"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ item.syllabus.topic_name }}</td>
+                                            <td class="text-muted" style="width: 60px;">{{ item.syllabus.sessions }}
+                                                sesi</td>
+                                            <td style="width: 80px; text-align: right;">
+                                                {% if item.portfolio %}
+                                                <a href="{{ item.portfolio.drive_url }}" target="_blank"
+                                                    class="btn btn-sm btn-success"
+                                                    title="{{ item.portfolio.file_name }}">
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                </a>
+                                                {% elif item.is_complete or item.is_current %}
+                                                <span class="badge bg-warning">Belum Upload</span>
+                                                {% else %}
+                                                <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center py-5 text-muted">
-                                <p>Tidak ada jadwal tambahan (override)</p>
-                            </td>
-                        </tr>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-folder-open fa-2x mb-3" style="opacity: 0.3;"></i>
+                            <p>Belum ada data portfolio</p>
+                        </div>
                         {% endif %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer" style="background: var(--bg-body);">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <i class="fas fa-plus-circle text-muted"></i>
-                    <span class="fw-600" style="font-size: 13px;">Tambah Sesi Manual (Override)</span>
-                </div>
-
-                <form method="POST">
-                    <input type="hidden" name="add_manual_booking" value="1">
-
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <input type="date" name="date" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <select name="timeslot_id" class="form-control" required>
-                                <option value="">Pilih Sesi</option>
-                                {% for slot in timeslots %}
-                                <option value="{{ slot.id }}">{{ slot.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <select name="subject_id" class="form-control">
-                                <option value="">Pilih Materi (Opsional)</option>
-                                {% for sub in subjects %}
-                                <option value="{{ sub.id }}">{{ sub.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <select name="teacher_id" class="form-control">
-                                <option value="">Pilih Pengajar (Opsional)</option>
-                                {% for t in teachers %}
-                                <option value="{{ t.id }}">{{ t.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
                     </div>
-
-                    <button type="submit" class="btn btn-warning w-100 mt-3">
-                        <i class="fas fa-calendar-plus me-2"></i> Tambah Override
-                    </button>
-                </form>
+                </div>
             </div>
+            <!-- End Portfolio Tab -->
         </div>
-        {% endblock %}
+        <!-- End Tab Content -->
+    </div>
+</div>
+
+<style>
+    .portfolio-class-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .portfolio-class-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: #f8f9fa;
+        cursor: pointer;
+    }
+
+    .portfolio-class-header:hover {
+        background: #e9ecef;
+    }
+
+    .portfolio-class-card .toggle-icon {
+        font-size: 0.7rem;
+        transition: transform 0.2s;
+    }
+
+    .portfolio-class-card.expanded .toggle-icon {
+        transform: rotate(90deg);
+    }
+
+    .portfolio-class-card.expanded .portfolio-class-content {
+        display: block !important;
+    }
+</style>
+{% endblock %}

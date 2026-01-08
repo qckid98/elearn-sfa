@@ -15,7 +15,7 @@
 
   .activate-container {
     width: 100%;
-    max-width: 480px;
+    max-width: 600px;
   }
 
   .activate-header {
@@ -79,6 +79,54 @@
   .email-verified strong {
     color: var(--text-primary);
   }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--brand-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title i {
+    color: var(--brand-primary);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 576px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .required-label::after {
+    content: "*";
+    color: var(--danger);
+    margin-left: 4px;
+  }
+
+  .form-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
 </style>
 
 <div class="activate-wrapper">
@@ -89,7 +137,7 @@
         <i class="fas fa-user-check"></i>
       </div>
       <h2>Aktivasi Akun</h2>
-      <p>Lengkapi data diri Anda untuk memulai</p>
+      <p>Lengkapi data diri Anda untuk memulai pendaftaran di SFA</p>
     </div>
 
     <!-- Form Card -->
@@ -102,17 +150,23 @@
 
       <!-- Activation Form -->
       <form method="POST">
+        <!-- Section 1: Data Akun -->
+        <div class="section-title">
+          <i class="fas fa-key"></i>
+          Data Akun
+        </div>
+
         <div class="form-group">
-          <label class="form-label">Nama Lengkap</label>
+          <label class="form-label required-label">Nama Lengkap</label>
           <div class="input-icon">
             <i class="fas fa-user"></i>
-            <input type="text" name="name" class="form-control" required placeholder="Sesuai KTP/Absen"
+            <input type="text" name="name" class="form-control" required placeholder="Sesuai KTP"
               style="padding-left: 44px;" />
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Buat Password Baru</label>
+          <label class="form-label required-label">Buat Password Baru</label>
           <div class="input-icon">
             <i class="fas fa-lock"></i>
             <input type="password" name="password" class="form-control" required minlength="6"
@@ -121,11 +175,137 @@
           <div class="form-hint">Password harus minimal 6 karakter</div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">
-          <i class="fas fa-check me-2"></i> Simpan & Masuk Dashboard
+        <!-- Section 2: Data Pribadi -->
+        <div class="section-title" style="margin-top: 32px;">
+          <i class="fas fa-id-card"></i>
+          Data Pribadi
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required-label">NIK</label>
+            <div class="input-icon">
+              <i class="fas fa-id-card"></i>
+              <input type="text" name="nik" class="form-control" required placeholder="16 digit NIK" maxlength="16"
+                pattern="\d{16}" style="padding-left: 44px;" />
+            </div>
+            <div class="form-hint">Nomor Induk Kependudukan (16 digit)</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required-label">Nomor Telepon</label>
+            <div class="input-icon">
+              <i class="fas fa-phone"></i>
+              <input type="tel" name="phone_number" class="form-control" required placeholder="08123456789"
+                style="padding-left: 44px;" value="{{ current_user.phone_number or '' }}" />
+            </div>
+            <div class="form-hint">Nomor WhatsApp aktif</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required-label">Alamat Lengkap</label>
+          <textarea name="alamat" class="form-control" required rows="3"
+            placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Provinsi"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required-label">Tanggal Lahir</label>
+            <div class="input-icon">
+              <i class="fas fa-calendar"></i>
+              <input type="date" name="tanggal_lahir" class="form-control" required style="padding-left: 44px;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required-label">Agama</label>
+            <select name="agama" class="form-control" required>
+              <option value="">-- Pilih Agama --</option>
+              <option value="Islam">Islam</option>
+              <option value="Kristen">Kristen</option>
+              <option value="Katolik">Katolik</option>
+              <option value="Hindu">Hindu</option>
+              <option value="Buddha">Buddha</option>
+              <option value="Konghucu">Konghucu</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required-label">Pekerjaan</label>
+            <div class="input-icon">
+              <i class="fas fa-briefcase"></i>
+              <input type="text" name="pekerjaan" class="form-control" required
+                placeholder="Contoh: Mahasiswa, Karyawan, Ibu Rumah Tangga" style="padding-left: 44px;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required-label">Status</label>
+            <select name="status_pernikahan" class="form-control" required>
+              <option value="">-- Pilih Status --</option>
+              <option value="Belum Menikah">Belum Menikah</option>
+              <option value="Menikah">Menikah</option>
+              <option value="Duda/Janda">Duda/Janda</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section 3: Info SFA -->
+        <div class="section-title" style="margin-top: 32px;">
+          <i class="fas fa-info-circle"></i>
+          Informasi Pendaftaran
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required-label">Tau SFA darimana?</label>
+          <select name="mengetahui_sfa_dari" class="form-control" required>
+            <option value="">-- Pilih Sumber Info --</option>
+            <option value="Instagram">Instagram</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Facebook">Facebook</option>
+            <option value="YouTube">YouTube</option>
+            <option value="Google">Google/Search Engine</option>
+            <option value="Teman/Keluarga">Teman/Keluarga</option>
+            <option value="Alumni SFA">Alumni SFA</option>
+            <option value="Pameran/Event">Pameran/Event</option>
+            <option value="Iklan Online">Iklan Online</option>
+            <option value="Spanduk/Banner">Spanduk/Banner</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required-label">Alasan memilih SFA</label>
+          <textarea name="alasan_memilih_sfa" class="form-control" required rows="3"
+            placeholder="Ceritakan alasan Anda memilih belajar di Solo Fashion Academy..."></textarea>
+          <div class="form-hint">Minimal 20 karakter</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" style="margin-top: 16px;">
+          <i class="fas fa-check me-2"></i> Simpan & Lanjutkan
         </button>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+  // Validate NIK (16 digits only)
+  document.querySelector('input[name="nik"]').addEventListener('input', function (e) {
+    this.value = this.value.replace(/\D/g, '').slice(0, 16);
+  });
+
+  // Validate alasan minimum length
+  document.querySelector('form').addEventListener('submit', function (e) {
+    const alasan = document.querySelector('textarea[name="alasan_memilih_sfa"]').value;
+    if (alasan.length < 20) {
+      e.preventDefault();
+      alert('Alasan memilih SFA minimal 20 karakter.');
+    }
+  });
+</script>
 {% endblock %}

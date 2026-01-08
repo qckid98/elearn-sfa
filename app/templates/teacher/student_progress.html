@@ -38,221 +38,334 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <div class="stats-card-icon success">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stats-card-value">{{ completed_sessions }}</div>
-                <div class="stats-card-label">Sesi Selesai</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <div class="stats-card-icon warning">
-                    <i class="fas fa-hourglass-half"></i>
-                </div>
-                <div class="stats-card-value">{{ remaining_sessions }}</div>
-                <div class="stats-card-label">Sesi Tersisa</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <div class="stats-card-icon primary">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <div class="stats-card-value">{{ total_program_sessions }}</div>
-                <div class="stats-card-label">Total Program</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <div class="stats-card-icon info">
-                    <i class="fas fa-percentage"></i>
-                </div>
-                <div class="stats-card-value">{{ attendance_summary.hadir }}</div>
-                <div class="stats-card-label">Kehadiran</div>
-            </div>
-        </div>
-    </div>
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" id="studentTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress-content"
+                type="button" role="tab">
+                <i class="fas fa-chart-line me-2"></i>Progress
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="portfolio-tab" data-bs-toggle="tab" data-bs-target="#portfolio-content"
+                type="button" role="tab">
+                <i class="fas fa-folder-open me-2"></i>Portfolio
+            </button>
+        </li>
+    </ul>
 
-    <div class="row g-4">
-        <!-- Left Column - Attendance Summary & Schedule -->
-        <div class="col-lg-4">
-            <!-- Attendance Summary -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Ringkasan Kehadiran</h6>
+    <!-- Tab Content -->
+    <div class="tab-content" id="studentTabsContent">
+        <!-- Progress Tab -->
+        <div class="tab-pane fade show active" id="progress-content" role="tabpanel">
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-card-icon success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stats-card-value">{{ completed_sessions }}</div>
+                        <div class="stats-card-label">Sesi Selesai</div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="attendance-summary">
-                        <div class="att-item">
-                            <div class="att-icon success">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div class="att-info">
-                                <div class="att-label">Hadir</div>
-                                <div class="att-value">{{ attendance_summary.hadir }} sesi</div>
-                            </div>
+                <div class="col-6 col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-card-icon warning">
+                            <i class="fas fa-hourglass-half"></i>
                         </div>
-                        <div class="att-item">
-                            <div class="att-icon warning">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="att-info">
-                                <div class="att-label">Izin</div>
-                                <div class="att-value">{{ attendance_summary.izin }} sesi</div>
-                            </div>
+                        <div class="stats-card-value">{{ remaining_sessions }}</div>
+                        <div class="stats-card-label">Sesi Tersisa</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-card-icon primary">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
-                        <div class="att-item">
-                            <div class="att-icon danger">
-                                <i class="fas fa-times"></i>
-                            </div>
-                            <div class="att-info">
-                                <div class="att-label">Alpha</div>
-                                <div class="att-value">{{ attendance_summary.alpha }} sesi</div>
-                            </div>
+                        <div class="stats-card-value">{{ total_program_sessions }}</div>
+                        <div class="stats-card-label">Total Program</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-card-icon info">
+                            <i class="fas fa-percentage"></i>
                         </div>
+                        <div class="stats-card-value">{{ attendance_summary.hadir }}</div>
+                        <div class="stats-card-label">Kehadiran</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Regular Schedule -->
-            {% if schedules %}
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i>Jadwal Reguler</h6>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        {% for schedule in schedules %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-bold">{{ days[schedule.day_of_week] }}</div>
-                                <small class="text-muted">{{ schedule.subject.name }}</small>
-                            </div>
-                            <span class="badge bg-light text-dark">{{ schedule.timeslot.name }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Right Column - Session History -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi</h6>
-                    <span class="badge bg-secondary">{{ session_history|length }} sesi</span>
-                </div>
-                <div class="card-body p-0">
-                    {% if session_history %}
-                    <div class="session-accordion">
-                        {% for session in session_history %}
-                        <div class="session-item" data-session-id="{{ loop.index }}">
-                            <div class="session-header" onclick="toggleSession({{ loop.index }})">
-                                <div class="session-main-info">
-                                    <div class="session-date">
-                                        <div class="fw-bold">{{ session.date.strftime('%d %b %Y') }}</div>
-                                        <small class="text-muted">{{ session.date.strftime('%A') }}</small>
+            <div class="row g-4">
+                <!-- Left Column - Attendance Summary & Schedule -->
+                <div class="col-lg-4">
+                    <!-- Attendance Summary -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Ringkasan Kehadiran</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="attendance-summary">
+                                <div class="att-item">
+                                    <div class="att-icon success">
+                                        <i class="fas fa-check"></i>
                                     </div>
-                                    <div class="session-subject">
-                                        <i class="fas fa-book me-1 text-muted"></i>
-                                        {{ session.subject }}
-                                    </div>
-                                    <div class="session-time">
-                                        <i class="fas fa-clock me-1 text-muted"></i>
-                                        {{ session.timeslot }}
+                                    <div class="att-info">
+                                        <div class="att-label">Hadir</div>
+                                        <div class="att-value">{{ attendance_summary.hadir }} sesi</div>
                                     </div>
                                 </div>
-                                <div class="session-badges">
-                                    {% if session.status == 'completed' %}
-                                    <span class="badge bg-success">Selesai</span>
-                                    {% elif session.status == 'cancelled' %}
-                                    <span class="badge bg-secondary">Dibatalkan</span>
-                                    {% else %}
-                                    <span class="badge bg-primary">Terjadwal</span>
-                                    {% endif %}
-
-                                    {% if session.attendance == 'Hadir' %}
-                                    <span class="badge bg-success-light text-success">Hadir</span>
-                                    {% elif session.attendance == 'Izin' %}
-                                    <span class="badge bg-warning-light text-warning">Izin</span>
-                                    {% elif session.attendance == 'Alpha' %}
-                                    <span class="badge bg-danger-light text-danger">Alpha</span>
-                                    {% endif %}
-
-                                    {% if session.notes %}
-                                    <span class="badge bg-info-light text-info">
-                                        <i class="fas fa-comment-alt me-1"></i>Ada Catatan
-                                    </span>
-                                    {% endif %}
+                                <div class="att-item">
+                                    <div class="att-icon warning">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="att-info">
+                                        <div class="att-label">Izin</div>
+                                        <div class="att-value">{{ attendance_summary.izin }} sesi</div>
+                                    </div>
                                 </div>
-                                <div class="session-expand-icon">
-                                    <i class="fas fa-chevron-down"></i>
-                                </div>
-                            </div>
-                            <div class="session-content" id="session-content-{{ loop.index }}">
-                                <div class="session-details">
-                                    <div class="detail-row">
-                                        <span class="detail-label"><i class="fas fa-calendar me-2"></i>Tanggal</span>
-                                        <span class="detail-value">{{ session.date.strftime('%A, %d %B %Y') }}</span>
+                                <div class="att-item">
+                                    <div class="att-icon danger">
+                                        <i class="fas fa-times"></i>
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"><i class="fas fa-book me-2"></i>Mata Pelajaran</span>
-                                        <span class="detail-value">{{ session.subject }}</span>
+                                    <div class="att-info">
+                                        <div class="att-label">Alpha</div>
+                                        <div class="att-value">{{ attendance_summary.alpha }} sesi</div>
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"><i class="fas fa-clock me-2"></i>Waktu</span>
-                                        <span class="detail-value">{{ session.timeslot }}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"><i class="fas fa-info-circle me-2"></i>Status
-                                            Sesi</span>
-                                        <span class="detail-value">
-                                            {% if session.status == 'completed' %}Selesai
-                                            {% elif session.status == 'cancelled' %}Dibatalkan
-                                            {% else %}Terjadwal{% endif %}
-                                        </span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label"><i
-                                                class="fas fa-user-check me-2"></i>Kehadiran</span>
-                                        <span class="detail-value">{{ session.attendance if session.attendance else
-                                            'Belum diabsen' }}</span>
-                                    </div>
-                                    {% if session.notes %}
-                                    <div class="detail-notes">
-                                        <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan Progress
-                                        </div>
-                                        <div class="notes-content">{{ session.notes }}</div>
-                                    </div>
-                                    {% else %}
-                                    <div class="detail-notes empty">
-                                        <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan Progress
-                                        </div>
-                                        <div class="notes-content text-muted">Tidak ada catatan untuk sesi ini</div>
-                                    </div>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                        <p class="text-muted mb-0">Belum ada riwayat sesi dengan siswa ini.</p>
+
+                    <!-- Regular Schedule -->
+                    {% if schedules %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i>Jadwal Reguler</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for schedule in schedules %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">{{ days[schedule.day_of_week] }}</div>
+                                        <small class="text-muted">{{ schedule.subject.name }}</small>
+                                    </div>
+                                    <span class="badge bg-light text-dark">{{ schedule.timeslot.name }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
+
+                <!-- Right Column - Session History -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i>Riwayat Sesi</h6>
+                            <span class="badge bg-secondary">{{ session_history|length }} sesi</span>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if session_history %}
+                            <div class="session-accordion">
+                                {% for session in session_history %}
+                                <div class="session-item" data-session-id="{{ loop.index }}">
+                                    <div class="session-header" onclick="toggleSession({{ loop.index }})">
+                                        <div class="session-main-info">
+                                            <div class="session-date">
+                                                <div class="fw-bold">{{ session.date.strftime('%d %b %Y') }}</div>
+                                                <small class="text-muted">{{ session.date.strftime('%A') }}</small>
+                                            </div>
+                                            <div class="session-subject">
+                                                <i class="fas fa-book me-1 text-muted"></i>
+                                                {{ session.subject }}
+                                            </div>
+                                            <div class="session-time">
+                                                <i class="fas fa-clock me-1 text-muted"></i>
+                                                {{ session.timeslot }}
+                                            </div>
+                                        </div>
+                                        <div class="session-badges">
+                                            {% if session.status == 'completed' %}
+                                            <span class="badge bg-success">Selesai</span>
+                                            {% elif session.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">Dibatalkan</span>
+                                            {% else %}
+                                            <span class="badge bg-primary">Terjadwal</span>
+                                            {% endif %}
+
+                                            {% if session.attendance == 'Hadir' %}
+                                            <span class="badge bg-success-light text-success">Hadir</span>
+                                            {% elif session.attendance == 'Izin' %}
+                                            <span class="badge bg-warning-light text-warning">Izin</span>
+                                            {% elif session.attendance == 'Alpha' %}
+                                            <span class="badge bg-danger-light text-danger">Alpha</span>
+                                            {% endif %}
+
+                                            {% if session.notes %}
+                                            <span class="badge bg-info-light text-info">
+                                                <i class="fas fa-comment-alt me-1"></i>Ada Catatan
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="session-expand-icon">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="session-content" id="session-content-{{ loop.index }}">
+                                        <div class="session-details">
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i
+                                                        class="fas fa-calendar me-2"></i>Tanggal</span>
+                                                <span class="detail-value">{{ session.date.strftime('%A, %d %B %Y')
+                                                    }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="fas fa-book me-2"></i>Mata
+                                                    Pelajaran</span>
+                                                <span class="detail-value">{{ session.subject }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="fas fa-clock me-2"></i>Waktu</span>
+                                                <span class="detail-value">{{ session.timeslot }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="fas fa-info-circle me-2"></i>Status
+                                                    Sesi</span>
+                                                <span class="detail-value">
+                                                    {% if session.status == 'completed' %}Selesai
+                                                    {% elif session.status == 'cancelled' %}Dibatalkan
+                                                    {% else %}Terjadwal{% endif %}
+                                                </span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i
+                                                        class="fas fa-user-check me-2"></i>Kehadiran</span>
+                                                <span class="detail-value">{{ session.attendance if session.attendance
+                                                    else
+                                                    'Belum diabsen' }}</span>
+                                            </div>
+                                            {% if session.notes %}
+                                            <div class="detail-notes">
+                                                <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan
+                                                    Progress
+                                                </div>
+                                                <div class="notes-content">{{ session.notes }}</div>
+                                            </div>
+                                            {% else %}
+                                            <div class="detail-notes empty">
+                                                <div class="notes-label"><i class="fas fa-sticky-note me-2"></i>Catatan
+                                                    Progress
+                                                </div>
+                                                <div class="notes-content text-muted">Tidak ada catatan untuk sesi ini
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Belum ada riwayat sesi dengan siswa ini.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    <!-- End Progress Tab -->
+
+    <!-- Portfolio Tab -->
+    <div class="tab-pane fade" id="portfolio-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-folder-open me-2"></i>Portfolio Siswa
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if portfolio_data %}
+                {% for data in portfolio_data %}
+                <div class="portfolio-class-card mb-3">
+                    <div class="portfolio-class-header" onclick="this.parentElement.classList.toggle('expanded')">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-chevron-right toggle-icon"></i>
+                            <strong>{{ data.program_class.name }}</strong>
+                            <span
+                                class="badge {% if data.completed_topics == data.total_topics %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ data.completed_topics }}/{{ data.total_topics }}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="mini-progress"
+                                style="width: 60px; height: 4px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+                                {% set progress = (data.sessions_completed / data.program_class.total_sessions *
+                                100)|int if data.program_class.total_sessions > 0 else 0 %}
+                                <div
+                                    style="width: {{ progress }}%; height: 100%; background: linear-gradient(90deg, #28a745, #20c997);">
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ data.sessions_completed }}/{{ data.program_class.total_sessions
+                                }}</small>
+                        </div>
+                    </div>
+                    <div class="portfolio-class-content" style="display: none;">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                {% for item in data.syllabus_items %}
+                                <tr
+                                    class="{% if item.is_complete %}table-success{% elif item.is_current %}table-info{% endif %}">
+                                    <td style="width: 30px;">
+                                        {% if item.is_complete %}
+                                        <i class="fas fa-check text-success"></i>
+                                        {% elif item.is_current %}
+                                        <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                        {% else %}
+                                        <i class="far fa-circle text-muted" style="font-size: 0.5rem;"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.syllabus.topic_name }}</td>
+                                    <td class="text-muted" style="width: 60px;">{{ item.syllabus.sessions }} sesi</td>
+                                    <td style="width: 80px; text-align: right;">
+                                        {% if item.portfolio %}
+                                        <a href="{{ item.portfolio.drive_url }}" target="_blank"
+                                            class="btn btn-sm btn-success" title="{{ item.portfolio.file_name }}">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        {% elif item.is_complete or item.is_current %}
+                                        <span class="badge bg-warning">Belum Upload</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-folder-open fa-2x mb-3" style="opacity: 0.3;"></i>
+                    <p>Belum ada data portfolio</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- End Portfolio Tab -->
+</div>
+<!-- End Tab Content -->
 </div>
 {% endblock %}
 
@@ -506,6 +619,39 @@
         .detail-label {
             width: auto;
         }
+    }
+
+    /* Portfolio Card Styles */
+    .portfolio-class-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .portfolio-class-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: #f8f9fa;
+        cursor: pointer;
+    }
+
+    .portfolio-class-header:hover {
+        background: #e9ecef;
+    }
+
+    .portfolio-class-card .toggle-icon {
+        font-size: 0.7rem;
+        transition: transform 0.2s;
+    }
+
+    .portfolio-class-card.expanded .toggle-icon {
+        transform: rotate(90deg);
+    }
+
+    .portfolio-class-card.expanded .portfolio-class-content {
+        display: block !important;
     }
 </style>
 {% endblock %}

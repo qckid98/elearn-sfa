@@ -2,3 +2,8 @@
 .DS_Store
 env
 .venv
+.env
+*.json
+google_token.txt
+get_google_token.py
+__pycache__/

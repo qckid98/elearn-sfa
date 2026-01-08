@@ -111,6 +111,11 @@
             <i class="fas fa-tools"></i>
             <span>Data Tools</span>
           </a>
+          <a href="{{ url_for('admin_syllabus.index') }}"
+            class="nav-item {% if 'syllabus' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-book"></i>
+            <span>Silabus</span>
+          </a>
         </div>
 
         {% elif current_user.role == 'teacher' %}
@@ -142,6 +147,11 @@
           <a href="{{ url_for('onboarding.schedule_wizard') }}" class="nav-item">
             <i class="fas fa-calendar-check"></i>
             <span>Atur Jadwal</span>
+          </a>
+          <a href="{{ url_for('portfolio.index') }}"
+            class="nav-item {% if 'portfolio' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-folder-open"></i>
+            <span>Portfolio</span>
           </a>
         </div>
         {% endif %}

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="page-header">
+        <h1>📁 Portfolio Saya</h1>
+        <p class="subtitle">Upload karya untuk setiap topik silabus</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="portfolio-compact">
+        {% for data in class_data %}
+        <div class="class-card">
+            <div class="class-header" onclick="toggleClass(this)">
+                <div class="class-info">
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="class-name">{{ data.program_class.name }}</span>
+                    <span
+                        class="badge {% if data.completed_topics == data.total_topics %}badge-success{% else %}badge-secondary{% endif %}">
+                        {{ data.completed_topics }}/{{ data.total_topics }}
+                    </span>
+                </div>
+                <div class="class-progress">
+                    <div class="mini-progress">
+                        {% set progress = (data.sessions_completed / data.program_class.total_sessions * 100)|int if
+                        data.program_class.total_sessions > 0 else 0 %}
+                        <div class="mini-progress-fill" style="width: {{ progress }}%"></div>
+                    </div>
+                    <span class="progress-label">{{ data.sessions_completed }}/{{ data.program_class.total_sessions
+                        }}</span>
+                </div>
+            </div>
+            <div class="class-content" style="display: none;">
+                {% for item in data.syllabus_items %}
+                <div class="topic-row {% if item.is_complete %}completed{% elif item.is_current %}current{% endif %}">
+                    <div class="topic-status">
+                        {% if item.is_complete %}
+                        <i class="fas fa-check text-success"></i>
+                        {% elif item.is_current %}
+                        <i class="fas fa-circle text-primary"></i>
+                        {% else %}
+                        <i class="far fa-circle text-muted"></i>
+                        {% endif %}
+                    </div>
+                    <div class="topic-name">{{ item.syllabus.topic_name }}</div>
+                    <div class="topic-sessions">{{ item.syllabus.sessions }} sesi</div>
+                    <div class="topic-action">
+                        {% if item.portfolio %}
+                        <a href="{{ item.portfolio.drive_url }}" target="_blank" class="btn-icon btn-view"
+                            title="{{ item.portfolio.file_name }}">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                        <form action="{{ url_for('portfolio.delete', portfolio_id=item.portfolio.id) }}" method="POST"
+                            style="display:inline;">
+                            <button type="submit" class="btn-icon btn-delete" title="Hapus"
+                                onclick="return confirm('Hapus portfolio ini?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                        {% elif item.is_complete or item.is_current %}
+                        <a href="{{ url_for('portfolio.upload', syllabus_id=item.syllabus.id) }}"
+                            class="btn-icon btn-upload" title="Upload">
+                            <i class="fas fa-upload"></i>
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .portfolio-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .class-card {
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .class-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .class-header:hover {
+        background: var(--surface-light, #f5f5f5);
+    }
+
+    .class-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .toggle-icon {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        transition: transform 0.2s;
+    }
+
+    .class-card.expanded .toggle-icon {
+        transform: rotate(90deg);
+    }
+
+    .class-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 10px;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: #fff;
+    }
+
+    .badge-secondary {
+        background: #6c757d;
+        color: #fff;
+    }
+
+    .class-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mini-progress {
+        width: 60px;
+        height: 4px;
+        background: var(--surface-light, #e9ecef);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .mini-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #20c997);
+    }
+
+    .progress-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        min-width: 40px;
+    }
+
+    .class-content {
+        border-top: 1px solid var(--border-color, #e9ecef);
+    }
+
+    .topic-row {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        gap: 0.75rem;
+        border-bottom: 1px solid var(--border-color, #f0f0f0);
+        font-size: 0.85rem;
+    }
+
+    .topic-row:last-child {
+        border-bottom: none;
+    }
+
+    .topic-row.completed {
+        background: rgba(40, 167, 69, 0.05);
+    }
+
+    .topic-row.current {
+        background: rgba(52, 144, 220, 0.05);
+    }
+
+    .topic-status {
+        width: 20px;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+
+    .topic-name {
+        flex: 1;
+    }
+
+    .topic-sessions {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        min-width: 50px;
+    }
+
+    .topic-action {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .btn-upload {
+        background: #3490dc;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .btn-upload:hover {
+        background: #2779bd;
+    }
+
+    .btn-view {
+        background: #28a745;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .btn-view:hover {
+        background: #218838;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .btn-delete:hover {
+        background: #c82333;
+    }
+</style>
+
+<script>
+    function toggleClass(header) {
+        const card = header.parentElement;
+        const content = card.querySelector('.class-content');
+        card.classList.toggle('expanded');
+        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+{% endblock %}
