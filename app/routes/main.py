@@ -270,6 +270,119 @@ def admin_invite():
     batches = Batch.query.filter_by(is_active=True).all()
     return render_template('admin_invite.html', programs=programs, batches=batches)
 
+
+# --- ROUTE UNTUK BATCH INVITE (MULTIPLE STUDENTS) ---
+@bp.route('/admin/batch-invite', methods=['GET', 'POST'])
+@login_required
+def batch_invite():
+    if current_user.role != 'admin':
+        return "Access Denied"
+    
+    programs = Program.query.all()
+    batches = Batch.query.filter_by(is_active=True).all()
+    results = []
+    
+    if request.method == 'POST':
+        program_id = request.form.get('program_id')
+        batch_id = request.form.get('batch_id') or None
+        students_data = request.form.get('students_data', '').strip()
+        
+        if not students_data:
+            flash('Data siswa tidak boleh kosong!', 'error')
+            return redirect(url_for('main.batch_invite'))
+        
+        prog = Program.query.get(program_id)
+        if not prog:
+            flash('Program tidak ditemukan!', 'error')
+            return redirect(url_for('main.batch_invite'))
+        
+        # Parse data: format "email,phone" per baris
+        lines = students_data.split('\n')
+        success_count = 0
+        fail_count = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Parse email dan phone (dipisah koma atau tab)
+            parts = line.replace('\t', ',').split(',')
+            if len(parts) < 2:
+                results.append({'line': line, 'status': 'error', 'message': 'Format salah (butuh email,phone)'})
+                fail_count += 1
+                continue
+            
+            email = parts[0].strip().lower()
+            raw_phone = parts[1].strip()
+            
+            # Validasi email
+            if '@' not in email:
+                results.append({'line': line, 'status': 'error', 'message': 'Email tidak valid'})
+                fail_count += 1
+                continue
+            
+            # Format nomor HP
+            clean_phone = raw_phone.replace('-', '').replace(' ', '')
+            if clean_phone.startswith('0'):
+                clean_phone = '62' + clean_phone[1:]
+            elif clean_phone.startswith('+'):
+                clean_phone = clean_phone[1:]
+            
+            # Cek apakah email sudah ada
+            if User.query.filter_by(email=email).first():
+                results.append({'line': line, 'status': 'skip', 'message': 'Email sudah terdaftar'})
+                fail_count += 1
+                continue
+            
+            # Generate token & link
+            token = str(uuid.uuid4())
+            link = url_for('auth.activate', token=token, _external=True)
+            
+            pesan = (
+                f"Halo! Selamat datang di *Sparks Fashion Academy*.\n\n"
+                f"Akun Anda telah dibuat. Silakan klik link di bawah ini untuk mengatur password dan jadwal belajar Anda:\n\n"
+                f"{link}\n\n"
+                f"Terima kasih!"
+            )
+            target_wa = f"{clean_phone}@s.whatsapp.net"
+            
+            # Kirim WA
+            if send_wa_message(target_wa, pesan):
+                try:
+                    new_user = User(
+                        email=email,
+                        phone_number=clean_phone,
+                        role='student',
+                        activation_token=token,
+                        name="New Student"
+                    )
+                    db.session.add(new_user)
+                    db.session.flush()
+                    
+                    enroll = Enrollment(
+                        student_id=new_user.id,
+                        program_id=program_id,
+                        batch_id=batch_id if prog.is_batch_based else None,
+                        status='pending_schedule'
+                    )
+                    db.session.add(enroll)
+                    db.session.commit()
+                    
+                    results.append({'line': line, 'status': 'success', 'message': f'Berhasil! WA terkirim ke {clean_phone}'})
+                    success_count += 1
+                except Exception as e:
+                    db.session.rollback()
+                    results.append({'line': line, 'status': 'error', 'message': f'DB Error: {str(e)}'})
+                    fail_count += 1
+            else:
+                results.append({'line': line, 'status': 'error', 'message': f'Gagal kirim WA ke {clean_phone}'})
+                fail_count += 1
+        
+        flash(f'Selesai! Berhasil: {success_count}, Gagal: {fail_count}', 'info')
+    
+    return render_template('admin_batch_invite.html', programs=programs, batches=batches, results=results)
+
 # --- ROUTE UNTUK STUDENT REQUEST IZIN ---
 @bp.route('/request-izin/<int:booking_id>', methods=['POST'])
 @login_required

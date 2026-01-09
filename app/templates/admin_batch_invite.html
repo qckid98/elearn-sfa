@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block page_title %}Batch Invite Siswa{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <!-- Breadcrumb -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-icon"
+                style="width: 40px; height: 40px;">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-700 mb-1">Batch Invite Siswa</h4>
+                <p class="text-muted mb-0" style="font-size: 13px;">Daftarkan banyak siswa sekaligus</p>
+            </div>
+        </div>
+
+        <!-- Single Invite Link -->
+        <div class="mb-3">
+            <a href="{{ url_for('main.admin_invite') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-user-plus me-1"></i> Invite Satu Siswa
+            </a>
+        </div>
+
+        <!-- Batch Invite Form Card -->
+        <div class="card" style="border-top: 4px solid var(--brand-primary);">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <!-- Program Selection -->
+                    <div class="form-group">
+                        <label class="form-label">Pilih Program</label>
+                        <select name="program_id" class="form-control" onchange="toggleBatch(this)" required>
+                            {% for p in programs %}
+                            <option value="{{ p.id }}" data-is-batch="{{ p.is_batch_based }}">
+                                {{ p.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Batch Selection (conditional) -->
+                    <div class="form-group" id="batchDiv" style="display: none;">
+                        <label class="form-label">Pilih Batch</label>
+                        <select name="batch_id" class="form-control">
+                            <option value="">-- Pilih Batch --</option>
+                            {% for b in batches %}
+                            <option value="{{ b.id }}">{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Students Data -->
+                    <div class="form-group">
+                        <label class="form-label">Data Siswa</label>
+                        <textarea name="students_data" class="form-control" rows="10" placeholder="email@contoh.com,08123456789
+email2@contoh.com,08234567890
+email3@contoh.com,08345678901" required></textarea>
+                        <div class="form-hint mt-2">
+                            <strong>Format:</strong> email,nomor_hp (satu siswa per baris)<br>
+                            <strong>Contoh:</strong><br>
+                            <code>andi@email.com,08123456789</code><br>
+                            <code>budi@email.com,08234567890</code>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fab fa-whatsapp me-2"></i> Kirim Undangan ke Semua
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results -->
+        {% if results %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-list-check me-2"></i>Hasil Proses</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Status</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in results %}
+                            <tr>
+                                <td><code style="font-size: 12px;">{{ r.line }}</code></td>
+                                <td>
+                                    {% if r.status == 'success' %}
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Sukses</span>
+                                    {% elif r.status == 'skip' %}
+                                    <span class="badge bg-warning"><i class="fas fa-forward me-1"></i>Skip</span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Gagal</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 13px;">{{ r.message }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex gap-3">
+                    <div class="avatar" style="background: var(--info-light); color: var(--info); flex-shrink: 0;">
+                        <i class="fas fa-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-600 mb-1">Cara Kerja</h6>
+                        <p class="text-muted mb-0" style="font-size: 13px;">
+                            1. Masukkan data siswa dalam format <code>email,nomor_hp</code><br>
+                            2. Setiap baris = 1 siswa<br>
+                            3. Sistem akan mengirim undangan WhatsApp ke semua nomor<br>
+                            4. Siswa yang emailnya sudah terdaftar akan di-skip
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleBatch(selectObj) {
+        var selectedOption = selectObj.options[selectObj.selectedIndex];
+        var isBatch = selectedOption.getAttribute("data-is-batch") === "True";
+        document.getElementById("batchDiv").style.display = isBatch ? "block" : "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var progSelect = document.querySelector('select[name="program_id"]');
+        if (progSelect) toggleBatch(progSelect);
+    });
+</script>
+{% endblock %}
