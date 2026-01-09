@@ -12,10 +12,17 @@ login.login_view = 'auth.login'
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Validate configuration on startup
+    Config.validate()
 
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
+    
+    # Initialize security middleware
+    from app.security import security
+    security.init_app(app)
 
     # --- BAGIAN REGISTRASI BLUEPRINT ---
     from app.routes import auth, main, onboarding, attendance, admin, teacher, admin_syllabus, portfolio

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, current_user
 from app import db
 from app.models import User, Enrollment, ClassEnrollment
+from app.security import security
 
 bp = Blueprint('auth', __name__)
 
@@ -11,14 +12,26 @@ def login():
         return redirect(url_for('main.dashboard'))
     
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
         user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
+            # Reset failed attempts on successful login
+            security.reset_failed_login()
             login_user(user)
             return redirect(url_for('main.dashboard'))
-        flash('Email atau password salah.')
+        
+        # Record failed login attempt
+        attempts_used, is_blocked = security.record_failed_login()
+        remaining = security.get_remaining_attempts()
+        
+        if is_blocked:
+            flash('Terlalu banyak percobaan login. Akun diblokir sementara selama 15 menit.', 'error')
+        elif remaining <= 2:
+            flash(f'Email atau password salah. Sisa {remaining} percobaan lagi.', 'error')
+        else:
+            flash('Email atau password salah.', 'error')
         
     return render_template('login.html')
 

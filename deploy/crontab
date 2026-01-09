@@ -1,0 +1,32 @@
+# Crontab configuration for automated backups
+# =============================================================================
+# Setup Instructions:
+# 1. Copy this file to VPS: /var/www/elearn-sfa/deploy/crontab
+# 2. Install crontab: crontab /var/www/elearn-sfa/deploy/crontab
+# 3. Verify: crontab -l
+# =============================================================================
+
+# Environment variables
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Backup Schedule:
+# ┌───────────── minute (0-59)
+# │ ┌───────────── hour (0-23)
+# │ │ ┌───────────── day of month (1-31)
+# │ │ │ ┌───────────── month (1-12)
+# │ │ │ │ ┌───────────── day of week (0-6) (Sunday=0)
+# │ │ │ │ │
+# │ │ │ │ │
+
+# Daily backup at 2:00 AM (off-peak hours)
+0 2 * * * /var/www/elearn-sfa/deploy/backup.sh backup >> /var/log/elearn-backup.log 2>&1
+
+# Weekly backup verification (Sunday at 3:00 AM)
+0 3 * * 0 /var/www/elearn-sfa/deploy/backup.sh status >> /var/log/elearn-backup.log 2>&1
+
+# Monthly cleanup of old logs (1st of each month at 4:00 AM)
+0 4 1 * * find /var/log -name "elearn-*.log" -mtime +30 -delete
+
+# SSL certificate renewal check (twice daily as recommended by certbot)
+0 0,12 * * * certbot renew --quiet --post-hook "systemctl reload nginx"

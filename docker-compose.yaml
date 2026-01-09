@@ -4,33 +4,52 @@ services:
   # 1. Database
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=fashion_db
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-fashion_db}
       - TZ=Asia/Jakarta
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 2. Flask Application
   web:
     build: .
-    # command: sh -c "flask db upgrade && python manage.py seed && gunicorn --bind 0.0.0.0:5000 run:app"
-    # command: sh -c "flask db upgrade && python manage.py seed"
-    command: sh -c "gunicorn --bind 0.0.0.0:5000 run:app && flask db upgrade && python manage.py seed"
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo '⏳ Waiting for database...' &&
+        sleep 5 &&
+        echo '🗄️ Running migrations...' &&
+        flask db upgrade &&
+        echo '🚀 Starting Gunicorn...' &&
+        gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 --timeout 120 run:app
+      "
     volumes:
       - .:/app
+      - static_files:/app/app/static
     ports:
       - "8080:5000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/fashion_db
-      - WA_API_URL=http://elearn-sfa-wabot-1:3000
+      - FLASK_APP=manage.py
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-fashion_db}
+      - WA_API_URL=http://wabot:3000
       - TZ=Asia/Jakarta
     depends_on:
-      - db
-      - wabot
+      db:
+        condition: service_healthy
+      wabot:
+        condition: service_started
     networks:
       - app_network
 
@@ -51,7 +70,7 @@ services:
       - ./go-whatsapp-web-multidevice/src/.env
     environment:
       - APP_BASIC_AUTH=
-      - APP_DEBUG=true
+      - APP_DEBUG=${FLASK_ENV:-development}
       - TZ=Asia/Jakarta
     volumes:
       - wa_credentials:/app/credentials
@@ -61,6 +80,7 @@ services:
 volumes:
   postgres_data:
   wa_credentials:
+  static_files:
 
 
 networks:

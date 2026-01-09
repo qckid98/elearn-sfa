@@ -1,0 +1,46 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd /var/www/elearn-sfa
+            
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+            
+            echo "🔄 Rebuilding and restarting containers..."
+            docker-compose down
+            docker-compose up -d --build
+            
+            echo "⏳ Waiting for services to be ready..."
+            sleep 10
+            
+            echo "🗄️ Running database migrations..."
+            docker-compose exec -T web flask db upgrade
+            
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -f
+            
+            echo "✅ Deployment completed!"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Deployment failed! Check the logs above."
