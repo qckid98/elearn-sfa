@@ -223,7 +223,7 @@ def admin_invite():
         link = url_for('auth.activate', token=token, _external=True)
         
         pesan = (
-            f"Halo! Selamat datang di *Fashion School*.\n\n"
+            f"Halo! Selamat datang di *Sparks Fashion Academy*.\n\n"
             f"Akun Anda telah dibuat. Silakan klik link di bawah ini untuk mengatur password dan jadwal belajar Anda:\n\n"
             f"{link}\n\n"
             f"Terima kasih!"
