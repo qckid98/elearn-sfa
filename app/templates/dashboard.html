@@ -147,7 +147,7 @@
 
   <!-- Quick Actions for Teacher -->
   <div class="row g-4 mb-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
       <a href="{{ url_for('attendance.view_form', timeslot_id=1) }}" class="action-card"
         style="border-left: 4px solid var(--warning);">
         <div class="action-card-icon" style="background: var(--warning-light); color: var(--warning);">
@@ -155,20 +155,33 @@
         </div>
         <div class="action-card-content">
           <div class="action-card-title">Absensi Sesi 1</div>
-          <div class="action-card-desc">Jam 10:00 - 13:00</div>
+          <div class="action-card-desc">Pagi (09:30 - 12:30)</div>
         </div>
         <i class="fas fa-chevron-right text-muted"></i>
       </a>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
       <a href="{{ url_for('attendance.view_form', timeslot_id=2) }}" class="action-card"
+        style="border-left: 4px solid var(--info);">
+        <div class="action-card-icon" style="background: var(--info-light); color: var(--info);">
+          <i class="fas fa-cloud-sun"></i>
+        </div>
+        <div class="action-card-content">
+          <div class="action-card-title">Absensi Sesi 2</div>
+          <div class="action-card-desc">Siang (13:30 - 16:30)</div>
+        </div>
+        <i class="fas fa-chevron-right text-muted"></i>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{{ url_for('attendance.view_form', timeslot_id=3) }}" class="action-card"
         style="border-left: 4px solid var(--sidebar-bg);">
         <div class="action-card-icon" style="background: rgba(30, 58, 95, 0.1); color: var(--sidebar-bg);">
           <i class="fas fa-moon"></i>
         </div>
         <div class="action-card-content">
-          <div class="action-card-title">Absensi Sesi 2</div>
-          <div class="action-card-desc">Jam 14:00 - 17:00</div>
+          <div class="action-card-title">Absensi Sesi 3</div>
+          <div class="action-card-desc">Malam (18:30 - 21:00) Online</div>
         </div>
         <i class="fas fa-chevron-right text-muted"></i>
       </a>

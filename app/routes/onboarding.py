@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from app.models import Enrollment, Subject, TeacherAvailability, TeacherSkill, StudentSchedule, User, TimeSlot
+from app.models import (
+    Enrollment, MasterClass, TeacherAvailability, TeacherSkill, 
+    StudentSchedule, User, TimeSlot, ClassEnrollment
+)
 
 bp = Blueprint('onboarding', __name__, url_prefix='/onboarding')
 
@@ -33,17 +36,30 @@ def schedule_wizard(enrollment_id=None):
         flash('Anda belum terdaftar di program manapun.')
         return redirect(url_for('main.dashboard'))
     
-    # Ambil semua subject yang WAJIB diambil di program ini
-    required_subjects = [ps.subject_id for ps in enrollment.program.subjects]
+    # Get class_enrollments for this enrollment
+    class_enrollments = ClassEnrollment.query.filter_by(enrollment_id=enrollment.id).all()
     
-    # Ambil subject yang SUDAH dijadwalkan oleh siswa ini
-    scheduled_subjects = [s.subject_id for s in enrollment.schedules]
+    # Get master_class_ids from the program's classes
+    required_class_ids = []
+    for ce in class_enrollments:
+        if ce.program_class and ce.program_class.master_class_id:
+            required_class_ids.append({
+                'class_enrollment_id': ce.id,
+                'master_class_id': ce.program_class.master_class_id,
+                'class_name': ce.program_class.display_name
+            })
     
-    # Cari subject mana yang BELUM dijadwalkan
-    todo_subject_id = next((sid for sid in required_subjects if sid not in scheduled_subjects), None)
+    # Get already scheduled class_enrollment_ids
+    scheduled_class_enrollment_ids = [s.class_enrollment_id for s in enrollment.schedules if s.class_enrollment_id]
     
-    if todo_subject_id is None:
-        # Jika semua sudah dipilih
+    # Find the first class that hasn't been scheduled
+    todo_class = next(
+        (c for c in required_class_ids if c['class_enrollment_id'] not in scheduled_class_enrollment_ids), 
+        None
+    )
+    
+    if todo_class is None:
+        # All classes have been scheduled
         enrollment.status = 'active'
         db.session.commit()
         flash(f'Jadwal untuk program {enrollment.program.name} berhasil diatur! Selamat belajar.')
@@ -59,54 +75,84 @@ def schedule_wizard(enrollment_id=None):
             return redirect(url_for('onboarding.schedule_wizard', enrollment_id=next_pending.id))
         
         return redirect(url_for('main.dashboard'))
-        
-    # Ambil object Subject
-    subject_obj = Subject.query.get(todo_subject_id)
     
-    # --- LOGIKA CARI TEACHER & AVAILABILITY ---
-    # 1. Cari Guru yang bisa subject ini
+    # Get the MasterClass object
+    master_class_obj = MasterClass.query.get(todo_class['master_class_id'])
+    
+    # --- FIND ELIGIBLE TEACHERS & AVAILABILITY ---
+    # 1. Find teachers who can teach this master_class
     eligible_teachers = db.session.query(User.id).join(TeacherSkill).filter(
-        TeacherSkill.subject_id == todo_subject_id
+        TeacherSkill.master_class_id == todo_class['master_class_id']
     ).all()
     teacher_ids = [t[0] for t in eligible_teachers]
     
-    # 2. Cari Availability Guru-guru tersebut
+    # 2. Find availability of these teachers for this master_class
     availabilities = TeacherAvailability.query.filter(
-        TeacherAvailability.teacher_id.in_(teacher_ids)
+        TeacherAvailability.teacher_id.in_(teacher_ids),
+        TeacherAvailability.master_class_id == todo_class['master_class_id']
     ).all()
     
-    # 3. Format untuk Frontend (Calendar Events)
+    # 3. Format for Frontend (Calendar Events)
+    timeslots = {ts.id: ts for ts in TimeSlot.query.all()}
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
     events = []
     for av in availabilities:
-        events.append({
-            'title': f"Available: {av.teacher.name}",
-            'start': '2024-01-01', # Dummy date, we use repeating days
-            'daysOfWeek': [av.day_of_week], 
-            'startTime': av.timeslot.start_time.strftime('%H:%M'),
-            'endTime': av.timeslot.end_time.strftime('%H:%M'),
-            'color': '#28a745',
-            'extendedProps': {
+        ts = timeslots.get(av.timeslot_id)
+        if ts:
+            events.append({
+                'title': f"{av.teacher.name} - {ts.name}",
+                'start': '2024-01-01',  # Dummy date, we use repeating days
+                'daysOfWeek': [av.day_of_week], 
+                'startTime': ts.start_time.strftime('%H:%M'),
+                'endTime': ts.end_time.strftime('%H:%M'),
+                'color': '#28a745',
+                'extendedProps': {
+                    'teacher_id': av.teacher.id,
+                    'teacher_name': av.teacher.name,
+                    'timeslot_id': av.timeslot_id,
+                    'timeslot_name': ts.name,
+                    'day': av.day_of_week,
+                    'day_name': days[av.day_of_week]
+                }
+            })
+    
+    # Build simple slot list for table display
+    available_slots = []
+    for av in availabilities:
+        ts = timeslots.get(av.timeslot_id)
+        if ts:
+            available_slots.append({
                 'teacher_id': av.teacher.id,
-                'timeslot_id': av.timeslot.id,
-                'day': av.day_of_week
-            }
-        })
+                'teacher_name': av.teacher.name,
+                'day_of_week': av.day_of_week,
+                'day_name': days[av.day_of_week],
+                'timeslot_id': av.timeslot_id,
+                'timeslot_name': ts.name,
+                'time_range': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}"
+            })
         
     if request.method == 'POST':
-        # Simpan Pilihan
+        # Save the schedule
         new_sched = StudentSchedule(
             enrollment_id=enrollment.id,
-            subject_id=todo_subject_id,
+            class_enrollment_id=todo_class['class_enrollment_id'],
             teacher_id=request.form['teacher_id'],
-            day_of_week=request.form['day'],
-            timeslot_id=request.form['timeslot_id']
+            day_of_week=int(request.form['day']),
+            timeslot_id=int(request.form['timeslot_id'])
         )
         db.session.add(new_sched)
         db.session.commit()
+        flash(f'Jadwal untuk {todo_class["class_name"]} berhasil disimpan!')
         return redirect(url_for('onboarding.schedule_wizard', enrollment_id=enrollment.id))
 
     return render_template('onboarding.html', 
-                           subject=subject_obj, 
+                           master_class=master_class_obj,
+                           class_name=todo_class['class_name'],
+                           class_enrollment_id=todo_class['class_enrollment_id'],
                            events=events,
+                           available_slots=available_slots,
                            enrollment=enrollment,
-                           program_name=enrollment.program.name)
+                           program_name=enrollment.program.name,
+                           total_classes=len(required_class_ids),
+                           scheduled_count=len(scheduled_class_enrollment_ids))

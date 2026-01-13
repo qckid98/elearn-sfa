@@ -6,32 +6,99 @@
 <div class="row justify-content-center">
   <div class="col-lg-10">
     <!-- Header -->
-    <div class="text-center mb-5">
+    <div class="text-center mb-4">
       <span class="badge badge-primary mb-2" style="font-size: 12px; padding: 8px 16px;">
-        Langkah Pengaturan Jadwal
+        Program: {{ program_name }}
       </span>
       <h2 class="fw-700 mb-2">Pilih Jadwal Kelas</h2>
-      <p class="text-muted">
-        Mata Pelajaran: <strong class="text-brand">{{ subject.name }}</strong>
+      <p class="text-muted mb-1">
+        Kelas: <strong class="text-brand">{{ class_name }}</strong>
+      </p>
+      <p class="text-muted" style="font-size: 14px;">
+        Progress: {{ scheduled_count }} / {{ total_classes }} kelas sudah dijadwalkan
       </p>
     </div>
 
-    <!-- Calendar Card -->
+    {% if available_slots %}
+    <!-- Available Slots Table -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-clock text-success me-2"></i> Jadwal Tersedia
+        </h6>
+        <p class="text-muted mb-0" style="font-size: 13px;">
+          Pilih salah satu jadwal di bawah ini
+        </p>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th style="padding-left: 24px;">Hari</th>
+                <th>Waktu</th>
+                <th>Pengajar</th>
+                <th style="text-align: right; padding-right: 24px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for slot in available_slots %}
+              <tr>
+                <td style="padding-left: 24px;">
+                  <span class="badge badge-secondary">{{ slot.day_name }}</span>
+                </td>
+                <td>
+                  <div class="fw-600 text-brand">{{ slot.timeslot_name }}</div>
+                  <div class="text-muted" style="font-size: 12px;">{{ slot.time_range }}</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar avatar-sm" style="width: 28px; height: 28px; font-size: 12px;">
+                      {{ slot.teacher_name[0]|upper }}
+                    </div>
+                    <span>{{ slot.teacher_name }}</span>
+                  </div>
+                </td>
+                <td style="text-align: right; padding-right: 24px;">
+                  <button type="button" class="btn btn-primary btn-sm"
+                    onclick="selectSlot('{{ slot.teacher_id }}', '{{ slot.day_of_week }}', '{{ slot.timeslot_id }}', '{{ slot.day_name }}', '{{ slot.timeslot_name }}', '{{ slot.teacher_name }}')">
+                    <i class="fas fa-check me-1"></i> Pilih
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- No Slots Available -->
+    <div class="card mb-4">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+        <h5 class="fw-600 mb-2">Tidak Ada Jadwal Tersedia</h5>
+        <p class="text-muted">
+          Belum ada pengajar yang tersedia untuk kelas <strong>{{ class_name }}</strong>.<br>
+          Silakan hubungi admin untuk mengatur ketersediaan pengajar.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Calendar View (Optional) -->
+    {% if events %}
     <div class="card">
       <div class="card-header">
-        <div>
-          <h6 class="card-title mb-0">
-            <i class="fas fa-clock text-warning me-2"></i> Ketersediaan Pengajar
-          </h6>
-          <p class="text-muted mb-0" style="font-size: 13px;">
-            Klik pada kotak hijau untuk memilih jadwal
-          </p>
-        </div>
+        <h6 class="card-title mb-0">
+          <i class="fas fa-calendar-alt text-info me-2"></i> Tampilan Kalender
+        </h6>
       </div>
       <div class="card-body p-4">
         <div id="calendar" data-events="{{ events|tojson|forceescape }}"></div>
       </div>
     </div>
+    {% endif %}
 
     <!-- Back Link -->
     <div class="text-center mt-4">
@@ -51,11 +118,16 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center py-4">
-        <div class="avatar avatar-xl mx-auto mb-3" style="background: var(--info-light); color: var(--info);">
+        <div class="avatar avatar-xl mx-auto mb-3" style="background: var(--success-light); color: var(--success);">
           <i class="fas fa-calendar-check"></i>
         </div>
         <p class="text-muted mb-2">Apakah Anda yakin memilih jadwal ini?</p>
-        <h5 class="fw-700" id="modalText"></h5>
+        <div id="modalContent">
+          <div class="mb-2"><strong>Kelas:</strong> <span id="modalClass">{{ class_name }}</span></div>
+          <div class="mb-2"><strong>Hari:</strong> <span id="modalDay"></span></div>
+          <div class="mb-2"><strong>Waktu:</strong> <span id="modalTime"></span></div>
+          <div><strong>Pengajar:</strong> <span id="modalTeacher"></span></div>
+        </div>
       </div>
       <div class="modal-footer justify-content-center"
         style="border-top: 1px solid var(--border-color); padding: 20px;">
@@ -117,34 +189,40 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
+  function selectSlot(teacherId, day, timeslotId, dayName, timeslotName, teacherName) {
+    document.getElementById('inputTeacher').value = teacherId;
+    document.getElementById('inputDay').value = day;
+    document.getElementById('inputTimeslot').value = timeslotId;
+
+    document.getElementById('modalDay').innerText = dayName;
+    document.getElementById('modalTime').innerText = timeslotName;
+    document.getElementById('modalTeacher').innerText = teacherName;
+
+    var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var calendarEl = document.getElementById('calendar');
-    var calendarEvents = JSON.parse(calendarEl.dataset.events);
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'timeGridWeek',
-      headerToolbar: { left: '', center: '', right: '' },
-      dayHeaderFormat: { weekday: 'long' },
-      slotMinTime: '09:00:00',
-      slotMaxTime: '18:00:00',
-      allDaySlot: false,
-      height: 'auto',
-      hiddenDays: [],
-      events: calendarEvents,
-      eventClick: function (info) {
-        var props = info.event.extendedProps;
-        var startTime = info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        var endTime = info.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        document.getElementById('modalText').innerText = info.event.title + "\n" + startTime + " - " + endTime;
-        document.getElementById('inputTeacher').value = props.teacher_id;
-        document.getElementById('inputDay').value = props.day;
-        document.getElementById('inputTimeslot').value = props.timeslot_id;
-
-        var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-        modal.show();
-      }
-    });
-    calendar.render();
+    if (calendarEl && calendarEl.dataset.events) {
+      var calendarEvents = JSON.parse(calendarEl.dataset.events);
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: { left: '', center: '', right: '' },
+        dayHeaderFormat: { weekday: 'long' },
+        slotMinTime: '09:00:00',
+        slotMaxTime: '22:00:00',
+        allDaySlot: false,
+        height: 'auto',
+        hiddenDays: [],
+        events: calendarEvents,
+        eventClick: function (info) {
+          var props = info.event.extendedProps;
+          selectSlot(props.teacher_id, props.day, props.timeslot_id, props.day_name, props.timeslot_name, props.teacher_name);
+        }
+      });
+      calendar.render();
+    }
   });
 </script>
 {% endblock %}
