@@ -57,6 +57,93 @@
     </div>
   </div>
 
+  <!-- WhatsApp Status Indicator -->
+  {% if stats and stats.wa_status %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card"
+        style="border-left: 4px solid {% if stats.wa_status.connected %}var(--success){% else %}var(--danger){% endif %};">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="avatar"
+                style="background: {% if stats.wa_status.connected %}var(--success-light){% else %}var(--danger-light){% endif %}; color: {% if stats.wa_status.connected %}var(--success){% else %}var(--danger){% endif %}; width: 48px; height: 48px;">
+                <i class="fab fa-whatsapp fa-lg"></i>
+              </div>
+              <div>
+                <h6 class="mb-1 fw-600">
+                  WhatsApp Bot
+                  {% if stats.wa_status.connected %}
+                  <span class="badge bg-success" style="font-size: 10px; vertical-align: middle;">Connected</span>
+                  {% else %}
+                  <span class="badge bg-danger" style="font-size: 10px; vertical-align: middle;">Disconnected</span>
+                  {% endif %}
+                </h6>
+                {% if stats.wa_status.connected %}
+                <p class="text-muted mb-0" style="font-size: 13px;">
+                  {{ stats.wa_status.name or 'WhatsApp' }}
+                  {% if stats.wa_status.phone %} • {{ stats.wa_status.phone }}{% endif %}
+                </p>
+                {% else %}
+                <p class="text-danger mb-0" style="font-size: 13px;">
+                  <i class="fas fa-exclamation-triangle me-1"></i>
+                  Bot tidak terhubung. Scan QR Code untuk mengaktifkan.
+                </p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              {% if not stats.wa_status.connected %}
+              <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#waQrModal">
+                <i class="fas fa-qrcode me-1"></i> Scan QR
+              </button>
+              {% endif %}
+              <a href="http://{{ request.host.split(':')[0] }}:3000" target="_blank"
+                class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-external-link-alt me-1"></i> Panel WA
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal fade" id="waQrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fab fa-whatsapp me-2 text-success"></i>Scan QR WhatsApp</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center py-4">
+          <div id="qrLoading">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted">Memuat QR Code...</p>
+          </div>
+          <div id="qrContent" style="display: none;">
+            <img id="qrImage" src="" alt="QR Code" style="max-width: 280px; border-radius: 8px; margin-bottom: 16px;">
+            <p class="text-muted mb-2">Scan dengan WhatsApp di HP Anda</p>
+            <p class="text-muted" style="font-size: 12px;"><i class="fas fa-clock me-1"></i> QR berlaku <span
+                id="qrDuration">60</span> detik</p>
+          </div>
+          <div id="qrError" style="display: none;">
+            <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+            <p class="text-danger" id="qrErrorMsg">Error loading QR</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+          <button type="button" class="btn btn-primary" onclick="loadWaQr()">
+            <i class="fas fa-sync-alt me-1"></i> Refresh QR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Quick Actions -->
   <div class="row g-4 mb-4">
     <div class="col-12">
@@ -459,13 +546,13 @@
         </div>
         {% endif %}
 
-        <!-- Regular Schedule for this enrollment (only show if no upcoming bookings) -->
+        <!-- Jadwal Mendatang dari Jadwal Rutin (shows upcoming sessions with izin option) -->
         {% set current_enroll = enrollments|selectattr('id', 'equalto', prog.enrollment_id)|first %}
         {% if not enroll_bookings %}
         <div class="card">
-          <div class="card-header">
+          <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="card-title mb-0">
-              <i class="fas fa-calendar-week text-brand me-2"></i> Jadwal Rutin - {{ prog.program_name }}
+              <i class="fas fa-calendar-week text-brand me-2"></i> Sesi Mendatang - {{ prog.program_name }}
             </h6>
             {% if current_enroll and not current_enroll.schedules %}
             <a href="{{ url_for('onboarding.schedule_wizard', enrollment_id=prog.enrollment_id) }}"
@@ -475,37 +562,133 @@
             {% endif %}
           </div>
           <div class="card-body p-0">
-            {% if current_enroll and current_enroll.schedules %}
+            {% if prog.upcoming_schedule_sessions %}
             <div class="table-responsive">
               <table class="table-modern">
                 <thead>
                   <tr>
-                    <th style="padding-left: 24px;">Hari</th>
+                    <th style="padding-left: 24px;">Tanggal</th>
                     <th>Waktu</th>
-                    <th>Materi</th>
+                    <th>Kelas</th>
                     <th>Pengajar</th>
+                    <th>Status</th>
+                    <th style="text-align: right; padding-right: 24px;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for sched in current_enroll.schedules %}
+                  {% for session in prog.upcoming_schedule_sessions[:12] %}
                   <tr>
                     <td style="padding-left: 24px;">
-                      <span class="badge badge-secondary">{{ days[sched.day_of_week] }}</span>
+                      <div class="fw-600">{{ days[session.day_of_week] }}</div>
+                      <div class="text-muted" style="font-size: 13px;">{{ session.date.strftime('%d %b %Y') }}</div>
                     </td>
-                    <td class="fw-600 text-brand">{{ sched.timeslot.name }}</td>
-                    <td>{{ sched.subject.name }}</td>
                     <td>
+                      <div class="fw-600 text-brand">{{ session.timeslot.name }}</div>
+                      <div class="text-muted" style="font-size: 11px;">{{ session.timeslot.start_time.strftime('%H:%M')
+                        }}</div>
+                    </td>
+                    <td>
+                      {% if session.class_enrollment %}
+                      <span>{{ session.class_enrollment.program_class.name }}</span>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if session.teacher %}
                       <div class="d-flex align-items-center gap-2">
-                        <div class="avatar avatar-sm">
-                          {{ sched.teacher.name[0]|upper }}
+                        <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
+                          {{ session.teacher.name[0]|upper }}
                         </div>
-                        {{ sched.teacher.name }}
+                        <span style="font-size: 14px;">{{ session.teacher.name }}</span>
                       </div>
+                      {% else %}
+                      <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if session.existing_booking %}
+                      {% if session.existing_booking.status == 'izin' %}
+                      <span class="badge badge-warning">Izin</span>
+                      {% elif session.existing_booking.status == 'completed' %}
+                      <span class="badge badge-success">Selesai</span>
+                      {% else %}
+                      <span class="badge badge-primary">{{ session.existing_booking.status }}</span>
+                      {% endif %}
+                      {% else %}
+                      <span class="badge badge-secondary">Terjadwal</span>
+                      {% endif %}
+                    </td>
+                    <td style="text-align: right; padding-right: 24px;">
+                      {% if not session.existing_booking and session.can_izin %}
+                      <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                        data-bs-target="#izinScheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}">
+                        <i class="fas fa-hand-paper me-1"></i> Izin
+                      </button>
+                      {% elif session.existing_booking and session.existing_booking.status == 'izin' %}
+                      <span class="text-muted" style="font-size: 12px;"><i class="fas fa-check"></i> Diizinkan</span>
+                      {% elif not session.class_enrollment or session.class_enrollment.program_class.max_izin == 0 %}
+                      <span class="text-muted" style="font-size: 12px;">No izin</span>
+                      {% elif session.class_enrollment and session.class_enrollment.izin_remaining <= 0 %} <span
+                        class="text-muted" style="font-size: 12px;">Kuota habis</span>
+                        {% endif %}
                     </td>
                   </tr>
+
+                  <!-- Modal for izin confirmation from schedule -->
+                  {% if not session.existing_booking and session.can_izin %}
+                  <div class="modal fade"
+                    id="izinScheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title"><i class="fas fa-calendar-times me-2 text-warning"></i>Request Izin
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Perhatian!</strong> Izin harus diajukan minimal 1 jam sebelum jadwal dimulai.
+                          </div>
+                          <p class="mb-2">Anda yakin ingin mengajukan izin untuk:</p>
+                          <ul class="mb-3">
+                            <li><strong>Kelas:</strong> {{ session.class_enrollment.program_class.name if
+                              session.class_enrollment else '-' }}</li>
+                            <li><strong>Tanggal:</strong> {{ days[session.day_of_week] }}, {{ session.date.strftime('%d
+                              %b %Y') }}</li>
+                            <li><strong>Waktu:</strong> {{ session.timeslot.name }} ({{
+                              session.timeslot.start_time.strftime('%H:%M') }})</li>
+                          </ul>
+                          {% if session.class_enrollment %}
+                          <p class="text-muted mb-0">Sisa kuota izin setelah ini: <strong>{{
+                              session.class_enrollment.izin_remaining - 1 }}</strong> dari {{
+                            session.class_enrollment.program_class.max_izin }}</p>
+                          {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                          <form action="{{ url_for('main.request_izin_schedule') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="schedule_id" value="{{ session.schedule_id }}">
+                            <input type="hidden" name="izin_date" value="{{ session.date.strftime('%Y-%m-%d') }}">
+                            <button type="submit" class="btn btn-warning">
+                              <i class="fas fa-check me-1"></i> Ya, Ajukan Izin
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
+            </div>
+            {% elif current_enroll and current_enroll.schedules %}
+            <!-- Has schedules but no upcoming sessions generated (shouldn't happen normally) -->
+            <div class="text-center py-4">
+              <i class="fas fa-calendar-check fa-2x text-muted mb-2" style="opacity: 0.5;"></i>
+              <p class="text-muted mb-0">Jadwal rutin sudah diatur.</p>
             </div>
             {% else %}
             <div class="text-center py-5">
@@ -881,6 +1064,40 @@
     if (activeBtn) {
       activeBtn.classList.add('active');
     }
+  }
+
+  // WhatsApp QR Code Loading
+  function loadWaQr() {
+    document.getElementById('qrLoading').style.display = 'block';
+    document.getElementById('qrContent').style.display = 'none';
+    document.getElementById('qrError').style.display = 'none';
+
+    fetch('/api/wa-qr')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('qrLoading').style.display = 'none';
+        if (data.success && data.qr_link) {
+          document.getElementById('qrImage').src = data.qr_link;
+          document.getElementById('qrDuration').textContent = data.duration || 60;
+          document.getElementById('qrContent').style.display = 'block';
+        } else {
+          document.getElementById('qrErrorMsg').textContent = data.error || 'Gagal memuat QR Code';
+          document.getElementById('qrError').style.display = 'block';
+        }
+      })
+      .catch(error => {
+        document.getElementById('qrLoading').style.display = 'none';
+        document.getElementById('qrErrorMsg').textContent = 'Error: ' + error.message;
+        document.getElementById('qrError').style.display = 'block';
+      });
+  }
+
+  // Auto-load QR when modal opens
+  var waQrModal = document.getElementById('waQrModal');
+  if (waQrModal) {
+    waQrModal.addEventListener('show.bs.modal', function () {
+      loadWaQr();
+    });
   }
 </script>
 {% endblock %}

@@ -149,6 +149,7 @@ class Enrollment(db.Model):
     program_id = db.Column(db.Integer, db.ForeignKey('programs.id'))
     batch_id = db.Column(db.Integer, db.ForeignKey('batches.id'), nullable=True)
     status = db.Column(db.String(20), default='pending_schedule')
+    first_class_date = db.Column(db.Date, nullable=True)  # When student wants to start
     # Note: sessions_remaining moved to ClassEnrollment for per-class tracking
     
     program = db.relationship('Program')

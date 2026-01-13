@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block page_title %}Pilih Tanggal Mulai{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <div class="avatar avatar-xl mx-auto mb-3" style="background: var(--success-light); color: var(--success);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <span class="badge badge-primary mb-2" style="font-size: 12px; padding: 8px 16px;">
+                Program: {{ program_name }}
+            </span>
+            <h2 class="fw-700 mb-2">Pilih Tanggal Mulai Kelas</h2>
+            <p class="text-muted">
+                Jadwal Anda sudah diatur! Sekarang pilih kapan Anda ingin memulai kelas pertama.
+            </p>
+        </div>
+
+        <!-- Schedule Summary -->
+        <div class="card mb-4" style="border-left: 4px solid var(--brand-primary);">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-clock text-brand me-2"></i> Jadwal Mingguan Anda
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 24px;">Hari</th>
+                                <th>Waktu</th>
+                                <th>Kelas</th>
+                                <th>Pengajar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sched in schedule_summary %}
+                            <tr>
+                                <td style="padding-left: 24px;">
+                                    <span class="badge badge-secondary">{{ sched.day_name }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-600 text-brand">{{ sched.timeslot_name }}</div>
+                                    <div class="text-muted" style="font-size: 12px;">{{ sched.timeslot_time }}</div>
+                                </td>
+                                <td>{{ sched.class_name }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar avatar-sm"
+                                            style="width: 24px; height: 24px; font-size: 11px;">
+                                            {{ sched.teacher_name[0]|upper }}
+                                        </div>
+                                        <span>{{ sched.teacher_name }}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Selection -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt text-success me-2"></i> Pilih Tanggal Kelas Pertama
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 13px;">
+                    Pilih tanggal pertama sesuai jadwal Anda
+                </p>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        {% for dt in available_dates[:14] %}
+                        <div class="col-12 col-md-6">
+                            <div class="form-check date-option">
+                                <input class="form-check-input" type="radio" name="first_class_date"
+                                    id="date_{{ dt.date_str }}" value="{{ dt.date_str }}" {% if loop.first %}checked{%
+                                    endif %}>
+                                <label class="form-check-label d-flex justify-content-between align-items-center w-100"
+                                    for="date_{{ dt.date_str }}">
+                                    <span>
+                                        <strong>{{ dt.display }}</strong>
+                                    </span>
+                                    {% if loop.index <= 7 %} <span class="badge bg-success" style="font-size: 10px;">
+                                        Minggu ini</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary" style="font-size: 10px;">Minggu depan</span>
+                                        {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Info:</strong> Sistem akan otomatis membuat jadwal untuk 4 minggu ke depan mulai dari
+                        tanggal yang dipilih.
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Nanti Saja
+                        </a>
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="fas fa-check me-2"></i> Konfirmasi & Mulai Belajar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .date-option {
+        background: var(--bg-card);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .date-option:hover {
+        border-color: var(--brand-primary);
+        background: var(--bg-body);
+    }
+
+    .date-option:has(.form-check-input:checked) {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary-light);
+    }
+
+    .date-option .form-check-input {
+        margin-top: 0;
+    }
+
+    .date-option .form-check-label {
+        cursor: pointer;
+        padding-left: 8px;
+    }
+</style>
+{% endblock %}

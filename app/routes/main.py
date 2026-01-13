@@ -1,12 +1,57 @@
-from app.utils.whatsapp import send_wa_message
+from app.utils.whatsapp import send_wa_message, check_wa_status
 from flask import Blueprint, render_template, request, flash, url_for, redirect
 from flask_login import login_required, current_user
-from app.models import User, Enrollment, Program, Batch, Booking, Attendance, ClassEnrollment
+from app.models import User, Enrollment, Program, Batch, Booking, Attendance, ClassEnrollment, StudentSchedule
 from app import db
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta
 
 bp = Blueprint('main', __name__)
+
+
+def generate_upcoming_sessions_from_schedule(schedules, weeks_ahead=4):
+    """
+    Generate upcoming session dates from weekly schedule patterns.
+    Returns list of sessions with specific dates for the next N weeks.
+    """
+    upcoming = []
+    today = date.today()
+    end_date = today + timedelta(weeks=weeks_ahead)
+    
+    for sched in schedules:
+        # Find all dates matching this day_of_week in the range
+        current_date = today
+        while current_date <= end_date:
+            if current_date.weekday() == sched.day_of_week:
+                # Check if booking already exists for this date/timeslot/enrollment
+                existing_booking = Booking.query.filter_by(
+                    enrollment_id=sched.enrollment_id,
+                    date=current_date,
+                    timeslot_id=sched.timeslot_id
+                ).first()
+                
+                upcoming.append({
+                    'schedule_id': sched.id,
+                    'date': current_date,
+                    'day_of_week': sched.day_of_week,
+                    'timeslot': sched.timeslot,
+                    'teacher': sched.teacher,
+                    'class_enrollment_id': sched.class_enrollment_id,
+                    'class_enrollment': sched.class_enrollment,
+                    'enrollment_id': sched.enrollment_id,
+                    'existing_booking': existing_booking,
+                    'can_izin': (
+                        existing_booking is None and  # No existing booking
+                        sched.class_enrollment and
+                        sched.class_enrollment.program_class.max_izin > 0 and
+                        sched.class_enrollment.izin_remaining > 0
+                    )
+                })
+            current_date += timedelta(days=1)
+    
+    # Sort by date
+    upcoming.sort(key=lambda x: (x['date'], x['timeslot'].start_time))
+    return upcoming
 
 @bp.route('/')
 @login_required
@@ -108,6 +153,12 @@ def dashboard():
                     'alpha': class_alpha
                 })
             
+            # Generate upcoming sessions from schedule for izin feature
+            upcoming_schedule_sessions = generate_upcoming_sessions_from_schedule(
+                enroll.schedules, 
+                weeks_ahead=4
+            )
+            
             enroll_progress = {
                 'enrollment_id': enroll.id,
                 'program_name': enroll.program.name,
@@ -121,7 +172,8 @@ def dashboard():
                 'izin': izin_count,
                 'alpha': alpha_count,
                 'session_history': session_history,
-                'class_enrollments': class_enrollments_data
+                'class_enrollments': class_enrollments_data,
+                'upcoming_schedule_sessions': upcoming_schedule_sessions
             }
             enrollments_data.append(enroll_progress)
         
@@ -177,11 +229,15 @@ def dashboard():
             Attendance.date == date.today()
         ).count()
         
+        # Check WhatsApp status
+        wa_status = check_wa_status()
+        
         stats = {
             'total_students': total_students,
             'total_teachers': total_teachers,
             'total_programs': total_programs,
-            'total_sessions': total_sessions
+            'total_sessions': total_sessions,
+            'wa_status': wa_status
         }
     
     return render_template('dashboard.html', 
@@ -193,6 +249,59 @@ def dashboard():
                            teacher_calendar_events=teacher_calendar_events,
                            student_progress=student_progress,
                            stats=stats)
+
+
+# --- API: GET WA QR CODE ---
+@bp.route('/api/wa-qr')
+@login_required
+def api_wa_qr():
+    from flask import jsonify
+    from app.utils.whatsapp import get_wa_qr
+    import re
+    import os
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Access denied'}), 403
+    
+    result = get_wa_qr()
+    
+    # Rewrite to use our proxy endpoint instead of direct wabot URL
+    if result.get('success') and result.get('qr_link'):
+        qr_link = result['qr_link']
+        # Extract filename from the URL (e.g., scan-qr-xxx.png)
+        match = re.search(r'/statics/qrcode/([^/]+\.png)', qr_link)
+        if match:
+            filename = match.group(1)
+            # Use our proxy endpoint
+            result['qr_link'] = url_for('main.proxy_wa_qr', filename=filename, _external=True)
+    
+    return jsonify(result)
+
+
+# --- PROXY: Serve QR image from wabot ---
+@bp.route('/api/wa-qr-image/<filename>')
+@login_required
+def proxy_wa_qr(filename):
+    import requests
+    from flask import Response
+    import os
+    
+    if current_user.role != 'admin':
+        return "Access denied", 403
+    
+    # Fetch image from wabot internal URL
+    wa_url = os.environ.get('WA_API_URL', 'http://wabot:3000')
+    image_url = f"{wa_url}/statics/qrcode/{filename}"
+    
+    try:
+        resp = requests.get(image_url, timeout=10)
+        if resp.status_code == 200:
+            return Response(resp.content, mimetype='image/png')
+        else:
+            return "Image not found", 404
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
 
 # --- ROUTE UNTUK ADMIN MENDAFTARKAN SISWA (Simpel) ---
 @bp.route('/admin/invite', methods=['GET', 'POST'])
@@ -445,4 +554,103 @@ def request_izin(booking_id):
     
     class_name = ce.program_class.name if ce else 'kelas'
     flash(f'Izin berhasil diajukan untuk {class_name} tanggal {booking.date.strftime("%d %b %Y")}. Sesi akan digeser ke jadwal berikutnya.', 'success')
+    return redirect(url_for('main.dashboard'))
+
+
+# --- ROUTE UNTUK STUDENT REQUEST IZIN DARI JADWAL RUTIN ---
+@bp.route('/request-izin-schedule', methods=['POST'])
+@login_required
+def request_izin_schedule():
+    """
+    Request izin from regular schedule (StudentSchedule).
+    Creates a Booking with status='izin' on-the-fly.
+    """
+    if current_user.role != 'student':
+        flash('Akses ditolak.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    schedule_id = request.form.get('schedule_id', type=int)
+    izin_date_str = request.form.get('izin_date')
+    
+    if not schedule_id or not izin_date_str:
+        flash('Data tidak lengkap.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Parse date
+    try:
+        izin_date = datetime.strptime(izin_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('Format tanggal tidak valid.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get schedule and verify ownership
+    schedule = StudentSchedule.query.get_or_404(schedule_id)
+    if schedule.enrollment.student_id != current_user.id:
+        flash('Anda tidak memiliki akses ke jadwal ini.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Verify date matches schedule day_of_week
+    if izin_date.weekday() != schedule.day_of_week:
+        flash('Tanggal tidak sesuai dengan hari jadwal.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Check H-1 jam rule
+    booking_datetime = datetime.combine(izin_date, schedule.timeslot.start_time)
+    now = datetime.now()
+    time_until_booking = booking_datetime - now
+    
+    if time_until_booking < timedelta(hours=1):
+        flash('Izin harus diajukan minimal 1 jam sebelum jadwal dimulai.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Check if booking already exists
+    existing_booking = Booking.query.filter_by(
+        enrollment_id=schedule.enrollment_id,
+        date=izin_date,
+        timeslot_id=schedule.timeslot_id
+    ).first()
+    
+    if existing_booking:
+        flash(f'Sudah ada booking untuk tanggal ini dengan status: {existing_booking.status}', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Check izin quota
+    ce = schedule.class_enrollment
+    if ce:
+        if ce.program_class.max_izin == 0:
+            flash(f'Kelas {ce.program_class.name} tidak memiliki kuota izin.', 'error')
+            return redirect(url_for('main.dashboard'))
+        
+        if ce.izin_remaining <= 0:
+            flash(f'Kuota izin untuk kelas {ce.program_class.name} sudah habis.', 'error')
+            return redirect(url_for('main.dashboard'))
+        
+        # Update izin used
+        ce.izin_used += 1
+    
+    # Create booking with status='izin'
+    new_booking = Booking(
+        enrollment_id=schedule.enrollment_id,
+        class_enrollment_id=schedule.class_enrollment_id,
+        date=izin_date,
+        timeslot_id=schedule.timeslot_id,
+        teacher_id=schedule.teacher_id,
+        status='izin'
+    )
+    db.session.add(new_booking)
+    db.session.commit()
+    
+    # Send WhatsApp notification to teacher
+    if schedule.teacher:
+        from app.services.notifications import send_teacher_student_izin
+        class_name = ce.program_class.name if ce else schedule.enrollment.program.name
+        send_teacher_student_izin(
+            teacher=schedule.teacher,
+            student_name=current_user.name,
+            class_name=class_name,
+            booking_date=izin_date
+        )
+    
+    class_name = ce.program_class.name if ce else 'kelas'
+    flash(f'Izin berhasil diajukan untuk {class_name} tanggal {izin_date.strftime("%d %b %Y")}. Sesi akan digeser ke jadwal berikutnya.', 'success')
     return redirect(url_for('main.dashboard'))

@@ -14,8 +14,15 @@
       <p class="text-muted mb-1">
         Kelas: <strong class="text-brand">{{ class_name }}</strong>
       </p>
-      <p class="text-muted" style="font-size: 14px;">
-        Progress: {{ scheduled_count }} / {{ total_classes }} kelas sudah dijadwalkan
+      <p class="text-brand fw-600" style="font-size: 16px;">
+        Jadwal ke-{{ current_slot }} dari {{ sessions_per_week }} per minggu
+      </p>
+      <div class="progress mb-3" style="height: 8px; max-width: 300px; margin: 0 auto;">
+        <div class="progress-bar bg-success"
+          style="width: {{ (total_slots_scheduled / total_slots_needed * 100)|int }}%;"></div>
+      </div>
+      <p class="text-muted" style="font-size: 13px;">
+        Total: {{ total_slots_scheduled }} / {{ total_slots_needed }} slot terjadwal
       </p>
     </div>
 
