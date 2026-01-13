@@ -42,6 +42,10 @@ def create_app():
     def inject_now():
         return {'now': datetime.now()}
 
+    # Initialize scheduler for background notification jobs
+    from app.scheduler import init_scheduler
+    init_scheduler(app)
+
     return app
 
 from app import models

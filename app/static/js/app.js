@@ -29,6 +29,62 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Dark Mode Toggle - Best Practice Implementation
+  const themeToggle = document.querySelector('[data-theme-toggle]');
+
+  // Get current theme from localStorage, HTML attribute, or default to 'light'
+  function getCurrentTheme() {
+    return localStorage.getItem('theme') ||
+      document.documentElement.getAttribute('data-theme') ||
+      'light';
+  }
+
+  // Apply theme to both html and body elements for maximum compatibility
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    updateThemeIcon(theme);
+    console.log('[Dark Mode] Applied theme:', theme);
+  }
+
+  // Update the toggle button icon
+  function updateThemeIcon(theme) {
+    if (themeToggle) {
+      const icon = themeToggle.querySelector('i');
+      if (icon) {
+        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+      }
+    }
+  }
+
+  // Initialize theme on page load
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme) {
+      applyTheme(savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      applyTheme('dark');
+    } else {
+      // Explicitly set light theme for consistency
+      applyTheme('light');
+    }
+  }
+
+  // Toggle theme on button click
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      const currentTheme = getCurrentTheme();
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      applyTheme(newTheme);
+    });
+  }
+
+  // Initialize theme immediately
+  initializeTheme();
+
   // Dropdown menus
   const dropdowns = document.querySelectorAll('.dropdown');
   dropdowns.forEach(function (dropdown) {

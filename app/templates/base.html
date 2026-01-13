@@ -2,6 +2,13 @@
 <html lang="id">
 
 <head>
+  <!-- Apply theme IMMEDIATELY to prevent flash -->
+  <script>
+    (function () {
+      var theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Sparks Fashion Academy System{% endblock %}</title>
@@ -22,6 +29,297 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 
   {% block extra_css %}{% endblock %}
+
+  <!-- Inline Dark Mode CSS - Critical for immediate rendering -->
+  <style>
+    [data-theme="dark"] {
+      --bg-body: #0f172a;
+      --bg-card: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #334155;
+      --sidebar-bg: #1e293b;
+      --sidebar-bg-dark: #0f172a;
+      --sidebar-text: #94a3b8;
+      --sidebar-hover: rgba(255, 255, 255, 0.08);
+      --sidebar-active: rgba(220, 53, 69, 0.3);
+    }
+
+    [data-theme="dark"] body {
+      background-color: var(--bg-body);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .sidebar {
+      background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-dark) 100%);
+      border-right: 1px solid var(--border-color);
+    }
+
+    [data-theme="dark"] .top-header {
+      background: var(--bg-card);
+      border-bottom-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .card,
+    [data-theme="dark"] .stats-card,
+    [data-theme="dark"] .action-card {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .card-title,
+    [data-theme="dark"] .stats-card-value,
+    [data-theme="dark"] .header-user-name {
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .page-title {
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .content-body {
+      background: var(--bg-body);
+    }
+
+    [data-theme="dark"] .form-control {
+      background: var(--bg-body);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .table {
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .table thead th {
+      background: var(--bg-body);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .table tbody td {
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .modal-content {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .dropdown-menu {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .dropdown-item {
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .dropdown-item:hover {
+      background: var(--bg-body);
+    }
+
+    [data-theme="dark"] .btn-close {
+      filter: invert(1);
+    }
+
+    [data-theme="dark"] .header-icon-btn {
+      background: var(--bg-body);
+      color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .sidebar-logo {
+      background: var(--bg-body);
+    }
+
+    [data-theme="dark"] .nav-tabs .nav-link.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .list-group-item {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .accordion-button {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .alert {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .bg-white {
+      background-color: var(--bg-card) !important;
+    }
+
+    [data-theme="dark"] .bg-light {
+      background-color: var(--bg-body) !important;
+    }
+
+    [data-theme="dark"] .text-dark {
+      color: var(--text-primary) !important;
+    }
+
+    /* Table cells background */
+    [data-theme="dark"] .table tbody tr,
+    [data-theme="dark"] .table tbody td {
+      background-color: var(--bg-card);
+    }
+
+    /* Featured/Stats cards with colored backgrounds - ensure text is visible */
+    [data-theme="dark"] .featured-card,
+    [data-theme="dark"] .stats-card.bg-danger,
+    [data-theme="dark"] .stats-card.bg-success,
+    [data-theme="dark"] .stats-card.bg-warning,
+    [data-theme="dark"] .stats-card.bg-info,
+    [data-theme="dark"] .stats-card.bg-primary {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .featured-card .stats-card-label,
+    [data-theme="dark"] .stats-card .stats-card-label {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Schedule grid/master schedule specific */
+    [data-theme="dark"] .schedule-cell,
+    [data-theme="dark"] .schedule-grid td,
+    [data-theme="dark"] [class*="schedule"] td {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    /* Legend items */
+    [data-theme="dark"] .legend-item,
+    [data-theme="dark"] .badge-legend {
+      color: var(--text-primary);
+    }
+
+    /* Card body backgrounds */
+    [data-theme="dark"] .card-body {
+      background-color: var(--bg-card);
+    }
+
+    /* Form select */
+    [data-theme="dark"] .form-select {
+      background-color: var(--bg-body);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    /* Input groups */
+    [data-theme="dark"] .input-group-text {
+      background-color: var(--bg-body);
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    /* Breadcrumbs */
+    [data-theme="dark"] .breadcrumb {
+      background-color: transparent;
+    }
+
+    [data-theme="dark"] .breadcrumb-item a {
+      color: var(--text-secondary);
+    }
+
+    /* Pagination */
+    [data-theme="dark"] .page-link {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .page-item.active .page-link {
+      background-color: var(--brand-primary, #dc3545);
+      border-color: var(--brand-primary, #dc3545);
+    }
+
+    /* Any remaining white backgrounds */
+    [data-theme="dark"] [style*="background: white"],
+    [data-theme="dark"] [style*="background-color: white"],
+    [data-theme="dark"] [style*="background:#fff"],
+    [data-theme="dark"] [style*="background-color:#fff"] {
+      background-color: var(--bg-card) !important;
+    }
+
+    /* Schedule stats (Total Siswa, Total Jadwal cards) */
+    [data-theme="dark"] .schedule-stat {
+      background: var(--bg-card) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] .schedule-stat-label {
+      color: var(--text-secondary);
+    }
+
+    /* Schedule cells and grid */
+    [data-theme="dark"] .schedule-cell,
+    [data-theme="dark"] .slot-cell {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .header-row-title {
+      background: var(--bg-body) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    /* Density backgrounds for dark mode */
+    [data-theme="dark"] .density-empty {
+      background: var(--bg-card) !important;
+    }
+
+    [data-theme="dark"] .density-low {
+      background: rgba(16, 185, 129, 0.15) !important;
+    }
+
+    [data-theme="dark"] .density-medium {
+      background: rgba(245, 158, 11, 0.15) !important;
+    }
+
+    [data-theme="dark"] .density-high {
+      background: rgba(220, 53, 69, 0.15) !important;
+    }
+
+    /* Student cards inside schedule */
+    [data-theme="dark"] .student-card {
+      background: var(--bg-body) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-theme="dark"] .student-card .student-name {
+      color: var(--text-primary) !important;
+    }
+
+    [data-theme="dark"] .student-card .student-details {
+      border-color: var(--border-color);
+    }
+
+    /* Legend items */
+    [data-theme="dark"] .legend-bar {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+    }
+
+    [data-theme="dark"] .legend-dot.empty {
+      background: var(--bg-body) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    /* Student count badge */
+    [data-theme="dark"] .student-count {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+    }
+  </style>
 </head>
 
 <body>
@@ -192,7 +490,7 @@
           <h1 class="page-title ms-4">{% block page_title %}Dashboard{% endblock %}</h1>
         </div>
         <div class="header-right">
-          <button class="header-icon-btn" title="Tema">
+          <button class="header-icon-btn" title="Tema" data-theme-toggle>
             <i class="fas fa-moon"></i>
           </button>
           <button class="header-icon-btn" title="Notifikasi">
@@ -263,6 +561,44 @@
     }
 
     setInterval(updateClock, 1000);
+  </script>
+
+  <!-- Dark Mode Script - Inline for reliability -->
+  <script>
+    (function () {
+      // Theme toggle functionality
+      const themeBtn = document.querySelector('[data-theme-toggle]');
+
+      function getTheme() {
+        return localStorage.getItem('theme') || 'light';
+      }
+
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+
+        // Update icon
+        if (themeBtn) {
+          const icon = themeBtn.querySelector('i');
+          if (icon) {
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+          }
+        }
+      }
+
+      // Initialize theme on page load
+      setTheme(getTheme());
+
+      // Toggle on button click
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
+          setTheme(newTheme);
+        });
+      }
+    })();
   </script>
 
   {% block extra_js %}{% endblock %}

@@ -56,6 +56,9 @@ class Config:
     
     WA_API_URL = os.environ.get('WA_API_URL', 'http://wabot:3000')
     
+    # Scheduler Settings
+    SCHEDULER_ENABLED = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'
+    
     # Google Drive
     GOOGLE_DRIVE_ROOT_FOLDER_ID = os.environ.get('GOOGLE_DRIVE_ROOT_FOLDER_ID')
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')

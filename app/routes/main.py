@@ -432,6 +432,17 @@ def request_izin(booking_id):
     booking.status = 'izin'
     db.session.commit()
     
+    # Send WhatsApp notification to teacher
+    if booking.teacher:
+        from app.services.notifications import send_teacher_student_izin
+        class_name = ce.program_class.name if ce else booking.enrollment.program.name
+        send_teacher_student_izin(
+            teacher=booking.teacher,
+            student_name=current_user.name,
+            class_name=class_name,
+            booking_date=booking.date
+        )
+    
     class_name = ce.program_class.name if ce else 'kelas'
     flash(f'Izin berhasil diajukan untuk {class_name} tanggal {booking.date.strftime("%d %b %Y")}. Sesi akan digeser ke jadwal berikutnya.', 'success')
     return redirect(url_for('main.dashboard'))
