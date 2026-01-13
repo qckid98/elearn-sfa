@@ -51,17 +51,37 @@ class Program(db.Model):
         """Calculate total sessions from all classes in this program"""
         return sum(c.total_sessions for c in self.classes)
 
+# MASTER CLASS - Kelas sebagai master data independen
+class MasterClass(db.Model):
+    __tablename__ = 'master_classes'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)  # e.g., "Fashion Design", "PCSW"
+    description = db.Column(db.Text, nullable=True)
+    default_max_izin = db.Column(db.Integer, default=0)  # Default max izin untuk kelas ini
+    
+    # Relationships
+    program_classes = db.relationship('ProgramClass', backref='master_class', lazy=True)
+    teacher_skills = db.relationship('TeacherSkill', backref='master_class', lazy=True)
+
 # NEW: Program Classes (Kelas dalam Program)
 class ProgramClass(db.Model):
     __tablename__ = 'program_classes'
     id = db.Column(db.Integer, primary_key=True)
     program_id = db.Column(db.Integer, db.ForeignKey('programs.id'))
-    name = db.Column(db.String(100), nullable=False)  # e.g., "Fashion Design", "PCSW"
+    master_class_id = db.Column(db.Integer, db.ForeignKey('master_classes.id'), nullable=True)  # Referensi ke MasterClass
+    name = db.Column(db.String(100), nullable=True)  # Fallback jika master_class_id null (legacy)
     total_sessions = db.Column(db.Integer, nullable=False)  # e.g., 48
     sessions_per_week = db.Column(db.Integer, default=1)  # 1 atau 2 kali per minggu
     is_batch_based = db.Column(db.Boolean, default=False)  # CAD, Fast Track = True
     max_izin = db.Column(db.Integer, default=0)  # Max izin allowed, 0 = no izin
     order = db.Column(db.Integer, default=0)  # Urutan tampilan
+    
+    @property
+    def display_name(self):
+        """Get display name from master_class or fallback to name field"""
+        if self.master_class:
+            return self.master_class.name
+        return self.name or "Unknown"
 
 class Subject(db.Model):
     __tablename__ = 'subjects'
@@ -97,10 +117,18 @@ class TeacherSkill(db.Model):
     __tablename__ = 'teacher_skills'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'))
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)  # Legacy, akan dihapus
+    master_class_id = db.Column(db.Integer, db.ForeignKey('master_classes.id'), nullable=True)  # NEW
     
-    # Perbaikan penting: Relasi ke Subject agar {{ skill.subject.name }} jalan
-    subject = db.relationship('Subject')
+    # Relationships
+    subject = db.relationship('Subject')  # Legacy
+    
+    @property
+    def skill_name(self):
+        """Get skill name from master_class or fallback to subject"""
+        if self.master_class:
+            return self.master_class.name
+        return self.subject.name if self.subject else "Unknown"
 
 class TeacherAvailability(db.Model):
     __tablename__ = 'teacher_availabilities'

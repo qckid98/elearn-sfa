@@ -2,6 +2,7 @@
 .DS_Store
 env
 .venv
+venv
 .env
 *.json
 google_token.txt

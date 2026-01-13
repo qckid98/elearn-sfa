@@ -61,9 +61,10 @@ def run_migrations():
         sys.exit(1)
 
 def seed_admin():
-    """Seed hanya admin user"""
+    """Seed admin user, master classes, dan timeslots"""
     from app import create_app, db
-    from app.models import User
+    from app.models import User, MasterClass, TimeSlot
+    from datetime import time
     
     app = create_app()
     
@@ -71,28 +72,72 @@ def seed_admin():
         # Pastikan tabel ada
         db.create_all()
         
+        # === 1. ADMIN USER ===
         print("\n👤 Membuat admin user...")
         
-        # Cek apakah admin sudah ada
         existing_admin = User.query.filter_by(email='admin@school.com').first()
         
         if existing_admin:
             print("ℹ️  Admin sudah ada, skip...")
-            return
+        else:
+            admin = User(
+                email='admin@school.com',
+                name='Super Admin',
+                role='admin',
+                phone_number='628123456789'
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Admin berhasil dibuat!")
         
-        # Buat admin baru
-        admin = User(
-            email='admin@school.com',
-            name='Super Admin',
-            role='admin',
-            phone_number='628123456789'
-        )
-        admin.set_password('admin123')
+        # === 2. MASTER CLASSES ===
+        print("\n📚 Membuat master classes...")
         
-        db.session.add(admin)
+        master_classes_data = [
+            {"name": "Fashion Design", "description": "Kelas desain dan ilustrasi fashion", "default_max_izin": 8},
+            {"name": "PCSW", "description": "Pattern Cutting & Sewing - Pola dan jahit", "default_max_izin": 8},
+            {"name": "CAD", "description": "Computer Aided Design untuk pattern making", "default_max_izin": 0},
+            {"name": "Fast Track", "description": "Program intensif", "default_max_izin": 0},
+            {"name": "Exploration", "description": "Kelas eksplorasi kreatif", "default_max_izin": 3},
+        ]
+        
+        for mc_data in master_classes_data:
+            existing = MasterClass.query.filter_by(name=mc_data["name"]).first()
+            if not existing:
+                mc = MasterClass(**mc_data)
+                db.session.add(mc)
+                print(f"  ✅ {mc_data['name']}")
+            else:
+                print(f"  ℹ️  {mc_data['name']} sudah ada")
+        
         db.session.commit()
         
-        print("✅ Admin berhasil dibuat!")
+        # === 3. TIME SLOTS ===
+        print("\n⏰ Membuat time slots...")
+        
+        timeslots_data = [
+            {"name": "Sesi Pagi", "start": time(9, 30), "end": time(12, 30), "online": False},
+            {"name": "Sesi Siang", "start": time(13, 30), "end": time(16, 30), "online": False},
+            {"name": "Sesi Malam", "start": time(18, 30), "end": time(21, 0), "online": True},
+        ]
+        
+        for ts_data in timeslots_data:
+            existing = TimeSlot.query.filter_by(name=ts_data["name"]).first()
+            if not existing:
+                ts = TimeSlot(
+                    name=ts_data["name"],
+                    start_time=ts_data["start"],
+                    end_time=ts_data["end"],
+                    is_online=ts_data["online"]
+                )
+                db.session.add(ts)
+                print(f"  ✅ {ts_data['name']}")
+            else:
+                print(f"  ℹ️  {ts_data['name']} sudah ada")
+        
+        db.session.commit()
+        
         print("\n" + "="*50)
         print("📝 KREDENSIAL ADMIN:")
         print("   Email    : admin@school.com")

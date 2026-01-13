@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block page_title %}Master Kelas{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Left Column - Add Form -->
+    <div class="col-lg-4">
+        <div class="card" style="border-top: 4px solid var(--primary);">
+            <div class="card-header">
+                <h5 class="mb-0 fw-600">
+                    <i class="fas fa-plus-circle me-2 text-brand"></i>Tambah Kelas Baru
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Nama Kelas</label>
+                        <input type="text" name="name" class="form-control" placeholder="Contoh: Fashion Design"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="2"
+                            placeholder="Deskripsi singkat kelas..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Default Max Izin</label>
+                        <input type="number" name="default_max_izin" class="form-control" value="0" min="0">
+                        <div class="form-hint">Nilai default saat kelas ini ditambahkan ke program</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-2"></i>Tambah Kelas
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - List -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 fw-600">
+                    <i class="fas fa-graduation-cap me-2 text-brand"></i>Daftar Master Kelas
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Nama Kelas</th>
+                                <th>Deskripsi</th>
+                                <th class="text-center">Default Max Izin</th>
+                                <th class="text-center">Digunakan</th>
+                                <th class="text-end pe-4">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mc in master_classes %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-600">{{ mc.name }}</div>
+                                </td>
+                                <td>
+                                    <span class="text-muted" style="font-size: 13px;">{{ mc.description or '-' }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if mc.default_max_izin > 0 %}
+                                    <span class="badge badge-info">{{ mc.default_max_izin }}x</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% set program_count = mc.program_classes|length %}
+                                    {% set teacher_count = mc.teacher_skills|length %}
+                                    <span class="badge badge-secondary">{{ program_count }} program</span>
+                                    <span class="badge badge-secondary">{{ teacher_count }} guru</span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button type="button" class="btn btn-sm btn-outline text-brand"
+                                        data-bs-toggle="modal" data-bs-target="#editModal{{ mc.id }}"
+                                        style="border-color: var(--primary);">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if program_count == 0 and teacher_count == 0 %}
+                                    <form action="{{ url_for('admin.delete_master_class', id=mc.id) }}" method="POST"
+                                        class="d-inline delete-form" data-confirm="Hapus kelas {{ mc.name }}?">
+                                        <button type="submit" class="btn btn-sm btn-outline text-danger"
+                                            style="border-color: var(--danger);">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="fas fa-graduation-cap fa-2x mb-2" style="opacity: 0.3;"></i>
+                                    <p class="mb-0">Belum ada master kelas</p>
+                                    <p class="mb-0" style="font-size: 12px;">Tambahkan kelas baru menggunakan form di
+                                        samping</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modals -->
+{% for mc in master_classes %}
+<div class="modal fade" id="editModal{{ mc.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Kelas: {{ mc.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.edit_master_class', id=mc.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Kelas</label>
+                        <input type="text" name="name" class="form-control" value="{{ mc.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="2">{{ mc.description or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Default Max Izin</label>
+                        <input type="number" name="default_max_izin" class="form-control"
+                            value="{{ mc.default_max_izin }}" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

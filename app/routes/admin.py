@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass
 from datetime import date
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -349,7 +349,9 @@ def program_edit(prog_id):
         flash('Program diupdate.')
         return redirect(url_for('admin.program_edit', prog_id=prog.id))
 
-    return render_template('admin/program_edit.html', program=prog)
+    # Get all master classes for dropdown
+    master_classes = MasterClass.query.order_by(MasterClass.name).all()
+    return render_template('admin/program_edit.html', program=prog, master_classes=master_classes)
 
 # --- CLASS MANAGEMENT ---
 @bp.route('/class/add', methods=['POST'])
@@ -357,25 +359,45 @@ def program_edit(prog_id):
 @admin_required
 def add_class():
     program_id = int(request.form['program_id'])
-    name = request.form['name']
+    master_class_id = request.form.get('master_class_id')
+    name = request.form.get('name', '')  # Fallback untuk legacy
     total_sessions = int(request.form['total_sessions'])
     sessions_per_week = int(request.form.get('sessions_per_week', 1))
     is_batch = True if request.form.get('is_batch_based') else False
+    max_izin = int(request.form.get('max_izin', 0))
     
     # Get next order number
     max_order = db.session.query(db.func.max(ProgramClass.order)).filter_by(program_id=program_id).scalar() or 0
     
-    new_class = ProgramClass(
-        program_id=program_id,
-        name=name,
-        total_sessions=total_sessions,
-        sessions_per_week=sessions_per_week,
-        is_batch_based=is_batch,
-        order=max_order + 1
-    )
+    # Use master_class_id if provided, otherwise use name (legacy)
+    if master_class_id:
+        master_class = MasterClass.query.get(int(master_class_id))
+        new_class = ProgramClass(
+            program_id=program_id,
+            master_class_id=int(master_class_id),
+            name=master_class.name if master_class else name,  # Store name for backward compat
+            total_sessions=total_sessions,
+            sessions_per_week=sessions_per_week,
+            is_batch_based=is_batch,
+            max_izin=max_izin if max_izin else (master_class.default_max_izin if master_class else 0),
+            order=max_order + 1
+        )
+        display_name = master_class.name if master_class else name
+    else:
+        new_class = ProgramClass(
+            program_id=program_id,
+            name=name,
+            total_sessions=total_sessions,
+            sessions_per_week=sessions_per_week,
+            is_batch_based=is_batch,
+            max_izin=max_izin,
+            order=max_order + 1
+        )
+        display_name = name
+    
     db.session.add(new_class)
     db.session.commit()
-    flash(f'Kelas "{name}" berhasil ditambahkan.')
+    flash(f'Kelas "{display_name}" berhasil ditambahkan.')
     return redirect(url_for('admin.program_edit', prog_id=program_id))
 
 @bp.route('/class/delete/<int:class_id>', methods=['POST'])
@@ -384,7 +406,7 @@ def add_class():
 def delete_class(class_id):
     cls = ProgramClass.query.get_or_404(class_id)
     program_id = cls.program_id
-    class_name = cls.name
+    class_name = cls.display_name
     
     # Check for enrolled students in this class
     if ClassEnrollment.query.filter_by(program_class_id=class_id).first():
@@ -395,6 +417,71 @@ def delete_class(class_id):
     db.session.commit()
     flash(f'Kelas "{class_name}" dihapus.')
     return redirect(url_for('admin.program_edit', prog_id=program_id))
+
+# --- MASTER CLASS MANAGEMENT ---
+@bp.route('/master-classes', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def master_class_list():
+    """Manage master classes (kelas sebagai master data)"""
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form.get('description', '')
+        default_max_izin = int(request.form.get('default_max_izin', 0))
+        
+        # Check duplicate
+        if MasterClass.query.filter_by(name=name).first():
+            flash(f'Kelas "{name}" sudah ada!', 'error')
+        else:
+            new_class = MasterClass(
+                name=name,
+                description=description,
+                default_max_izin=default_max_izin
+            )
+            db.session.add(new_class)
+            db.session.commit()
+            flash(f'Master class "{name}" berhasil ditambahkan.')
+        
+        return redirect(url_for('admin.master_class_list'))
+    
+    master_classes = MasterClass.query.order_by(MasterClass.name).all()
+    return render_template('admin/master_class_list.html', master_classes=master_classes)
+
+@bp.route('/master-class/<int:id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_master_class(id):
+    """Edit master class"""
+    mc = MasterClass.query.get_or_404(id)
+    mc.name = request.form['name']
+    mc.description = request.form.get('description', '')
+    mc.default_max_izin = int(request.form.get('default_max_izin', 0))
+    db.session.commit()
+    flash(f'Master class "{mc.name}" diperbarui.')
+    return redirect(url_for('admin.master_class_list'))
+
+@bp.route('/master-class/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_master_class(id):
+    """Delete master class"""
+    mc = MasterClass.query.get_or_404(id)
+    name = mc.name
+    
+    # Check if used by any program class
+    if ProgramClass.query.filter_by(master_class_id=id).first():
+        flash(f'Gagal: Master class "{name}" masih digunakan oleh program.', 'error')
+        return redirect(url_for('admin.master_class_list'))
+    
+    # Check if used by any teacher skill
+    if TeacherSkill.query.filter_by(master_class_id=id).first():
+        flash(f'Gagal: Master class "{name}" masih digunakan oleh skill guru.', 'error')
+        return redirect(url_for('admin.master_class_list'))
+    
+    db.session.delete(mc)
+    db.session.commit()
+    flash(f'Master class "{name}" dihapus.')
+    return redirect(url_for('admin.master_class_list'))
 
 # --- BATCH MANAGEMENT ---
 @bp.route('/batch/add', methods=['POST'])
@@ -489,8 +576,9 @@ def teacher_detail(user_id):
             
         elif 'update_skills' in request.form:
             TeacherSkill.query.filter_by(teacher_id=teacher.id).delete()
-            for sid in request.form.getlist('subject_ids'):
-                db.session.add(TeacherSkill(teacher_id=teacher.id, subject_id=int(sid)))
+            # Now using master_class_id instead of subject_id
+            for mc_id in request.form.getlist('master_class_ids'):
+                db.session.add(TeacherSkill(teacher_id=teacher.id, master_class_id=int(mc_id)))
             db.session.commit()
             flash('Skill diupdate.')
             
@@ -504,16 +592,29 @@ def teacher_detail(user_id):
             
         return redirect(url_for('admin.teacher_detail', user_id=user_id))
 
-    subjects = Subject.query.all()
+    # Use MasterClass instead of Subject for skills
+    master_classes = MasterClass.query.order_by(MasterClass.name).all()
+    subjects = Subject.query.all()  # Keep for legacy display
     timeslots = TimeSlot.query.all()
     days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
-    my_skill_ids = [s.subject_id for s in teacher.skills]
+    # Get skill IDs - prioritize master_class_id, fallback to subject_id
+    my_skill_ids = [s.master_class_id for s in teacher.skills if s.master_class_id]
+    my_legacy_skill_ids = [s.subject_id for s in teacher.skills if s.subject_id and not s.master_class_id]
+    
     avail_map = {i: {t.id: False for t in timeslots} for i in range(7)}
     for av in teacher.availabilities:
         avail_map[av.day_of_week][av.timeslot_id] = True
         
-    return render_template('admin/teacher_detail.html', teacher=teacher, subjects=subjects, timeslots=timeslots, days=days, my_skill_ids=my_skill_ids, avail_map=avail_map)
+    return render_template('admin/teacher_detail.html', 
+                           teacher=teacher, 
+                           master_classes=master_classes,
+                           subjects=subjects, 
+                           timeslots=timeslots, 
+                           days=days, 
+                           my_skill_ids=my_skill_ids,
+                           my_legacy_skill_ids=my_legacy_skill_ids, 
+                           avail_map=avail_map)
 
 # --- DELETE ROUTES ---
 @bp.route('/student/delete/<int:user_id>', methods=['POST'])

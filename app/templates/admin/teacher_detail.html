@@ -73,16 +73,31 @@
         <form method="POST">
           <input type="hidden" name="update_skills" value="1" />
 
+          {% if master_classes %}
           <div class="skill-list">
-            {% for sub in subjects %}
+            {% for mc in master_classes %}
             <label class="skill-item d-flex align-items-center gap-3 p-2 rounded mb-2"
               style="cursor: pointer; transition: background 0.2s;">
-              <input class="form-check-input" type="checkbox" name="subject_ids" value="{{ sub.id }}" {% if sub.id in
+              <input class="form-check-input" type="checkbox" name="master_class_ids" value="{{ mc.id }}" {% if mc.id in
                 my_skill_ids %}checked{% endif %} style="width: 20px; height: 20px;" />
-              <span>{{ sub.name }}</span>
+              <span>{{ mc.name }}</span>
             </label>
             {% endfor %}
           </div>
+          {% else %}
+          <div class="alert alert-warning mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Belum ada master kelas.
+            <a href="{{ url_for('admin.master_class_list') }}" class="fw-600">Buat kelas baru →</a>
+          </div>
+          {% endif %}
+
+          {% if my_legacy_skill_ids %}
+          <div class="alert alert-info mt-3" style="font-size: 13px;">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Legacy Skills:</strong> Guru ini memiliki skill dari sistem lama yang belum dimigrasi.
+          </div>
+          {% endif %}
 
           <button type="submit" class="btn btn-primary w-100 mt-3">
             <i class="fas fa-save me-2"></i> Simpan Skills
