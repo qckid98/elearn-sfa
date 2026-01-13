@@ -4,7 +4,10 @@ env
 .venv
 venv
 .env
+.env.local
 *.json
 google_token.txt
 get_google_token.py
 __pycache__/
+instance/
+app.db
