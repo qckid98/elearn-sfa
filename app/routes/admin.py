@@ -584,9 +584,17 @@ def teacher_detail(user_id):
             
         elif 'update_avail' in request.form:
             TeacherAvailability.query.filter_by(teacher_id=teacher.id).delete()
+            # Format: master_class_id_day_timeslot_id (e.g., "1_0_1" = MasterClass 1, Senin, Sesi Pagi)
             for item in request.form.getlist('slots'):
-                day, slot = item.split('_')
-                db.session.add(TeacherAvailability(teacher_id=teacher.id, day_of_week=int(day), timeslot_id=int(slot)))
+                parts = item.split('_')
+                if len(parts) == 3:
+                    mc_id, day, slot = parts
+                    db.session.add(TeacherAvailability(
+                        teacher_id=teacher.id, 
+                        master_class_id=int(mc_id),
+                        day_of_week=int(day), 
+                        timeslot_id=int(slot)
+                    ))
             db.session.commit()
             flash('Jadwal ketersediaan diupdate.')
             
@@ -602,9 +610,14 @@ def teacher_detail(user_id):
     my_skill_ids = [s.master_class_id for s in teacher.skills if s.master_class_id]
     my_legacy_skill_ids = [s.subject_id for s in teacher.skills if s.subject_id and not s.master_class_id]
     
-    avail_map = {i: {t.id: False for t in timeslots} for i in range(7)}
+    # Build availability map per class: {master_class_id: {day: {timeslot: True/False}}}
+    avail_map = {}
+    for mc in master_classes:
+        avail_map[mc.id] = {i: {t.id: False for t in timeslots} for i in range(7)}
+    
     for av in teacher.availabilities:
-        avail_map[av.day_of_week][av.timeslot_id] = True
+        if av.master_class_id and av.master_class_id in avail_map:
+            avail_map[av.master_class_id][av.day_of_week][av.timeslot_id] = True
         
     return render_template('admin/teacher_detail.html', 
                            teacher=teacher, 

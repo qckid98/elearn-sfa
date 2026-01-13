@@ -107,58 +107,91 @@
     </div>
   </div>
 
-  <!-- Right Column - Availability -->
+  <!-- Right Column - Availability Per Class -->
   <div class="col-lg-8">
     <div class="card">
       <div class="card-header" style="background: var(--success-light);">
         <h6 class="card-title mb-0" style="color: var(--success);">
-          <i class="fas fa-clock me-2"></i> Jadwal Ketersediaan
+          <i class="fas fa-clock me-2"></i> Jadwal Ketersediaan Per Kelas
         </h6>
-        <span class="text-muted" style="font-size: 12px;">Centang waktu dimana guru ini BISA mengajar</span>
+        <span class="text-muted" style="font-size: 12px;">Pilih skill dulu, lalu atur jadwal untuk setiap kelas</span>
       </div>
       <div class="card-body">
         <form method="POST">
           <input type="hidden" name="update_avail" value="1" />
 
-          <div class="table-responsive">
-            <table class="table-modern text-center">
-              <thead>
-                <tr>
-                  <th style="text-align: left; padding-left: 16px;">Hari</th>
-                  {% for slot in timeslots %}
-                  <th>
-                    <div class="fw-600">{{ slot.name }}</div>
-                    <div class="text-muted" style="font-size: 11px; font-weight: 400;">
-                      {{ slot.start_time.strftime('%H:%M') }}
-                    </div>
-                  </th>
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for i in range(7) %}
-                <tr>
-                  <td style="text-align: left; padding-left: 16px;">
-                    <span class="fw-600">{{ days[i] }}</span>
-                  </td>
-                  {% for slot in timeslots %}
-                  <td>
-                    <label class="availability-checkbox">
-                      <input type="checkbox" class="form-check-input" name="slots" value="{{ i }}_{{ slot.id }}"
-                        style="width: 28px; height: 28px; cursor: pointer;" {% if avail_map[i][slot.id] %}checked{%
-                        endif %} />
-                    </label>
-                  </td>
-                  {% endfor %}
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          {% if my_skill_ids %}
+          <!-- Tabs for each class -->
+          <ul class="nav nav-tabs mb-3" id="classAvailTabs" role="tablist">
+            {% for mc in master_classes %}
+            {% if mc.id in my_skill_ids %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ mc.id }}" data-bs-toggle="tab"
+                data-bs-target="#content-{{ mc.id }}" type="button" role="tab">
+                {{ mc.name }}
+              </button>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+
+          <!-- Tab content -->
+          <div class="tab-content" id="classAvailContent">
+            {% for mc in master_classes %}
+            {% if mc.id in my_skill_ids %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="content-{{ mc.id }}"
+              role="tabpanel">
+              <div class="table-responsive">
+                <table class="table-modern text-center">
+                  <thead>
+                    <tr>
+                      <th style="text-align: left; padding-left: 16px;">Hari</th>
+                      {% for slot in timeslots %}
+                      <th>
+                        <div class="fw-600">{{ slot.name }}</div>
+                        <div class="text-muted" style="font-size: 11px; font-weight: 400;">
+                          {{ slot.start_time.strftime('%H:%M') }}
+                        </div>
+                      </th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for i in range(7) %}
+                    <tr>
+                      <td style="text-align: left; padding-left: 16px;">
+                        <span class="fw-600">{{ days[i] }}</span>
+                      </td>
+                      {% for slot in timeslots %}
+                      <td>
+                        <label class="availability-checkbox">
+                          <input type="checkbox" class="form-check-input" name="slots"
+                            value="{{ mc.id }}_{{ i }}_{{ slot.id }}"
+                            style="width: 28px; height: 28px; cursor: pointer;" {% if avail_map[mc.id][i][slot.id]
+                            %}checked{% endif %} />
+                        </label>
+                      </td>
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
           </div>
 
           <button type="submit" class="btn btn-primary w-100 mt-4">
-            <i class="fas fa-save me-2"></i> Simpan Ketersediaan
+            <i class="fas fa-save me-2"></i> Simpan Semua Ketersediaan
           </button>
+          {% else %}
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Pilih <strong>Skill Mengajar</strong> terlebih dahulu di panel kiri, lalu atur jadwal ketersediaan untuk
+            setiap kelas.
+          </div>
+          {% endif %}
         </form>
       </div>
     </div>

@@ -134,10 +134,12 @@ class TeacherAvailability(db.Model):
     __tablename__ = 'teacher_availabilities'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    master_class_id = db.Column(db.Integer, db.ForeignKey('master_classes.id'), nullable=True)  # NEW: per-class availability
     day_of_week = db.Column(db.Integer)
     timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     
     timeslot = db.relationship('TimeSlot')
+    master_class = db.relationship('MasterClass')
 
 # 4. STUDENT ENROLLMENT & SCHEDULE
 class Enrollment(db.Model):
