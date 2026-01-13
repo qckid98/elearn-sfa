@@ -26,12 +26,12 @@ jobs:
             echo "📥 Pulling latest changes..."
             git pull origin main
             
-            echo "🔄 Rebuilding and restarting containers..."
-            docker-compose down
-            docker-compose up -d --build
+            echo "🔄 Rebuilding web container only..."
+            docker-compose build web
+            docker-compose up -d web
             
             echo "⏳ Waiting for services to be ready..."
-            sleep 10
+            sleep 5
             
             echo "🗄️ Running database migrations..."
             docker-compose exec -T web flask db upgrade

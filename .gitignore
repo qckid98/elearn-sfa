@@ -9,5 +9,4 @@ venv
 google_token.txt
 get_google_token.py
 __pycache__/
-instance/
-app.db
+instanapp.db

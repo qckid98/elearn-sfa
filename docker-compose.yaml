@@ -65,7 +65,7 @@ services:
       dockerfile: ./go-whatsapp-web-multidevice/docker/golang.Dockerfile
     restart: always
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     env_file:
       - ./go-whatsapp-web-multidevice/src/.env
     environment:
