@@ -193,7 +193,7 @@ class StudentSchedule(db.Model):
     subject = db.relationship('Subject')
     teacher = db.relationship('User')
     timeslot = db.relationship('TimeSlot')
-    class_enrollment = db.relationship('ClassEnrollment')
+    # class_enrollment relationship is defined via backref in ClassEnrollment
 
 # 5. OPERATION (BOOKING & ATTENDANCE)
 class Booking(db.Model):
