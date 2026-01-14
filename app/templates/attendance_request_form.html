@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block page_title %}Request Absen Lewat{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-700 mb-1">Request Absen Lewat</h4>
+        <p class="text-muted mb-0">Ajukan request absensi untuk sesi yang sudah lewat</p>
+    </div>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-icon" style="width: 40px; height: 40px;">
+        <i class="fas fa-times"></i>
+    </a>
+</div>
+
+<!-- Booking Info Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="fw-600 mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informasi Booking</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted" style="width: 120px;">Tanggal</td>
+                        <td class="fw-600">{{ booking.date.strftime('%d %B %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Sesi</td>
+                        <td>{{ booking.timeslot.name }} ({{ booking.timeslot.start_time.strftime('%H:%M') }} - {{
+                            booking.timeslot.end_time.strftime('%H:%M') }})</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Siswa</td>
+                        <td class="fw-600">{{ booking.enrollment.student.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Program</td>
+                        <td>{{ booking.enrollment.program.name }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Form -->
+<div class="card">
+    <div class="card-body">
+        <h6 class="fw-600 mb-3"><i class="fas fa-edit me-2 text-primary"></i>Form Request</h6>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+            <!-- Status -->
+            <div class="mb-3">
+                <label class="form-label fw-600">Status Kehadiran <span class="text-danger">*</span></label>
+                <div class="d-flex gap-2">
+                    <input type="radio" class="btn-check" name="status_request" id="status_hadir" value="Hadir"
+                        checked />
+                    <label class="btn btn-outline-success" for="status_hadir">
+                        <i class="fas fa-check me-1"></i> Hadir
+                    </label>
+
+                    <input type="radio" class="btn-check" name="status_request" id="status_izin" value="Izin" />
+                    <label class="btn btn-outline-warning" for="status_izin">
+                        <i class="fas fa-clock me-1"></i> Izin
+                    </label>
+
+                    <input type="radio" class="btn-check" name="status_request" id="status_alpha" value="Alpha" />
+                    <label class="btn btn-outline-danger" for="status_alpha">
+                        <i class="fas fa-times me-1"></i> Alpha
+                    </label>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-3">
+                <label class="form-label fw-600">Catatan Progress</label>
+                <input type="text" class="form-control" name="notes"
+                    placeholder="Catatan progress siswa (optional)..." />
+            </div>
+
+            <!-- Alasan -->
+            <div class="mb-4">
+                <label class="form-label fw-600">Alasan Lupa Absen <span class="text-danger">*</span></label>
+                <textarea class="form-control" name="reason" rows="3" minlength="20" required
+                    placeholder="Jelaskan mengapa Anda lupa absen (minimal 20 karakter)..."></textarea>
+                <small class="text-muted">Minimal 20 karakter. Contoh: HP mati saat jam mengajar, lupa setelah selesai
+                    mengajar karena buru-buru.</small>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-2"></i> Kirim Request
+                </button>
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -189,28 +189,61 @@ def dashboard():
             Booking.teacher_id == current_user.id
         ).order_by(Booking.date).all()
         
+        # Group bookings by date + timeslot
+        from collections import defaultdict
+        grouped = defaultdict(list)
         for booking in teacher_bookings:
-            # Determine event color based on status
-            if booking.status == 'completed':
-                color = '#28a745'  # Green for completed
-            elif booking.status == 'cancelled':
-                color = '#6c757d'  # Gray for cancelled
-            else:
-                color = '#007bff'  # Blue for upcoming/booked
+            key = (booking.date, booking.timeslot_id)
+            grouped[key].append(booking)
+        
+        today = date.today()
+        
+        for (booking_date, timeslot_id), bookings_in_slot in grouped.items():
+            # Get timeslot info from first booking
+            first_booking = bookings_in_slot[0]
+            timeslot = first_booking.timeslot
             
-            # Build event data for FullCalendar
+            # Count students per status
+            total_students = len(bookings_in_slot)
+            completed_count = sum(1 for b in bookings_in_slot if b.status == 'completed')
+            izin_count = sum(1 for b in bookings_in_slot if b.status == 'izin')
+            booked_count = sum(1 for b in bookings_in_slot if b.status == 'booked')
+            
+            # Get class name (from first booking with class_enrollment)
+            class_name = '-'
+            for b in bookings_in_slot:
+                if b.class_enrollment:
+                    class_name = b.class_enrollment.program_class.name
+                    break
+                elif b.enrollment and b.enrollment.program:
+                    class_name = b.enrollment.program.name
+                    break
+            
+            # Determine color based on status majority
+            if completed_count == total_students:
+                color = '#28a745'  # Green - semua selesai
+            elif booking_date < today and completed_count < total_students:
+                color = '#dc3545'  # Red - ada yang belum diabsen dan sudah lewat
+            elif izin_count > 0 and booked_count == 0:
+                color = '#ffc107'  # Yellow - semua izin
+            else:
+                color = '#007bff'  # Blue - mendatang
+            
+            # Build event title: "Sesi Pagi (3 siswa)"
             event = {
-                'id': booking.id,
-                'title': f"{booking.enrollment.student.name}",
-                'start': f"{booking.date}T{booking.timeslot.start_time.strftime('%H:%M:%S')}",
-                'end': f"{booking.date}T{booking.timeslot.end_time.strftime('%H:%M:%S')}",
+                'id': f"{booking_date}_{timeslot_id}",
+                'title': f"{timeslot.name} ({total_students} siswa)",
+                'start': f"{booking_date}T{timeslot.start_time.strftime('%H:%M:%S')}",
+                'end': f"{booking_date}T{timeslot.end_time.strftime('%H:%M:%S')}",
                 'color': color,
                 'extendedProps': {
-                    'student': booking.enrollment.student.name,
-                    'subject': booking.subject.name if booking.subject else '-',
-                    'timeslot': booking.timeslot.name,
-                    'status': booking.status,
-                    'program': booking.enrollment.program.name
+                    'class_name': class_name,
+                    'timeslot': timeslot.name,
+                    'total_students': total_students,
+                    'completed': completed_count,
+                    'izin': izin_count,
+                    'booked': booked_count,
+                    'date': booking_date.strftime('%d %b %Y')
                 }
             }
             teacher_calendar_events.append(event)

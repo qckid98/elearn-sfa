@@ -195,6 +195,91 @@ def student_progress(student_id):
             'sessions_completed': sessions_completed
         })
     
+    # === CLASS PROGRESS DATA ===
+    class_progress = []
+    for ce in enrollment.class_enrollments:
+        total = ce.program_class.total_sessions
+        remaining = ce.sessions_remaining or 0
+        completed = total - remaining
+        progress_pct_class = int((completed / total) * 100) if total > 0 else 0
+        
+        # Get bookings for this class
+        class_bookings = Booking.query.filter_by(class_enrollment_id=ce.id).all()
+        class_booking_ids = [b.id for b in class_bookings]
+        
+        # Attendance stats
+        hadir = Attendance.query.filter(
+            Attendance.booking_id.in_(class_booking_ids),
+            Attendance.status == 'Hadir'
+        ).count() if class_booking_ids else 0
+        
+        izin = Attendance.query.filter(
+            Attendance.booking_id.in_(class_booking_ids),
+            Attendance.status == 'Izin'
+        ).count() if class_booking_ids else 0
+        
+        alpha = Attendance.query.filter(
+            Attendance.booking_id.in_(class_booking_ids),
+            Attendance.status == 'Alpha'
+        ).count() if class_booking_ids else 0
+        
+        # Recent attendances (last 5)
+        recent_attendances = []
+        recent_att_records = Attendance.query.filter(
+            Attendance.booking_id.in_(class_booking_ids)
+        ).order_by(Attendance.date.desc()).limit(5).all() if class_booking_ids else []
+        
+        for att in recent_att_records:
+            recent_attendances.append({
+                'date': att.date,
+                'status': att.status,
+                'teacher': att.teacher.name if att.teacher else '-',
+                'notes': att.notes
+            })
+        
+        # Get current topic from syllabus
+        current_topic = None
+        syllabus_items = Syllabus.query.filter_by(
+            program_class_id=ce.program_class_id
+        ).order_by(Syllabus.order).all()
+        
+        cumulative = 0
+        for s in syllabus_items:
+            prev_cumulative = cumulative
+            cumulative += s.sessions
+            if completed < cumulative:
+                # Calculate which session within this topic (1-indexed)
+                session_in_topic = completed - prev_cumulative + 1
+                if s.sessions > 1:
+                    current_topic = f"{s.topic_name} - {session_in_topic}"
+                else:
+                    current_topic = s.topic_name
+                break
+        else:
+            # All topics completed
+            if syllabus_items:
+                current_topic = syllabus_items[-1].topic_name + " (Selesai)"
+        
+        class_progress.append({
+            'class_enrollment_id': ce.id,
+            'class_name': ce.program_class.name,
+            'total_sessions': total,
+            'completed_sessions': completed,
+            'sessions_remaining': remaining,
+            'progress_pct': progress_pct_class,
+            'max_izin': ce.program_class.max_izin,
+            'izin_used': ce.izin_used,
+            'izin_remaining': ce.izin_remaining,
+            'stats': {
+                'hadir': hadir,
+                'izin': izin,
+                'alpha': alpha
+            },
+            'recent_attendances': recent_attendances,
+            'status': ce.status,
+            'current_topic': current_topic
+        })
+    
     return render_template('teacher/student_progress.html',
                            student=student,
                            enrollment=enrollment,
@@ -206,4 +291,5 @@ def student_progress(student_id):
                            attendance_summary=attendance_summary,
                            schedules=schedules,
                            days=days,
-                           portfolio_data=portfolio_data)
+                           portfolio_data=portfolio_data,
+                           class_progress=class_progress)

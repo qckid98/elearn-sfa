@@ -273,3 +273,29 @@ class Portfolio(db.Model):
     
     class_enrollment = db.relationship('ClassEnrollment', backref='portfolios')
     syllabus = db.relationship('Syllabus', backref='portfolios')
+
+# 10. ATTENDANCE REQUEST MODEL - Request absen yang sudah lewat
+class AttendanceRequest(db.Model):
+    __tablename__ = 'attendance_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Requested attendance data
+    status_request = db.Column(db.String(20), nullable=False)  # 'Hadir', 'Izin', 'Alpha'
+    notes = db.Column(db.Text)
+    
+    # Request metadata
+    reason = db.Column(db.Text, nullable=False)  # Alasan lupa absen
+    request_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Approval workflow
+    approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    booking = db.relationship('Booking', backref='attendance_requests')
+    teacher = db.relationship('User', foreign_keys=[teacher_id], backref='attendance_requests_made')
+    approver = db.relationship('User', foreign_keys=[approved_by])

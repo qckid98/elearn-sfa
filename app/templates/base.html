@@ -414,6 +414,14 @@
             <i class="fas fa-tools"></i>
             <span>Data Tools</span>
           </a>
+          <a href="{{ url_for('admin.attendance_requests') }}"
+            class="nav-item {% if 'attendance_requests' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-clock"></i>
+            <span>Request Absen</span>
+            {% if pending_attendance_count and pending_attendance_count > 0 %}
+            <span class="badge bg-danger ms-auto">{{ pending_attendance_count }}</span>
+            {% endif %}
+          </a>
           <a href="{{ url_for('admin_syllabus.index') }}"
             class="nav-item {% if 'syllabus' in request.endpoint %}active{% endif %}">
             <i class="fas fa-book"></i>
@@ -444,6 +452,16 @@
           <a href="{{ url_for('attendance.view_form', timeslot_id=3) }}" class="nav-item">
             <i class="fas fa-moon"></i>
             <span>Sesi 3 (Malam)</span>
+          </a>
+          <a href="{{ url_for('attendance.pending_bookings') }}"
+            class="nav-item {% if 'pending_bookings' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>Sesi Tertunda</span>
+          </a>
+          <a href="{{ url_for('attendance.my_requests') }}"
+            class="nav-item {% if 'my_requests' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-history"></i>
+            <span>Riwayat Request</span>
           </a>
         </div>
 

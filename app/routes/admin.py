@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass
-from datetime import date
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass, AttendanceRequest
+from datetime import date, datetime
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -249,6 +249,94 @@ def student_detail(user_id, enrollment_id=None):
                 'sessions_completed': sessions_completed
             })
 
+    # === CLASS PROGRESS DATA ===
+    class_progress = []
+    if enrollment:
+        for ce in enrollment.class_enrollments:
+            total = ce.program_class.total_sessions
+            remaining = ce.sessions_remaining or 0
+            completed = total - remaining
+            progress_pct = int((completed / total) * 100) if total > 0 else 0
+            
+            # Get bookings for this class
+            class_bookings = Booking.query.filter_by(class_enrollment_id=ce.id).all()
+            class_booking_ids = [b.id for b in class_bookings]
+            
+            # Attendance stats for this class
+            hadir = Attendance.query.filter(
+                Attendance.booking_id.in_(class_booking_ids),
+                Attendance.status == 'Hadir'
+            ).count() if class_booking_ids else 0
+            
+            izin = Attendance.query.filter(
+                Attendance.booking_id.in_(class_booking_ids),
+                Attendance.status == 'Izin'
+            ).count() if class_booking_ids else 0
+            
+            alpha = Attendance.query.filter(
+                Attendance.booking_id.in_(class_booking_ids),
+                Attendance.status == 'Alpha'
+            ).count() if class_booking_ids else 0
+            
+            # Recent attendances (last 5)
+            recent_attendances = []
+            recent_att_records = Attendance.query.filter(
+                Attendance.booking_id.in_(class_booking_ids)
+            ).order_by(Attendance.date.desc()).limit(5).all() if class_booking_ids else []
+            
+            for att in recent_att_records:
+                recent_attendances.append({
+                    'date': att.date,
+                    'status': att.status,
+                    'teacher': att.teacher.name if att.teacher else '-',
+                    'notes': att.notes
+                })
+            
+            # Get current topic from syllabus
+            current_topic = None
+            next_topic = None
+            from app.models import Syllabus
+            syllabus_items = Syllabus.query.filter_by(
+                program_class_id=ce.program_class_id
+            ).order_by(Syllabus.order).all()
+            
+            cumulative = 0
+            for s in syllabus_items:
+                prev_cumulative = cumulative
+                cumulative += s.sessions
+                if completed < cumulative:
+                    # Calculate which session within this topic (1-indexed)
+                    session_in_topic = completed - prev_cumulative + 1
+                    if s.sessions > 1:
+                        current_topic = f"{s.topic_name} - {session_in_topic}"
+                    else:
+                        current_topic = s.topic_name
+                    break
+            else:
+                # All topics completed
+                if syllabus_items:
+                    current_topic = syllabus_items[-1].topic_name + " (Selesai)"
+            
+            class_progress.append({
+                'class_enrollment_id': ce.id,
+                'class_name': ce.program_class.name,
+                'total_sessions': total,
+                'completed_sessions': completed,
+                'sessions_remaining': remaining,
+                'progress_pct': progress_pct,
+                'max_izin': ce.program_class.max_izin,
+                'izin_used': ce.izin_used,
+                'izin_remaining': ce.izin_remaining,
+                'stats': {
+                    'hadir': hadir,
+                    'izin': izin,
+                    'alpha': alpha
+                },
+                'recent_attendances': recent_attendances,
+                'status': ce.status,
+                'current_topic': current_topic
+            })
+
     return render_template('admin/student_detail.html', 
                            student=student, 
                            enrollment=enrollment,
@@ -262,7 +350,8 @@ def student_detail(user_id, enrollment_id=None):
                            days=days, 
                            manual_bookings=manual_bookings,
                            student_progress=student_progress,
-                           portfolio_data=portfolio_data)
+                           portfolio_data=portfolio_data,
+                           class_progress=class_progress)
 
 @bp.route('/booking/delete/<int:booking_id>', methods=['POST'])
 @login_required
@@ -1294,3 +1383,301 @@ def unassign_tool(pt_id):
     db.session.commit()
     flash('Tool dihapus dari program.')
     return redirect(url_for('admin.tools_list'))
+
+
+# --- ATTENDANCE REQUESTS ---
+@bp.route('/attendance-requests')
+@login_required
+@admin_required
+def attendance_requests():
+    """List all pending attendance requests - grouped per sesi"""
+    from collections import defaultdict
+    
+    pending_reqs = AttendanceRequest.query.filter_by(approval_status='pending').order_by(AttendanceRequest.request_date.desc()).all()
+    history_reqs = AttendanceRequest.query.filter(AttendanceRequest.approval_status != 'pending').order_by(AttendanceRequest.approved_at.desc()).limit(50).all()
+    
+    # Group pending by date + timeslot + teacher + reason
+    pending_grouped = defaultdict(list)
+    for req in pending_reqs:
+        if req.booking:
+            key = (req.booking.date, req.booking.timeslot_id, req.teacher_id, req.reason)
+            pending_grouped[key].append(req)
+    
+    pending_sessions = []
+    for (booking_date, timeslot_id, teacher_id, reason), reqs in pending_grouped.items():
+        if not reqs:
+            continue
+        first_req = reqs[0]
+        first_booking = first_req.booking
+        
+        class_name = '-'
+        for r in reqs:
+            if r.booking and r.booking.class_enrollment:
+                class_name = r.booking.class_enrollment.program_class.name
+                break
+            elif r.booking and r.booking.enrollment:
+                class_name = r.booking.enrollment.program.name
+                break
+        
+        pending_sessions.append({
+            'date': booking_date,
+            'timeslot': first_booking.timeslot if first_booking else None,
+            'teacher': first_req.teacher,
+            'class_name': class_name,
+            'student_count': len(reqs),
+            'reason': reason,
+            'request_date': first_req.request_date,
+            'requests': reqs
+        })
+    pending_sessions.sort(key=lambda x: x['request_date'], reverse=True)
+    
+    # Group history by date + timeslot + teacher
+    history_grouped = defaultdict(list)
+    for req in history_reqs:
+        if req.booking:
+            key = (req.booking.date, req.booking.timeslot_id, req.teacher_id, req.reason or '')
+            history_grouped[key].append(req)
+    
+    history_sessions = []
+    for (booking_date, timeslot_id, teacher_id, reason), reqs in history_grouped.items():
+        if not reqs:
+            continue
+        first_req = reqs[0]
+        first_booking = first_req.booking
+        
+        class_name = '-'
+        for r in reqs:
+            if r.booking and r.booking.class_enrollment:
+                class_name = r.booking.class_enrollment.program_class.name
+                break
+        
+        approved_count = sum(1 for r in reqs if r.approval_status == 'approved')
+        rejected_count = sum(1 for r in reqs if r.approval_status == 'rejected')
+        
+        history_sessions.append({
+            'date': booking_date,
+            'timeslot': first_booking.timeslot if first_booking else None,
+            'teacher': first_req.teacher,
+            'class_name': class_name,
+            'student_count': len(reqs),
+            'approved_count': approved_count,
+            'rejected_count': rejected_count,
+            'approved_at': first_req.approved_at,
+            'requests': reqs
+        })
+    history_sessions.sort(key=lambda x: x['approved_at'] or datetime.min, reverse=True)
+    
+    return render_template('admin/attendance_requests.html', 
+                          pending_sessions=pending_sessions, 
+                          history_sessions=history_sessions,
+                          pending_count=len(pending_reqs))
+
+
+@bp.route('/attendance-request/<int:req_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_attendance_request(req_id):
+    """Approve an attendance request and create the attendance record"""
+    att_req = AttendanceRequest.query.get_or_404(req_id)
+    
+    if att_req.approval_status != 'pending':
+        flash('Request ini sudah diproses sebelumnya.', 'warning')
+        return redirect(url_for('admin.attendance_requests'))
+    
+    booking = att_req.booking
+    
+    # Create attendance record
+    attendance = Attendance(
+        booking_id=booking.id,
+        teacher_id=att_req.teacher_id,
+        date=booking.date,
+        status=att_req.status_request,
+        notes=att_req.notes
+    )
+    db.session.add(attendance)
+    
+    # Update booking status
+    booking.status = 'completed'
+    
+    # Update ClassEnrollment if applicable
+    if booking.class_enrollment:
+        if att_req.status_request == 'Hadir':
+            booking.class_enrollment.sessions_remaining -= 1
+        elif att_req.status_request == 'Izin':
+            booking.class_enrollment.izin_used += 1
+    
+    # Update request status
+    att_req.approval_status = 'approved'
+    att_req.approved_by = current_user.id
+    att_req.approved_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    # Send WA notification to teacher
+    try:
+        from app.utils.whatsapp import send_wa_message
+        if att_req.teacher and att_req.teacher.phone_number:
+            message = f"✅ Request absen Anda untuk sesi tanggal {booking.date.strftime('%d %B %Y')} ({booking.timeslot.name}) telah di-APPROVE oleh admin."
+            send_wa_message(att_req.teacher.phone_number, message)
+    except Exception as e:
+        pass  # Don't fail if WA fails
+    
+    flash(f'Request absen dari {att_req.teacher.name} berhasil di-approve!', 'success')
+    return redirect(url_for('admin.attendance_requests'))
+
+
+@bp.route('/attendance-request/<int:req_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_attendance_request(req_id):
+    """Reject an attendance request"""
+    att_req = AttendanceRequest.query.get_or_404(req_id)
+    
+    if att_req.approval_status != 'pending':
+        flash('Request ini sudah diproses sebelumnya.', 'warning')
+        return redirect(url_for('admin.attendance_requests'))
+    
+    rejection_reason = request.form.get('rejection_reason', 'Ditolak oleh admin.')
+    
+    # Update request status
+    att_req.approval_status = 'rejected'
+    att_req.approved_by = current_user.id
+    att_req.approved_at = datetime.utcnow()
+    att_req.rejection_reason = rejection_reason
+    
+    db.session.commit()
+    
+    # Send WA notification to teacher
+    try:
+        from app.utils.whatsapp import send_wa_message
+        booking = att_req.booking
+        if att_req.teacher and att_req.teacher.phone_number:
+            message = f"❌ Request absen Anda untuk sesi tanggal {booking.date.strftime('%d %B %Y')} ({booking.timeslot.name}) telah DITOLAK.\n\nAlasan: {rejection_reason}"
+            send_wa_message(att_req.teacher.phone_number, message)
+    except Exception as e:
+        pass  # Don't fail if WA fails
+    
+    flash(f'Request absen dari {att_req.teacher.name} ditolak.', 'info')
+    return redirect(url_for('admin.attendance_requests'))
+
+
+@bp.route('/attendance-request/approve-session', methods=['POST'])
+@login_required
+@admin_required
+def approve_session_requests():
+    """Approve all requests in a session at once"""
+    request_ids = request.form.getlist('request_ids')
+    
+    if not request_ids:
+        flash('Tidak ada request yang dipilih.', 'warning')
+        return redirect(url_for('admin.attendance_requests'))
+    
+    approved_count = 0
+    teacher = None
+    timeslot_name = ''
+    booking_date = None
+    
+    for req_id in request_ids:
+        att_req = AttendanceRequest.query.get(int(req_id))
+        if not att_req or att_req.approval_status != 'pending':
+            continue
+        
+        booking = att_req.booking
+        teacher = att_req.teacher
+        timeslot_name = booking.timeslot.name if booking.timeslot else ''
+        booking_date = booking.date
+        
+        # Create attendance record
+        attendance = Attendance(
+            booking_id=booking.id,
+            teacher_id=att_req.teacher_id,
+            date=booking.date,
+            status=att_req.status_request,
+            notes=att_req.notes
+        )
+        db.session.add(attendance)
+        
+        # Update booking status
+        booking.status = 'completed'
+        
+        # Update ClassEnrollment
+        if att_req.status_request == 'Hadir':
+            if booking.class_enrollment:
+                booking.class_enrollment.sessions_remaining -= 1
+        elif att_req.status_request == 'Izin':
+            if booking.class_enrollment:
+                booking.class_enrollment.izin_used += 1
+        
+        # Update request status
+        att_req.approval_status = 'approved'
+        att_req.approved_by = current_user.id
+        att_req.approved_at = datetime.now()
+        
+        approved_count += 1
+    
+    db.session.commit()
+    
+    # Send WA notification
+    if teacher and teacher.phone_number and booking_date:
+        try:
+            from app.utils.whatsapp import send_wa_message
+            message = f"✅ Request absen Anda untuk sesi tanggal {booking_date.strftime('%d %B %Y')} ({timeslot_name}) telah DISETUJUI untuk {approved_count} siswa."
+            send_wa_message(teacher.phone_number, message)
+        except:
+            pass
+    
+    flash(f'✅ {approved_count} request berhasil di-approve.', 'success')
+    return redirect(url_for('admin.attendance_requests'))
+
+
+@bp.route('/attendance-request/reject-session', methods=['POST'])
+@login_required
+@admin_required
+def reject_session_requests():
+    """Reject all requests in a session at once"""
+    request_ids = request.form.getlist('request_ids')
+    rejection_reason = request.form.get('rejection_reason', '')
+    
+    if not request_ids:
+        flash('Tidak ada request yang dipilih.', 'warning')
+        return redirect(url_for('admin.attendance_requests'))
+    
+    if not rejection_reason:
+        flash('Alasan penolakan wajib diisi.', 'danger')
+        return redirect(url_for('admin.attendance_requests'))
+    
+    rejected_count = 0
+    teacher = None
+    timeslot_name = ''
+    booking_date = None
+    
+    for req_id in request_ids:
+        att_req = AttendanceRequest.query.get(int(req_id))
+        if not att_req or att_req.approval_status != 'pending':
+            continue
+        
+        booking = att_req.booking
+        teacher = att_req.teacher
+        timeslot_name = booking.timeslot.name if booking.timeslot else ''
+        booking_date = booking.date
+        
+        att_req.approval_status = 'rejected'
+        att_req.approved_by = current_user.id
+        att_req.approved_at = datetime.now()
+        att_req.rejection_reason = rejection_reason
+        
+        rejected_count += 1
+    
+    db.session.commit()
+    
+    # Send WA notification
+    if teacher and teacher.phone_number and booking_date:
+        try:
+            from app.utils.whatsapp import send_wa_message
+            message = f"❌ Request absen Anda untuk sesi tanggal {booking_date.strftime('%d %B %Y')} ({timeslot_name}) telah DITOLAK untuk {rejected_count} siswa.\n\nAlasan: {rejection_reason}"
+            send_wa_message(teacher.phone_number, message)
+        except:
+            pass
+    
+    flash(f'{rejected_count} request ditolak.', 'info')
+    return redirect(url_for('admin.attendance_requests'))

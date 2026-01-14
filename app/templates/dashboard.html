@@ -281,9 +281,10 @@
       <div class="d-flex align-items-center gap-4 flex-wrap">
         <h5 class="fw-600 mb-0"><i class="fas fa-calendar-alt me-2 text-brand"></i>Jadwal Mengajar</h5>
         <div class="d-flex gap-3 ms-auto" style="font-size: 13px;">
-          <span><i class="fas fa-circle text-primary me-1"></i> Upcoming</span>
-          <span><i class="fas fa-circle text-success me-1"></i> Selesai</span>
-          <span><i class="fas fa-circle text-secondary me-1"></i> Dibatalkan</span>
+          <span><i class="fas fa-circle me-1" style="color: #007bff;"></i> Mendatang</span>
+          <span><i class="fas fa-circle me-1" style="color: #28a745;"></i> Selesai</span>
+          <span><i class="fas fa-circle me-1" style="color: #dc3545;"></i> Terlewat</span>
+          <span><i class="fas fa-circle me-1" style="color: #ffc107;"></i> Izin</span>
         </div>
       </div>
     </div>
@@ -306,13 +307,13 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="fas fa-calendar-day me-2"></i>Detail Jadwal</h5>
+          <h5 class="modal-title"><i class="fas fa-calendar-day me-2"></i>Detail Sesi</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="text-muted" style="font-size: 12px;">SISWA</label>
-            <div class="fw-600" id="modalStudent">-</div>
+            <label class="text-muted" style="font-size: 12px;">KELAS</label>
+            <div class="fw-600" id="modalClassName">-</div>
           </div>
           <div class="row">
             <div class="col-6 mb-3">
@@ -320,23 +321,17 @@
               <div class="fw-600" id="modalDate">-</div>
             </div>
             <div class="col-6 mb-3">
-              <label class="text-muted" style="font-size: 12px;">WAKTU</label>
-              <div class="fw-600" id="modalTime">-</div>
+              <label class="text-muted" style="font-size: 12px;">SESI</label>
+              <div class="fw-600" id="modalTimeslot">-</div>
             </div>
           </div>
-          <div class="row">
-            <div class="col-6 mb-3">
-              <label class="text-muted" style="font-size: 12px;">MATERI</label>
-              <div class="fw-600" id="modalSubject">-</div>
-            </div>
-            <div class="col-6 mb-3">
-              <label class="text-muted" style="font-size: 12px;">PROGRAM</label>
-              <div class="fw-600" id="modalProgram">-</div>
-            </div>
+          <div class="mb-3">
+            <label class="text-muted" style="font-size: 12px;">JUMLAH SISWA</label>
+            <div class="fw-600" id="modalTotalStudents">-</div>
           </div>
           <div>
-            <label class="text-muted" style="font-size: 12px;">STATUS</label>
-            <div id="modalStatus">-</div>
+            <label class="text-muted" style="font-size: 12px;">STATUS ABSENSI</label>
+            <div id="modalStats" class="d-flex gap-2 flex-wrap mt-1">-</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1015,22 +1010,25 @@
         eventClick: function (info) {
           var event = info.event;
           var props = event.extendedProps;
-          document.getElementById('modalStudent').textContent = props.student;
-          document.getElementById('modalSubject').textContent = props.subject;
-          document.getElementById('modalProgram').textContent = props.program;
-          document.getElementById('modalTime').textContent = props.timeslot;
-          var eventDate = event.start;
-          var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-          document.getElementById('modalDate').textContent = eventDate.toLocaleDateString('id-ID', opts);
-          var statusHtml = '';
-          if (props.status === 'completed') {
-            statusHtml = '<span class="badge bg-success">Selesai</span>';
-          } else if (props.status === 'cancelled') {
-            statusHtml = '<span class="badge bg-secondary">Dibatalkan</span>';
-          } else {
-            statusHtml = '<span class="badge bg-primary">Upcoming</span>';
+          document.getElementById('modalClassName').textContent = props.class_name || '-';
+          document.getElementById('modalTimeslot').textContent = props.timeslot || '-';
+          document.getElementById('modalTotalStudents').textContent = props.total_students + ' siswa';
+          document.getElementById('modalDate').textContent = props.date || '-';
+
+          // Status stats badges
+          var statsHtml = '';
+          if (props.completed > 0) {
+            statsHtml += '<span class="badge bg-success">' + props.completed + ' Selesai</span>';
           }
-          document.getElementById('modalStatus').innerHTML = statusHtml;
+          if (props.booked > 0) {
+            statsHtml += '<span class="badge bg-primary">' + props.booked + ' Terjadwal</span>';
+          }
+          if (props.izin > 0) {
+            statsHtml += '<span class="badge bg-warning text-dark">' + props.izin + ' Izin</span>';
+          }
+          if (!statsHtml) statsHtml = '<span class="badge bg-secondary">-</span>';
+          document.getElementById('modalStats').innerHTML = statsHtml;
+
           var modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
           modal.show();
         },

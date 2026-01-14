@@ -47,6 +47,13 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="class-progress-tab" data-bs-toggle="tab"
+                data-bs-target="#class-progress-content" type="button" role="tab">
+                <i class="fas fa-tasks me-2"></i>Progress Kelas
+                {% if class_progress %}<span class="badge bg-primary ms-1">{{ class_progress|length }}</span>{% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="portfolio-tab" data-bs-toggle="tab" data-bs-target="#portfolio-content"
                 type="button" role="tab">
                 <i class="fas fa-folder-open me-2"></i>Portfolio
@@ -283,6 +290,123 @@
         </div>
     </div>
     <!-- End Progress Tab -->
+
+    <!-- Class Progress Tab -->
+    <div class="tab-pane fade" id="class-progress-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-tasks me-2"></i>Progress per Kelas
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if class_progress %}
+                <div class="row g-4">
+                    {% for cls in class_progress %}
+                    <div class="col-12">
+                        <div class="class-progress-card p-4"
+                            style="background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef;">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar"
+                                        style="width: 50px; height: 50px; font-size: 18px; background: linear-gradient(135deg, #d32f2f, #ff6b6b); color: white;">
+                                        {{ cls.class_name[0] }}
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-700 mb-0">{{ cls.class_name }}</h6>
+                                        <span
+                                            class="badge {% if cls.status == 'active' %}bg-success{% elif cls.status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ cls.status|capitalize }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="h4 fw-700 text-primary mb-0">{{ cls.progress_pct }}%</div>
+                                    <small class="text-muted">{{ cls.completed_sessions }}/{{ cls.total_sessions }}
+                                        sesi</small>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="progress mb-3" style="height: 10px; border-radius: 5px;">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {{ cls.progress_pct }}%; background: linear-gradient(90deg, #d32f2f, #ff6b6b);"
+                                    aria-valuenow="{{ cls.progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+
+                            <!-- Current Topic -->
+                            {% if cls.current_topic %}
+                            <div class="current-topic-badge mb-3 p-3 rounded"
+                                style="background: linear-gradient(135deg, rgba(211, 47, 47, 0.1), rgba(255, 107, 107, 0.1)); border-left: 4px solid #d32f2f;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-book-open text-primary"></i>
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 11px;">Silabus Saat
+                                            Ini</small>
+                                        <span class="fw-600">{{ cls.current_topic }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="row g-3 mb-3">
+                                <div class="col-4">
+                                    <div class="p-2 rounded text-center" style="background: rgba(40, 167, 69, 0.1);">
+                                        <div class="fw-700 text-success">{{ cls.stats.hadir }}</div>
+                                        <div class="small text-muted">Hadir</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded text-center" style="background: rgba(255, 193, 7, 0.1);">
+                                        <div class="fw-700 text-warning">{{ cls.izin_used }}/{{ cls.max_izin }}</div>
+                                        <div class="small text-muted">Izin</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded text-center" style="background: rgba(220, 53, 69, 0.1);">
+                                        <div class="fw-700 text-danger">{{ cls.stats.alpha }}</div>
+                                        <div class="small text-muted">Alpha</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Attendances -->
+                            {% if cls.recent_attendances %}
+                            <div class="recent-attendances">
+                                <small class="text-muted fw-600 d-block mb-2"><i class="fas fa-history me-1"></i>5
+                                    Absensi Terakhir</small>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for att in cls.recent_attendances %}
+                                    <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded bg-white border"
+                                        title="{{ att.teacher }}{% if att.notes %} - {{ att.notes }}{% endif %}">
+                                        <small class="text-muted">{{ att.date.strftime('%d/%m') }}</small>
+                                        <span
+                                            class="badge {% if att.status == 'Hadir' %}bg-success{% elif att.status == 'Izin' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                            {{ att.status }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-2">
+                                <small class="text-muted">Belum ada riwayat absensi</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-tasks fa-2x mb-3" style="opacity: 0.3;"></i>
+                    <p>Belum ada data kelas untuk program ini</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- End Class Progress Tab -->
 
     <!-- Portfolio Tab -->
     <div class="tab-pane fade" id="portfolio-content" role="tabpanel">

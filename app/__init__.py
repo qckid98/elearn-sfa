@@ -41,6 +41,16 @@ def create_app():
     @app.context_processor
     def inject_now():
         return {'now': datetime.now()}
+    
+    # Context Processor untuk pending attendance requests count (admin sidebar badge)
+    @app.context_processor
+    def inject_pending_attendance():
+        from flask_login import current_user
+        if current_user.is_authenticated and current_user.role == 'admin':
+            from app.models import AttendanceRequest
+            count = AttendanceRequest.query.filter_by(approval_status='pending').count()
+            return {'pending_attendance_count': count}
+        return {'pending_attendance_count': 0}
 
     # Initialize scheduler for background notification jobs
     from app.scheduler import init_scheduler
