@@ -8,27 +8,49 @@ WA_API_URL = os.environ.get('WA_API_URL', 'http://wabot:3000')
 def check_wa_status():
     """
     Check if WhatsApp bot is connected and active.
+    Uses /app/status endpoint which returns is_connected and is_logged_in.
     Returns dict with status info.
     """
     try:
-        response = requests.get(f"{WA_API_URL}/user/info", timeout=5)
+        # Use /app/status endpoint for connection status
+        response = requests.get(f"{WA_API_URL}/app/status", timeout=5)
+        
         if response.status_code == 200:
             data = response.json()
-            # Check if we have valid user data
-            if data.get('results') and data['results'].get('verified_name'):
+            results = data.get('results', {})
+            
+            is_connected = results.get('is_connected', False)
+            is_logged_in = results.get('is_logged_in', False)
+            device_id = results.get('device_id', '')
+            
+            # Bot is considered active if both connected and logged in
+            if is_connected and is_logged_in:
+                # Try to get additional user info if available
+                name = 'WhatsApp Bot'
+                phone = device_id if device_id else '-'
+                
+                # Optionally fetch more details from /app/devices
+                try:
+                    devices_resp = requests.get(f"{WA_API_URL}/app/devices", timeout=3)
+                    if devices_resp.status_code == 200:
+                        devices_data = devices_resp.json()
+                        devices = devices_data.get('results', [])
+                        if devices and len(devices) > 0:
+                            first_device = devices[0]
+                            if isinstance(first_device, dict):
+                                name = first_device.get('PushName', name)
+                                phone = first_device.get('Device', {}).get('User', phone)
+                except:
+                    pass  # Use defaults if devices fetch fails
+                
                 return {
                     'connected': True,
-                    'name': data['results'].get('verified_name') or data['results'].get('push_name', 'WhatsApp'),
-                    'phone': data['results'].get('phone', '-'),
+                    'name': name,
+                    'phone': phone,
                     'status': 'active'
                 }
-            elif data.get('results'):
-                return {
-                    'connected': True,
-                    'name': data['results'].get('push_name', 'WhatsApp'),
-                    'phone': data['results'].get('phone', '-'),
-                    'status': 'active'
-                }
+        
+        # Not connected or error
         return {'connected': False, 'status': 'disconnected', 'name': None, 'phone': None}
     except requests.exceptions.Timeout:
         return {'connected': False, 'status': 'timeout', 'name': None, 'phone': None}

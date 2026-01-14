@@ -7,9 +7,15 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h4 class="fw-700 mb-1">Input Absensi</h4>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
       <span class="badge badge-secondary">{{ today_date }}</span>
       <span class="badge badge-primary">{{ timeslot.name }}</span>
+      <span class="badge"
+        style="background: {{ 'var(--success)' if is_session_active else 'var(--warning)' }}; color: white;">
+        <i class="fas {{ 'fa-check-circle' if is_session_active else 'fa-clock' }} me-1"></i>
+        {{ 'Sesi Aktif' if is_session_active else 'Belum Waktunya' }}
+      </span>
+      <span class="badge badge-secondary">🕐 {{ current_time }}</span>
     </div>
   </div>
   <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-icon" style="width: 40px; height: 40px;">
@@ -18,6 +24,7 @@
 </div>
 
 <form method="POST" action="{{ url_for('attendance.submit_attendance') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
   <input type="hidden" name="program_name" value="Sesi Harian" />
 
   {% if bookings %}
@@ -78,7 +85,7 @@
         <span class="text-muted">siap diabsen</span>
       </div>
       <button type="submit" class="btn btn-primary">
-        <i class="fab fa-whatsapp me-2"></i> Simpan & Kirim WA
+        <i class="fas fa-check me-2"></i> Submit Absen
       </button>
     </div>
   </div>
