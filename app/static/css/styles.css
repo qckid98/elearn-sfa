@@ -185,6 +185,35 @@ a {
   margin-bottom: 4px;
 }
 
+/* Collapsible Nav Group Header */
+.nav-section-title.nav-collapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.nav-section-title.nav-collapsible:hover {
+  background: var(--sidebar-hover);
+}
+
+.nav-section-title.nav-collapsible .nav-chevron {
+  font-size: 10px;
+  transition: transform var(--transition-fast);
+}
+
+.nav-section-title.nav-collapsible[aria-expanded="false"] .nav-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Nested nav items inside collapse */
+.collapse .nav-item,
+.collapsing .nav-item {
+  padding-left: 28px;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

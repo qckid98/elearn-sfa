@@ -14,6 +14,8 @@ def generate_upcoming_sessions_from_schedule(schedules, weeks_ahead=4):
     Generate upcoming session dates from weekly schedule patterns.
     Returns list of sessions with specific dates for the next N weeks.
     """
+    from app.models import TeacherSessionOverride
+    
     upcoming = []
     today = date.today()
     end_date = today + timedelta(weeks=weeks_ahead)
@@ -30,12 +32,26 @@ def generate_upcoming_sessions_from_schedule(schedules, weeks_ahead=4):
                     timeslot_id=sched.timeslot_id
                 ).first()
                 
+                # Check if there's a teacher override for this date/timeslot
+                teacher = sched.teacher
+                is_substitute = False
+                override = TeacherSessionOverride.query.filter_by(
+                    original_teacher_id=sched.teacher_id,
+                    date=current_date,
+                    timeslot_id=sched.timeslot_id
+                ).first()
+                
+                if override:
+                    teacher = override.substitute_teacher
+                    is_substitute = True
+                
                 upcoming.append({
                     'schedule_id': sched.id,
                     'date': current_date,
                     'day_of_week': sched.day_of_week,
                     'timeslot': sched.timeslot,
-                    'teacher': sched.teacher,
+                    'teacher': teacher,
+                    'is_substitute': is_substitute,
                     'class_enrollment_id': sched.class_enrollment_id,
                     'class_enrollment': sched.class_enrollment,
                     'enrollment_id': sched.enrollment_id,
@@ -71,12 +87,32 @@ def dashboard():
     
     if enrollments:
         # Gather bookings from ALL enrollments
+        from app.models import TeacherSessionOverride
+        
         enrollment_ids = [e.id for e in enrollments]
-        manual_bookings = Booking.query.filter(
+        raw_bookings = Booking.query.filter(
             Booking.enrollment_id.in_(enrollment_ids),
             Booking.status != 'completed',
             Booking.date >= date.today()
         ).order_by(Booking.date).all()
+        
+        # Add override info to each booking
+        for booking in raw_bookings:
+            # Check if there's a teacher override for this booking
+            override = TeacherSessionOverride.query.filter_by(
+                original_teacher_id=booking.teacher_id,
+                date=booking.date,
+                timeslot_id=booking.timeslot_id
+            ).first()
+            
+            if override:
+                booking.display_teacher = override.substitute_teacher
+                booking.is_substitute = True
+            else:
+                booking.display_teacher = booking.teacher
+                booking.is_substitute = False
+        
+        manual_bookings = raw_bookings
         
         # Build progress data for EACH enrollment
         for enroll in enrollments:

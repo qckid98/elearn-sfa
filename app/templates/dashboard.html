@@ -452,7 +452,16 @@
                       {% endif %}
                     </td>
                     <td>
-                      {% if booking.teacher %}
+                      {% if booking.display_teacher %}
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
+                          {{ booking.display_teacher.name[0]|upper }}
+                        </div>
+                        <span style="font-size: 14px;">
+                          {% if booking.is_substitute %}🔄 {% endif %}{{ booking.display_teacher.name }}
+                        </span>
+                      </div>
+                      {% elif booking.teacher %}
                       <div class="d-flex align-items-center gap-2">
                         <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
                           {{ booking.teacher.name[0]|upper }}
@@ -594,7 +603,9 @@
                         <div class="avatar avatar-sm" style="width: 24px; height: 24px; font-size: 11px;">
                           {{ session.teacher.name[0]|upper }}
                         </div>
-                        <span style="font-size: 14px;">{{ session.teacher.name }}</span>
+                        <span style="font-size: 14px;">
+                          {% if session.is_substitute %}🔄 {% endif %}{{ session.teacher.name }}
+                        </span>
                       </div>
                       {% else %}
                       <span class="text-muted">-</span>
