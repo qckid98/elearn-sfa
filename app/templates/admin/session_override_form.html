@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block page_title %}Tambah Penggantian Pengajar{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="mb-4">
+        <a href="{{ url_for('admin.session_overrides') }}" class="btn btn-secondary mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Kembali
+        </a>
+        <h4 class="fw-700 mb-1">Tambah Penggantian Pengajar</h4>
+        <p class="text-muted mb-0">Assign sesi ke pengajar pengganti</p>
+    </div>
+
+    <!-- Form -->
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row g-4">
+                    <!-- Date -->
+                    <div class="col-md-6">
+                        <label class="form-label">Tanggal Sesi <span class="text-danger">*</span></label>
+                        <input type="date" name="date" class="form-control" required
+                            min="{{ today.strftime('%Y-%m-%d') if today else '' }}">
+                        <small class="text-muted">Pilih tanggal sesi yang akan digantikan</small>
+                    </div>
+
+                    <!-- Timeslot -->
+                    <div class="col-md-6">
+                        <label class="form-label">Sesi <span class="text-danger">*</span></label>
+                        <select name="timeslot_id" class="form-select" required>
+                            <option value="">Pilih Sesi</option>
+                            {% for ts in timeslots %}
+                            <option value="{{ ts.id }}">{{ ts.name }} ({{ ts.start_time.strftime('%H:%M') }} - {{
+                                ts.end_time.strftime('%H:%M') }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Original Teacher -->
+                    <div class="col-md-6">
+                        <label class="form-label">Pengajar Asli <span class="text-danger">*</span></label>
+                        <select name="original_teacher_id" class="form-select" required>
+                            <option value="">Pilih Pengajar yang Berhalangan</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Pengajar yang tidak bisa hadir</small>
+                    </div>
+
+                    <!-- Substitute Teacher -->
+                    <div class="col-md-6">
+                        <label class="form-label">Pengajar Pengganti <span class="text-danger">*</span></label>
+                        <select name="substitute_teacher_id" class="form-select" required>
+                            <option value="">Pilih Pengajar Pengganti</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Pengajar yang akan menggantikan</small>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Catatan:</strong> Penggantian ini akan membuat semua siswa pada sesi tersebut terlihat di
+                    dashboard pengajar pengganti, dan tidak terlihat lagi di dashboard pengajar asli untuk tanggal
+                    tersebut.
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Simpan Penggantian
+                    </button>
+                    <a href="{{ url_for('admin.session_overrides') }}" class="btn btn-secondary">Batal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

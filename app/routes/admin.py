@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass, AttendanceRequest
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass, AttendanceRequest, TeacherSessionOverride
 from datetime import date, datetime
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -1681,3 +1681,99 @@ def reject_session_requests():
     
     flash(f'{rejected_count} request ditolak.', 'info')
     return redirect(url_for('admin.attendance_requests'))
+
+
+# --- TEACHER SESSION OVERRIDE ---
+@bp.route('/session-overrides')
+@login_required
+@admin_required
+def session_overrides():
+    """List all session overrides with filters"""
+    # Get filter params
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    teacher_id = request.args.get('teacher_id', type=int)
+    
+    query = TeacherSessionOverride.query
+    
+    if date_from:
+        query = query.filter(TeacherSessionOverride.date >= datetime.strptime(date_from, '%Y-%m-%d').date())
+    if date_to:
+        query = query.filter(TeacherSessionOverride.date <= datetime.strptime(date_to, '%Y-%m-%d').date())
+    if teacher_id:
+        query = query.filter(
+            (TeacherSessionOverride.original_teacher_id == teacher_id) | 
+            (TeacherSessionOverride.substitute_teacher_id == teacher_id)
+        )
+    
+    overrides = query.order_by(TeacherSessionOverride.date.desc()).all()
+    teachers = User.query.filter_by(role='teacher').order_by(User.name).all()
+    
+    return render_template('admin/session_overrides.html', 
+                           overrides=overrides, 
+                           teachers=teachers,
+                           selected_teacher_id=teacher_id,
+                           date_from=date_from,
+                           date_to=date_to)
+
+
+@bp.route('/session-overrides/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def session_override_add():
+    """Add new session override"""
+    teachers = User.query.filter_by(role='teacher').order_by(User.name).all()
+    timeslots = TimeSlot.query.all()
+    
+    if request.method == 'POST':
+        override_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+        timeslot_id = int(request.form['timeslot_id'])
+        original_teacher_id = int(request.form['original_teacher_id'])
+        substitute_teacher_id = int(request.form['substitute_teacher_id'])
+        
+        # Validation
+        if original_teacher_id == substitute_teacher_id:
+            flash('Teacher asli dan pengganti tidak boleh sama!', 'danger')
+            return render_template('admin/session_override_form.html', 
+                                   teachers=teachers, timeslots=timeslots)
+        
+        # Check if override already exists for same date + timeslot + original teacher
+        existing = TeacherSessionOverride.query.filter_by(
+            date=override_date,
+            timeslot_id=timeslot_id,
+            original_teacher_id=original_teacher_id
+        ).first()
+        
+        if existing:
+            flash('Override untuk sesi ini sudah ada!', 'danger')
+            return render_template('admin/session_override_form.html', 
+                                   teachers=teachers, timeslots=timeslots)
+        
+        override = TeacherSessionOverride(
+            date=override_date,
+            timeslot_id=timeslot_id,
+            original_teacher_id=original_teacher_id,
+            substitute_teacher_id=substitute_teacher_id,
+            created_by=current_user.id
+        )
+        db.session.add(override)
+        db.session.commit()
+        
+        flash('Penggantian pengajar berhasil ditambahkan!', 'success')
+        return redirect(url_for('admin.session_overrides'))
+    
+    return render_template('admin/session_override_form.html', 
+                           teachers=teachers, timeslots=timeslots)
+
+
+@bp.route('/session-overrides/<int:override_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def session_override_delete(override_id):
+    """Delete session override"""
+    override = TeacherSessionOverride.query.get_or_404(override_id)
+    db.session.delete(override)
+    db.session.commit()
+    
+    flash('Penggantian pengajar berhasil dihapus!', 'success')
+    return redirect(url_for('admin.session_overrides'))

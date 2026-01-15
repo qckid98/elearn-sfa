@@ -206,6 +206,54 @@ crontab -l
 ./deploy/restore.sh backups/daily/backup_20260110_020000.sql.gz
 ```
 
+### Setup rclone for Google Drive Backup
+
+```bash
+# 1. Install rclone
+curl https://rclone.org/install.sh | sudo bash
+
+# 2. Configure rclone
+rclone config
+```
+
+Ikuti langkah konfigurasi:
+1. Ketik `n` (new remote)
+2. Name: `gdrive`
+3. Storage: pilih nomor untuk **Google Drive**
+4. Client ID: tekan **Enter** (default)
+5. Client Secret: tekan **Enter** (default)
+6. Scope: pilih `1` (full access)
+7. Root folder ID: tekan **Enter**
+8. Service Account: tekan **Enter**
+9. Advanced config: `n`
+10. Auto config: `n` (karena di server tanpa GUI)
+
+#### Mendapatkan Token (Headless Server)
+
+Karena VPS tidak memiliki browser, jalankan di **komputer lokal**:
+
+```bash
+# Di Windows/Mac/Linux dengan browser:
+rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlIn0"
+```
+
+Browser akan terbuka, login Google, izinkan akses, lalu copy token JSON yang muncul.
+Paste token tersebut ke VPS di prompt `config_token>`.
+
+Lanjutkan konfigurasi:
+11. Team Drive: `n`
+12. Confirm: `y`
+
+#### Verifikasi Setup
+
+```bash
+# Test koneksi ke Google Drive
+rclone lsd gdrive:
+
+# Test backup ke cloud
+./deploy/backup.sh backup
+```
+
 ### Backup Retention Policy
 
 | Type | Schedule | Retention |

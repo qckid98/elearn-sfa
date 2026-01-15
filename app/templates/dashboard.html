@@ -284,7 +284,6 @@
           <span><i class="fas fa-circle me-1" style="color: #007bff;"></i> Mendatang</span>
           <span><i class="fas fa-circle me-1" style="color: #28a745;"></i> Selesai</span>
           <span><i class="fas fa-circle me-1" style="color: #dc3545;"></i> Terlewat</span>
-          <span><i class="fas fa-circle me-1" style="color: #ffc107;"></i> Izin</span>
         </div>
       </div>
     </div>
@@ -1017,16 +1016,14 @@
 
           // Status stats badges
           var statsHtml = '';
-          if (props.completed > 0) {
-            statsHtml += '<span class="badge bg-success">' + props.completed + ' Selesai</span>';
+          var status = props.status || 'Mendatang';
+          if (status === 'Selesai') {
+            statsHtml = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>' + status + '</span>';
+          } else if (status === 'Terlewat') {
+            statsHtml = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>' + status + '</span>';
+          } else {
+            statsHtml = '<span class="badge" style="background-color: #007bff; color: white;"><i class="fas fa-clock me-1"></i>' + status + '</span>';
           }
-          if (props.booked > 0) {
-            statsHtml += '<span class="badge bg-primary">' + props.booked + ' Terjadwal</span>';
-          }
-          if (props.izin > 0) {
-            statsHtml += '<span class="badge bg-warning text-dark">' + props.izin + ' Izin</span>';
-          }
-          if (!statsHtml) statsHtml = '<span class="badge bg-secondary">-</span>';
           document.getElementById('modalStats').innerHTML = statsHtml;
 
           var modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));

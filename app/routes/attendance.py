@@ -137,16 +137,35 @@ def view_form(timeslot_id):
         abort(403)
     
     from datetime import timedelta
-    from app.models import StudentSchedule
+    from app.models import StudentSchedule, TeacherSessionOverride
     
     today = date.today()
     timeslot = TimeSlot.query.get_or_404(timeslot_id)
+    
+    # Check if current teacher is substituting for someone today
+    override = TeacherSessionOverride.query.filter_by(
+        date=today,
+        timeslot_id=timeslot_id,
+        substitute_teacher_id=current_user.id
+    ).first()
+    
+    # Determine which teacher's bookings to show
+    if override:
+        # Show bookings from the original teacher (who is being substituted)
+        effective_teacher_id = override.original_teacher_id
+        is_substitute = True
+        original_teacher_name = override.original_teacher.name
+    else:
+        # Normal case - show own bookings
+        effective_teacher_id = current_user.id
+        is_substitute = False
+        original_teacher_name = None
     
     # Ambil booking hari ini yang status 'booked' (siswa yang hadir) - default Hadir
     bookings_hadir = Booking.query.filter_by(
         date=today, 
         timeslot_id=timeslot_id,
-        teacher_id=current_user.id,
+        teacher_id=effective_teacher_id,
         status='booked'
     ).all()
     
@@ -154,7 +173,7 @@ def view_form(timeslot_id):
     bookings_izin = Booking.query.filter_by(
         date=today, 
         timeslot_id=timeslot_id,
-        teacher_id=current_user.id,
+        teacher_id=effective_teacher_id,
         status='izin'
     ).all()
     
@@ -165,9 +184,24 @@ def view_form(timeslot_id):
     upcoming = []
     days_name = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     
+    # Preload overrides for efficiency
+    overrides_as_original = TeacherSessionOverride.query.filter_by(
+        original_teacher_id=current_user.id
+    ).all()
+    override_keys_to_exclude = {(o.date, o.timeslot_id) for o in overrides_as_original}
+    
+    overrides_as_substitute = TeacherSessionOverride.query.filter_by(
+        substitute_teacher_id=current_user.id
+    ).all()
+    override_keys_as_substitute = {(o.date, o.timeslot_id): o.original_teacher_id for o in overrides_as_substitute}
+    
     for i in range(1, 8):  # Next 7 days
         future_date = today + timedelta(days=i)
         day_of_week = future_date.weekday()  # 0=Monday
+        
+        # Check if this date+timeslot is overridden for current teacher
+        if (future_date, timeslot_id) in override_keys_to_exclude:
+            continue  # Skip - someone else is substituting
         
         # 1. Cari dari regular schedules yang diajar oleh teacher ini DAN sesuai timeslot
         regular_schedules = StudentSchedule.query.filter_by(
@@ -224,6 +258,66 @@ def view_form(timeslot_id):
                 'enrollment': booking.enrollment,
                 'class_enrollment': booking.class_enrollment
             })
+        
+        # 3. Check if current user is a substitute for this date+timeslot
+        if (future_date, timeslot_id) in override_keys_as_substitute:
+            original_teacher_id = override_keys_as_substitute[(future_date, timeslot_id)]
+            
+            # Get bookings from original teacher for this date+timeslot
+            substitute_bookings = Booking.query.filter_by(
+                date=future_date,
+                teacher_id=original_teacher_id,
+                timeslot_id=timeslot_id
+            ).filter(Booking.status != 'completed').all()
+            
+            for booking in substitute_bookings:
+                upcoming.append({
+                    'date': future_date,
+                    'day_name': days_name[day_of_week],
+                    'student_name': booking.enrollment.student.name,
+                    'program_name': booking.enrollment.program.name,
+                    'subject_name': booking.subject.name if booking.subject else '-',
+                    'timeslot_name': booking.timeslot.name if booking.timeslot else '-',
+                    'timeslot_id': booking.timeslot_id,
+                    'type': 'substitute',
+                    'enrollment': booking.enrollment,
+                    'class_enrollment': booking.class_enrollment
+                })
+            
+            # If no bookings found, check StudentSchedule from original teacher
+            if not substitute_bookings:
+                # Get override to access timeslot info
+                from app.models import ClassEnrollment
+                override = TeacherSessionOverride.query.filter_by(
+                    date=future_date,
+                    timeslot_id=timeslot_id,
+                    substitute_teacher_id=current_user.id
+                ).first()
+                
+                if override:
+                    schedules = StudentSchedule.query.filter_by(
+                        teacher_id=original_teacher_id,
+                        timeslot_id=timeslot_id,
+                        day_of_week=day_of_week
+                    ).all()
+                    
+                    for sched in schedules:
+                        class_enrollment = None
+                        if sched.class_enrollment_id:
+                            class_enrollment = ClassEnrollment.query.get(sched.class_enrollment_id)
+                        
+                        upcoming.append({
+                            'date': future_date,
+                            'day_name': days_name[day_of_week],
+                            'student_name': sched.enrollment.student.name,
+                            'program_name': sched.enrollment.program.name,
+                            'subject_name': sched.subject.name if sched.subject else '-',
+                            'timeslot_name': override.timeslot.name if override.timeslot else '-',
+                            'timeslot_id': timeslot_id,
+                            'type': 'substitute',
+                            'enrollment': sched.enrollment,
+                            'class_enrollment': class_enrollment
+                        })
     
     # Sort by date
     upcoming.sort(key=lambda x: x['date'])
@@ -314,7 +408,9 @@ def view_form(timeslot_id):
         upcoming_sessions=upcoming_sessions,  # New grouped data
         is_session_active=is_session_active,
         session_status=session_status,
-        current_time=current_time
+        current_time=current_time,
+        is_substitute=is_substitute,
+        original_teacher_name=original_teacher_name
     )
 
 

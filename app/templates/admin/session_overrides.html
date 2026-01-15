@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block page_title %}Pengganti Pengajar{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-700 mb-1">Pengganti Pengajar</h4>
+            <p class="text-muted mb-0">Kelola penggantian sesi jika pengajar berhalangan</p>
+        </div>
+        <a href="{{ url_for('admin.session_override_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Tambah Penggantian
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Dari Tanggal</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Sampai Tanggal</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Pengajar</label>
+                    <select name="teacher_id" class="form-select">
+                        <option value="">Semua Pengajar</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.id }}" {% if selected_teacher_id==teacher.id %}selected{% endif %}>
+                            {{ teacher.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Overrides List -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if overrides %}
+            <div class="table-responsive">
+                <table class="table table-modern mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Sesi</th>
+                            <th>Pengajar Asli</th>
+                            <th>Pengajar Pengganti</th>
+                            <th>Dibuat Oleh</th>
+                            <th style="width: 80px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in overrides %}
+                        <tr>
+                            <td>
+                                <div class="fw-600">{{ o.date.strftime('%d %b %Y') }}</div>
+                                <small class="text-muted">{{ o.date.strftime('%A') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ o.timeslot.name }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-sm"
+                                        style="background: var(--danger-light); color: var(--danger);">
+                                        {{ o.original_teacher.name[0] }}
+                                    </div>
+                                    <div>
+                                        <span class="fw-500">{{ o.original_teacher.name }}</span>
+                                        <i class="fas fa-arrow-right mx-2 text-muted" style="font-size: 10px;"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-sm"
+                                        style="background: var(--success-light); color: var(--success);">
+                                        {{ o.substitute_teacher.name[0] }}
+                                    </div>
+                                    <span class="fw-500">{{ o.substitute_teacher.name }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ o.creator.name }}</small>
+                                <br>
+                                <small class="text-muted" style="font-size: 11px;">{{ o.created_at.strftime('%d/%m/%Y
+                                    %H:%M') }}</small>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.session_override_delete', override_id=o.id) }}"
+                                    method="POST" onsubmit="return confirm('Yakin hapus penggantian ini?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-exchange-alt fa-3x text-muted mb-3" style="opacity: 0.3;"></i>
+                <p class="text-muted">Belum ada data penggantian pengajar</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

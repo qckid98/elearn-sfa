@@ -299,3 +299,21 @@ class AttendanceRequest(db.Model):
     booking = db.relationship('Booking', backref='attendance_requests')
     teacher = db.relationship('User', foreign_keys=[teacher_id], backref='attendance_requests_made')
     approver = db.relationship('User', foreign_keys=[approved_by])
+
+
+# 12. TEACHER SESSION OVERRIDE - untuk penggantian pengajar
+class TeacherSessionOverride(db.Model):
+    __tablename__ = 'teacher_session_overrides'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'), nullable=False)
+    original_teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    substitute_teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    timeslot = db.relationship('TimeSlot', backref='session_overrides')
+    original_teacher = db.relationship('User', foreign_keys=[original_teacher_id], backref='sessions_delegated')
+    substitute_teacher = db.relationship('User', foreign_keys=[substitute_teacher_id], backref='sessions_covered')
+    creator = db.relationship('User', foreign_keys=[created_by])

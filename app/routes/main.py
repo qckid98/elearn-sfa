@@ -184,15 +184,123 @@ def dashboard():
     # Teacher Calendar Data
     teacher_calendar_events = []
     if current_user.role == 'teacher':
-        # Get all bookings for this teacher (past and future)
+        from app.models import TeacherSessionOverride
+        from collections import defaultdict
+        
+        # Get all bookings for this teacher
         teacher_bookings = Booking.query.filter(
             Booking.teacher_id == current_user.id
         ).order_by(Booking.date).all()
         
-        # Group bookings by date + timeslot
-        from collections import defaultdict
-        grouped = defaultdict(list)
+        # Get overrides where this teacher is being substituted (exclude these)
+        overrides_as_original = TeacherSessionOverride.query.filter_by(
+            original_teacher_id=current_user.id
+        ).all()
+        override_keys_to_exclude = {(o.date, o.timeslot_id) for o in overrides_as_original}
+        
+        # Get overrides where this teacher is the substitute (include these bookings)
+        overrides_as_substitute = TeacherSessionOverride.query.filter_by(
+            substitute_teacher_id=current_user.id
+        ).all()
+        
+        # Get bookings from original teachers that this user is substituting
+        substitute_bookings = []
+        for override in overrides_as_substitute:
+            bookings_from_original = Booking.query.filter(
+                Booking.teacher_id == override.original_teacher_id,
+                Booking.date == override.date,
+                Booking.timeslot_id == override.timeslot_id
+            ).all()
+            substitute_bookings.extend(bookings_from_original)
+            
+            # If no bookings found, check StudentSchedule for the override date
+            if not bookings_from_original:
+                day_of_week = override.date.weekday()
+                schedules = StudentSchedule.query.filter_by(
+                    teacher_id=override.original_teacher_id,
+                    timeslot_id=override.timeslot_id,
+                    day_of_week=day_of_week
+                ).all()
+                
+                # Create pseudo-bookings for calendar display
+                for sched in schedules:
+                    # Create a virtual booking-like object
+                    class PseudoBooking:
+                        def __init__(self, date, timeslot_id, timeslot, enrollment, class_enrollment, status='booked'):
+                            self.date = date
+                            self.timeslot_id = timeslot_id
+                            self.timeslot = timeslot
+                            self.enrollment = enrollment
+                            self.class_enrollment = class_enrollment
+                            self.status = status
+                    
+                    pseudo = PseudoBooking(
+                        date=override.date,
+                        timeslot_id=override.timeslot_id,
+                        timeslot=override.timeslot,
+                        enrollment=sched.enrollment,
+                        class_enrollment=ClassEnrollment.query.get(sched.class_enrollment_id) if sched.class_enrollment_id else None
+                    )
+                    substitute_bookings.append(pseudo)
+        
+        # Generate upcoming sessions from StudentSchedule for this teacher (4 weeks ahead)
+        # This ensures scheduled sessions appear even without existing Booking records
+        schedule_generated_bookings = []
+        teacher_schedules = StudentSchedule.query.filter_by(
+            teacher_id=current_user.id
+        ).all()
+        
+        today = date.today()
+        end_date = today + timedelta(weeks=4)
+        
+        for sched in teacher_schedules:
+            # Generate dates for this schedule pattern
+            current_date = today
+            while current_date <= end_date:
+                if current_date.weekday() == sched.day_of_week:
+                    key = (current_date, sched.timeslot_id)
+                    # Skip if this date is overridden (teacher substituted out)
+                    if key not in override_keys_to_exclude:
+                        # Check if booking already exists for this slot
+                        existing_booking = None
+                        for b in teacher_bookings:
+                            if b.date == current_date and b.timeslot_id == sched.timeslot_id:
+                                existing_booking = b
+                                break
+                        
+                        # Only create pseudo-booking if no real booking exists
+                        if not existing_booking:
+                            class PseudoBooking:
+                                def __init__(self, date, timeslot_id, timeslot, enrollment, class_enrollment, status='booked'):
+                                    self.date = date
+                                    self.timeslot_id = timeslot_id
+                                    self.timeslot = timeslot
+                                    self.enrollment = enrollment
+                                    self.class_enrollment = class_enrollment
+                                    self.status = status
+                            
+                            pseudo = PseudoBooking(
+                                date=current_date,
+                                timeslot_id=sched.timeslot_id,
+                                timeslot=sched.timeslot,
+                                enrollment=sched.enrollment,
+                                class_enrollment=ClassEnrollment.query.get(sched.class_enrollment_id) if sched.class_enrollment_id else None
+                            )
+                            schedule_generated_bookings.append(pseudo)
+                current_date += timedelta(days=1)
+        
+        # Combine: own bookings (excluding overridden) + substitute bookings + schedule-generated
+        all_bookings = []
         for booking in teacher_bookings:
+            key = (booking.date, booking.timeslot_id)
+            if key not in override_keys_to_exclude:
+                all_bookings.append(booking)
+        all_bookings.extend(substitute_bookings)
+        all_bookings.extend(schedule_generated_bookings)
+        
+        # Group bookings by date + timeslot
+        grouped = defaultdict(list)
+        for booking in all_bookings:
             key = (booking.date, booking.timeslot_id)
             grouped[key].append(booking)
         
@@ -203,11 +311,16 @@ def dashboard():
             first_booking = bookings_in_slot[0]
             timeslot = first_booking.timeslot
             
-            # Count students per status
-            total_students = len(bookings_in_slot)
-            completed_count = sum(1 for b in bookings_in_slot if b.status == 'completed')
-            izin_count = sum(1 for b in bookings_in_slot if b.status == 'izin')
-            booked_count = sum(1 for b in bookings_in_slot if b.status == 'booked')
+            # Exclude izin students from count
+            active_bookings = [b for b in bookings_in_slot if b.status != 'izin']
+            total_students = len(active_bookings)
+            
+            # Skip if no active students (all izin)
+            if total_students == 0:
+                continue
+            
+            completed_count = sum(1 for b in active_bookings if b.status == 'completed')
+            booked_count = sum(1 for b in active_bookings if b.status == 'booked')
             
             # Get class name (from first booking with class_enrollment)
             class_name = '-'
@@ -219,20 +332,28 @@ def dashboard():
                     class_name = b.enrollment.program.name
                     break
             
-            # Determine color based on status majority
+            # Check if this is a substitute session
+            is_substitute = (booking_date, timeslot_id) in {(o.date, o.timeslot_id) for o in overrides_as_substitute}
+            
+            # Determine global status and color
             if completed_count == total_students:
-                color = '#28a745'  # Green - semua selesai
-            elif booking_date < today and completed_count < total_students:
-                color = '#dc3545'  # Red - ada yang belum diabsen dan sudah lewat
-            elif izin_count > 0 and booked_count == 0:
-                color = '#ffc107'  # Yellow - semua izin
+                color = '#28a745'  # Green - selesai
+                status = 'Selesai'
+            elif booking_date < today:
+                color = '#dc3545'  # Red - terlewat (tanggal sudah lewat tapi belum diabsen)
+                status = 'Terlewat'
             else:
                 color = '#007bff'  # Blue - mendatang
+                status = 'Mendatang'
             
-            # Build event title: "Sesi Pagi (3 siswa)"
+            # Build event title with substitute indicator
+            title = f"{timeslot.name} ({total_students} siswa)"
+            if is_substitute:
+                title = f"🔄 {title}"
+            
             event = {
                 'id': f"{booking_date}_{timeslot_id}",
-                'title': f"{timeslot.name} ({total_students} siswa)",
+                'title': title,
                 'start': f"{booking_date}T{timeslot.start_time.strftime('%H:%M:%S')}",
                 'end': f"{booking_date}T{timeslot.end_time.strftime('%H:%M:%S')}",
                 'color': color,
@@ -240,13 +361,13 @@ def dashboard():
                     'class_name': class_name,
                     'timeslot': timeslot.name,
                     'total_students': total_students,
-                    'completed': completed_count,
-                    'izin': izin_count,
-                    'booked': booked_count,
-                    'date': booking_date.strftime('%d %b %Y')
+                    'status': status,
+                    'date': booking_date.strftime('%d %b %Y'),
+                    'is_substitute': is_substitute
                 }
             }
             teacher_calendar_events.append(event)
+
     
     # Admin Stats
     stats = None

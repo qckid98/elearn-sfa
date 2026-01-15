@@ -427,6 +427,11 @@
             <i class="fas fa-book"></i>
             <span>Silabus</span>
           </a>
+          <a href="{{ url_for('admin.session_overrides') }}"
+            class="nav-item {% if 'session_override' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Pengganti Pengajar</span>
+          </a>
         </div>
 
         {% elif current_user.role == 'teacher' %}
