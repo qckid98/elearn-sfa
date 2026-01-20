@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide - elearn-sfa
 
-Domain: **lms.sparksfashionacademy.co.id**
+Domain: **edu.sparksfashionacademy.co.id** (redirect from lms.sparksfashionacademy.co.id)
 
 ## Prerequisites
 
@@ -79,7 +79,7 @@ sudo systemctl reload nginx
 ### Get SSL Certificate
 
 ```bash
-sudo certbot --nginx -d lms.sparksfashionacademy.co.id
+sudo certbot --nginx -d edu.sparksfashionacademy.co.id -d lms.sparksfashionacademy.co.id
 
 # Auto-renewal (should be automatic, but verify)
 sudo certbot renew --dry-run
@@ -140,7 +140,7 @@ cat ~/.ssh/id_ed25519
 1. Make a small change in your code
 2. Push to `main` branch
 3. Check GitHub Actions tab for deployment status
-4. Visit https://lms.sparksfashionacademy.co.id
+4. Visit https://edu.sparksfashionacademy.co.id
 
 ---
 
