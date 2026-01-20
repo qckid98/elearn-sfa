@@ -483,6 +483,36 @@
           </div>
         </div>
 
+        <!-- Voucher Section -->
+        <div class="nav-section">
+          <div class="nav-section-title nav-collapsible" data-bs-toggle="collapse" data-bs-target="#navVoucher"
+            aria-expanded="true">
+            <span><i class="fas fa-ticket-alt me-2"></i>Voucher</span>
+            <i class="fas fa-chevron-down nav-chevron"></i>
+          </div>
+          <div class="collapse show" id="navVoucher">
+            <a href="{{ url_for('admin_voucher.vendor_list') }}"
+              class="nav-item {% if 'vendor' in request.endpoint %}active{% endif %}">
+              <i class="fas fa-store"></i>
+              <span>Data Vendor</span>
+            </a>
+            <a href="{{ url_for('admin_voucher.voucher_type_list') }}"
+              class="nav-item {% if 'voucher_type' in request.endpoint %}active{% endif %}">
+              <i class="fas fa-tags"></i>
+              <span>Tipe Voucher</span>
+            </a>
+            <a href="{{ url_for('admin_voucher.voucher_list') }}"
+              class="nav-item {% if request.endpoint == 'admin_voucher.voucher_list' or request.endpoint == 'admin_voucher.voucher_detail' %}active{% endif %}">
+              <i class="fas fa-ticket-alt"></i>
+              <span>Voucher</span>
+            </a>
+            <a href="{{ url_for('admin_voucher.vendor_balance') }}"
+              class="nav-item {% if 'balance' in request.endpoint %}active{% endif %}">
+              <i class="fas fa-balance-scale"></i>
+              <span>Outstanding Balance</span>
+            </a>
+          </div>
+        </div>
 
         {% elif current_user.role == 'teacher' %}
         <!-- Teacher Menu -->

@@ -11,8 +11,11 @@ class User(UserMixin, db.Model):
     phone_number = db.Column(db.String(30), unique=True, nullable=True) # WA Number
     password_hash = db.Column(db.String(256))
     name = db.Column(db.String(100))
-    role = db.Column(db.String(20), nullable=False) # admin, teacher, student
+    role = db.Column(db.String(20), nullable=False) # admin, teacher, student, vendor
     activation_token = db.Column(db.String(100), unique=True)
+    
+    # Vendor link (for role='vendor')
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=True)
     
     # Student Profile Fields (diisi saat aktivasi pertama kali)
     nik = db.Column(db.String(20), nullable=True)  # NIK (Nomor Induk Kependudukan)
@@ -29,6 +32,7 @@ class User(UserMixin, db.Model):
     enrollments = db.relationship('Enrollment', backref='student', lazy=True)
     availabilities = db.relationship('TeacherAvailability', backref='teacher', lazy=True)
     skills = db.relationship('TeacherSkill', backref='teacher', lazy=True)
+    vendor = db.relationship('Vendor', backref='user_account', foreign_keys=[vendor_id])
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -366,3 +370,125 @@ class RescheduleRequest(db.Model):
     requester = db.relationship('User', foreign_keys=[requested_by])
     approver = db.relationship('User', foreign_keys=[approved_by])
     new_booking = db.relationship('Booking', foreign_keys=[new_booking_id])
+
+
+# ============================================
+# 14. VOUCHER SYSTEM
+# ============================================
+
+class Vendor(db.Model):
+    """Partner vendor untuk voucher (mesin jahit, manekin, dll)"""
+    __tablename__ = 'vendors'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(30))
+    email = db.Column(db.String(120))
+    address = db.Column(db.Text)
+    password_hash = db.Column(db.String(256))  # Untuk login vendor
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    voucher_types = db.relationship('VoucherType', backref='vendor', lazy=True)
+    payments = db.relationship('VendorPayment', backref='vendor', lazy=True)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    @property
+    def outstanding_balance(self):
+        """Calculate total unclaimed vouchers value"""
+        from sqlalchemy import func
+        claimed = db.session.query(func.sum(VoucherType.value)).join(
+            Voucher, Voucher.voucher_type_id == VoucherType.id
+        ).filter(
+            VoucherType.vendor_id == self.id,
+            Voucher.status == 'claimed',
+            Voucher.claimed_by_vendor_id == self.id
+        ).scalar() or 0
+        
+        paid = db.session.query(func.sum(VendorPayment.amount)).filter(
+            VendorPayment.vendor_id == self.id
+        ).scalar() or 0
+        
+        return claimed - paid
+
+
+class VoucherType(db.Model):
+    """Jenis voucher (Mesin Jahit 1.5jt, Manekin 300k)"""
+    __tablename__ = 'voucher_types'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # "Mesin Jahit", "Manekin"
+    value = db.Column(db.Integer, nullable=False)  # 1500000, 300000
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    vouchers = db.relationship('Voucher', backref='voucher_type', lazy=True)
+
+
+class Voucher(db.Model):
+    """Individual voucher instance dengan QR code"""
+    __tablename__ = 'vouchers'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), unique=True, nullable=False)  # "VCH-XXXX-XXXX"
+    voucher_type_id = db.Column(db.Integer, db.ForeignKey('voucher_types.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    pin_hash = db.Column(db.String(256), nullable=False)  # Hashed 4-digit PIN
+    
+    status = db.Column(db.String(20), default='active')  # active, claimed, expired, cancelled
+    issued_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.Date, nullable=True)  # Optional expiry
+    
+    # Claim info
+    claimed_at = db.Column(db.DateTime, nullable=True)
+    claimed_by_vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=True)
+    
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Admin
+    
+    # Relationships
+    student = db.relationship('User', foreign_keys=[student_id], backref='vouchers_received')
+    claimed_by_vendor = db.relationship('Vendor', foreign_keys=[claimed_by_vendor_id], backref='vouchers_claimed')
+    creator = db.relationship('User', foreign_keys=[created_by])
+    
+    def set_pin(self, pin):
+        """Set 4-digit PIN"""
+        self.pin_hash = generate_password_hash(str(pin))
+    
+    def check_pin(self, pin):
+        """Verify PIN"""
+        return check_password_hash(self.pin_hash, str(pin))
+    
+    @staticmethod
+    def generate_code():
+        """Generate unique voucher code"""
+        import random
+        import string
+        chars = string.ascii_uppercase + string.digits
+        while True:
+            code = 'VCH-' + ''.join(random.choices(chars, k=4)) + '-' + ''.join(random.choices(chars, k=4))
+            if not Voucher.query.filter_by(code=code).first():
+                return code
+
+
+class VendorPayment(db.Model):
+    """Payment record ke vendor"""
+    __tablename__ = 'vendor_payments'
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    payment_date = db.Column(db.Date, nullable=False)
+    payment_method = db.Column(db.String(50))  # "Transfer", "Cash"
+    reference = db.Column(db.String(100))  # No rekening/bukti
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by])
