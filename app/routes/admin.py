@@ -502,6 +502,10 @@ def delete_class(class_id):
         flash(f'Gagal: Masih ada siswa yang terdaftar di kelas {class_name}.', 'error')
         return redirect(url_for('admin.program_edit', prog_id=program_id))
     
+    # Delete related syllabus entries first to prevent FK constraint error
+    from app.models import Syllabus
+    Syllabus.query.filter_by(program_class_id=class_id).delete()
+    
     db.session.delete(cls)
     db.session.commit()
     flash(f'Kelas "{class_name}" dihapus.')
