@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Outstanding Balance - Admin{% endblock %}
+{% block page_title %}Outstanding Balance{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="fw-600 mb-0">
+            <i class="fas fa-balance-scale text-brand me-2"></i>Outstanding Balance Vendor
+        </h5>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    {% set total_outstanding = balance_data|sum(attribute='outstanding') %}
+    {% set total_claimed = balance_data|sum(attribute='total_claimed') %}
+    {% set total_paid = balance_data|sum(attribute='total_paid') %}
+
+    <div class="col-md-4">
+        <div class="stats-card bg-danger">
+            <div class="stats-card-value text-white">Rp {{ "{:,.0f}".format(total_outstanding) }}</div>
+            <div class="stats-card-label">Total Outstanding</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="stats-card-value text-success">Rp {{ "{:,.0f}".format(total_claimed) }}</div>
+            <div class="stats-card-label">Total Voucher Claimed</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="stats-card-value text-primary">Rp {{ "{:,.0f}".format(total_paid) }}</div>
+            <div class="stats-card-label">Total Sudah Dibayar</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 24px;">Vendor</th>
+                        <th class="text-center">Voucher Claimed</th>
+                        <th class="text-end">Total Claimed</th>
+                        <th class="text-end">Total Dibayar</th>
+                        <th class="text-end">Outstanding</th>
+                        <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in balance_data %}
+                    <tr>
+                        <td style="padding-left: 24px;">
+                            <div class="fw-600">{{ data.vendor.name }}</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-secondary">{{ data.vouchers_claimed }}</span>
+                        </td>
+                        <td class="text-end">
+                            Rp {{ "{:,.0f}".format(data.total_claimed) }}
+                        </td>
+                        <td class="text-end text-success">
+                            Rp {{ "{:,.0f}".format(data.total_paid) }}
+                        </td>
+                        <td class="text-end">
+                            {% if data.outstanding > 0 %}
+                            <span class="fw-600 text-danger">Rp {{ "{:,.0f}".format(data.outstanding) }}</span>
+                            {% else %}
+                            <span class="text-success">Lunas</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; padding-right: 24px;">
+                            <a href="{{ url_for('admin_voucher.vendor_balance_detail', vendor_id=data.vendor.id) }}"
+                                class="btn btn-sm btn-outline-primary me-1">
+                                <i class="fas fa-eye me-1"></i>Detail
+                            </a>
+                            {% if data.outstanding > 0 %}
+                            <a href="{{ url_for('admin_voucher.payment_add', vendor_id=data.vendor.id) }}"
+                                class="btn btn-sm btn-success">
+                                <i class="fas fa-money-bill me-1"></i>Bayar
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <p class="mb-0">Belum ada data balance.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

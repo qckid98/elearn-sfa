@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'Edit' if voucher_type else 'Tambah' }} Tipe Voucher - Admin{% endblock %}
+{% block page_title %}{{ 'Edit' if voucher_type else 'Tambah' }} Tipe Voucher{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-tags text-brand me-2"></i>
+                    {{ 'Edit Tipe Voucher' if voucher_type else 'Tambah Tipe Voucher Baru' }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Tipe <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control"
+                            value="{{ voucher_type.name if voucher_type else '' }}" placeholder="Contoh: Mesin Jahit"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Vendor <span class="text-danger">*</span></label>
+                        <select name="vendor_id" class="form-select" required>
+                            <option value="">-- Pilih Vendor --</option>
+                            {% for v in vendors %}
+                            <option value="{{ v.id }}" {{ 'selected' if voucher_type and voucher_type.vendor_id==v.id
+                                else '' }}>
+                                {{ v.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nilai Voucher (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" name="value" class="form-control"
+                            value="{{ voucher_type.value if voucher_type else '' }}" placeholder="1500000" required
+                            min="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="2"
+                            placeholder="Deskripsi singkat voucher">{{ voucher_type.description if voucher_type else '' }}</textarea>
+                    </div>
+
+                    {% if voucher_type %}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {{ 'checked'
+                                if voucher_type.is_active else '' }}>
+                            <label class="form-check-label" for="isActive">Tipe Aktif</label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Simpan
+                        </button>
+                        <a href="{{ url_for('admin_voucher.voucher_type_list') }}" class="btn btn-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

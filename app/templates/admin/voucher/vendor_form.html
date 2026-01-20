@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'Edit' if vendor else 'Tambah' }} Vendor - Admin{% endblock %}
+{% block page_title %}{{ 'Edit' if vendor else 'Tambah' }} Vendor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-store text-brand me-2"></i>
+                    {{ 'Edit Vendor' if vendor else 'Tambah Vendor Baru' }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Vendor <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ vendor.name if vendor else '' }}"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">No. Telepon</label>
+                        <input type="text" name="phone" class="form-control"
+                            value="{{ vendor.phone if vendor else '' }}" placeholder="08xxxxxxxxxx">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control"
+                            value="{{ vendor.email if vendor else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Alamat</label>
+                        <textarea name="address" class="form-control"
+                            rows="2">{{ vendor.address if vendor else '' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password Login Vendor {{ '' if vendor else '*' }}</label>
+                        <input type="password" name="password" class="form-control" {{ '' if vendor else 'required' }}
+                            placeholder="{{ 'Kosongkan jika tidak ingin diubah' if vendor else '' }}">
+                        <small class="text-muted">Password untuk vendor login ke portal mereka</small>
+                    </div>
+
+                    {% if vendor %}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {{ 'checked'
+                                if vendor.is_active else '' }}>
+                            <label class="form-check-label" for="isActive">Vendor Aktif</label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Simpan
+                        </button>
+                        <a href="{{ url_for('admin_voucher.vendor_list') }}" class="btn btn-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

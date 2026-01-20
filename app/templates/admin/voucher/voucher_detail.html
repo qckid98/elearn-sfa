@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Detail Voucher - Admin{% endblock %}
+{% block page_title %}Detail Voucher{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        {% if show_pin %}
+        <div class="alert alert-success mb-4">
+            <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Voucher Berhasil Dibuat!</h5>
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Kode Voucher:</strong></p>
+                    <h3 class="text-dark"><code>{{ voucher.code }}</code></h3>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>PIN (catat ini!):</strong></p>
+                    <h3 class="text-danger"><code>{{ show_pin }}</code></h3>
+                </div>
+            </div>
+            <hr>
+            <p class="mb-0"><i class="fas fa-exclamation-triangle me-1"></i> PIN ini <strong>hanya ditampilkan
+                    sekali</strong>. Berikan ke siswa bersama dengan voucher.</p>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <!-- Voucher Card -->
+            <div class="col-md-7">
+                <div class="card" style="border: 3px dashed var(--brand-primary);">
+                    <div class="card-header text-center" style="background: var(--brand-primary); color: white;">
+                        <h5 class="mb-0">🎟️ VOUCHER</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="text-brand mb-1">{{ voucher.voucher_type.name }}</h3>
+                        <p class="text-muted mb-3">{{ voucher.voucher_type.vendor.name }}</p>
+
+                        <div class="display-5 fw-bold text-success mb-3">
+                            Rp {{ "{:,.0f}".format(voucher.voucher_type.value) }}
+                        </div>
+
+                        <div class="mb-3">
+                            <code
+                                style="font-size: 20px; background: var(--bg-body); padding: 8px 16px; border-radius: 8px;">
+                {{ voucher.code }}
+              </code>
+                        </div>
+
+                        <!-- QR Code -->
+                        <div class="mb-3">
+                            <img src="{{ url_for('admin_voucher.voucher_qr', voucher_id=voucher.id) }}" alt="QR Code"
+                                style="max-width: 150px; border: 1px solid var(--border-color); border-radius: 8px;">
+                        </div>
+
+                        <p class="text-muted mb-0" style="font-size: 12px;">
+                            Diberikan kepada: <strong>{{ voucher.student.name }}</strong>
+                        </p>
+                    </div>
+                    <div class="card-footer text-center">
+                        <span
+                            class="badge {{ 'badge-primary' if voucher.status == 'active' else 'badge-success' if voucher.status == 'claimed' else 'badge-secondary' }}"
+                            style="font-size: 14px;">
+                            {{ voucher.status|upper }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin_voucher.voucher_qr', voucher_id=voucher.id) }}"
+                        class="btn btn-outline-primary" download="voucher-{{ voucher.code }}.png">
+                        <i class="fas fa-download me-2"></i>Download QR
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-secondary">
+                        <i class="fas fa-print me-2"></i>Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Details -->
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Informasi Voucher</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="w-100">
+                            <tr>
+                                <td class="text-muted py-2">Siswa</td>
+                                <td class="text-end py-2 fw-600">{{ voucher.student.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Telepon</td>
+                                <td class="text-end py-2">{{ voucher.student.phone_number or '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Dibuat oleh</td>
+                                <td class="text-end py-2">{{ voucher.creator.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Tanggal Issue</td>
+                                <td class="text-end py-2">{{ voucher.issued_at.strftime('%d %b %Y %H:%M') }}</td>
+                            </tr>
+                            {% if voucher.claimed_at %}
+                            <tr>
+                                <td class="text-muted py-2">Tanggal Claim</td>
+                                <td class="text-end py-2 text-success">{{ voucher.claimed_at.strftime('%d %b %Y %H:%M')
+                                    }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Di-claim oleh</td>
+                                <td class="text-end py-2">{{ voucher.claimed_by_vendor.name if voucher.claimed_by_vendor
+                                    else '-' }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if voucher.notes %}
+                            <tr>
+                                <td class="text-muted py-2">Catatan</td>
+                                <td class="text-end py-2">{{ voucher.notes }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                {% if voucher.status == 'active' %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <form method="POST"
+                            action="{{ url_for('admin_voucher.voucher_cancel', voucher_id=voucher.id) }}"
+                            onsubmit="return confirm('Yakin ingin membatalkan voucher ini?')">
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-times me-2"></i>Batalkan Voucher
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{{ url_for('admin_voucher.voucher_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Kembali ke Daftar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

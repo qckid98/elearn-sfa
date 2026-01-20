@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Daftar Voucher - Admin{% endblock %}
+{% block page_title %}Daftar Voucher{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="fw-600 mb-0">
+                <i class="fas fa-ticket-alt text-brand me-2"></i>Semua Voucher
+            </h5>
+            <a href="{{ url_for('admin_voucher.voucher_generate') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Generate Voucher
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex gap-3 flex-wrap align-items-center">
+            <div>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Semua Status</option>
+                    <option value="active" {{ 'selected' if status_filter=='active' }}>Active</option>
+                    <option value="claimed" {{ 'selected' if status_filter=='claimed' }}>Claimed</option>
+                    <option value="expired" {{ 'selected' if status_filter=='expired' }}>Expired</option>
+                    <option value="cancelled" {{ 'selected' if status_filter=='cancelled' }}>Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">Semua Tipe</option>
+                    {% for vt in voucher_types %}
+                    <option value="{{ vt.id }}" {{ 'selected' if type_filter==vt.id|string }}>{{ vt.name }} ({{
+                        vt.vendor.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+            <a href="{{ url_for('admin_voucher.voucher_list') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 24px;">Kode Voucher</th>
+                        <th>Tipe / Vendor</th>
+                        <th>Siswa</th>
+                        <th>Nilai</th>
+                        <th>Status</th>
+                        <th>Tanggal</th>
+                        <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vouchers %}
+                    <tr>
+                        <td style="padding-left: 24px;">
+                            <code class="fw-600" style="font-size: 13px;">{{ v.code }}</code>
+                        </td>
+                        <td>
+                            <div class="fw-600">{{ v.voucher_type.name }}</div>
+                            <div class="text-muted" style="font-size: 12px;">{{ v.voucher_type.vendor.name }}</div>
+                        </td>
+                        <td>
+                            <div>{{ v.student.name }}</div>
+                            <div class="text-muted" style="font-size: 11px;">{{ v.student.phone_number or
+                                v.student.email }}</div>
+                        </td>
+                        <td>
+                            <span class="fw-600 text-success">Rp {{ "{:,.0f}".format(v.voucher_type.value) }}</span>
+                        </td>
+                        <td>
+                            {% if v.status == 'active' %}
+                            <span class="badge badge-primary">Active</span>
+                            {% elif v.status == 'claimed' %}
+                            <span class="badge badge-success">Claimed</span>
+                            {% elif v.status == 'expired' %}
+                            <span class="badge badge-warning">Expired</span>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ v.status|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-size: 12px;">Issued: {{ v.issued_at.strftime('%d/%m/%Y') }}</div>
+                            {% if v.claimed_at %}
+                            <div style="font-size: 11px;" class="text-success">Claimed: {{
+                                v.claimed_at.strftime('%d/%m/%Y') }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; padding-right: 24px;">
+                            <a href="{{ url_for('admin_voucher.voucher_detail', voucher_id=v.id) }}"
+                                class="btn btn-sm btn-outline-primary" title="Detail">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="fas fa-ticket-alt fa-2x mb-2"></i>
+                            <p class="mb-0">Belum ada voucher. <a
+                                    href="{{ url_for('admin_voucher.voucher_generate') }}">Generate voucher pertama</a>
+                            </p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

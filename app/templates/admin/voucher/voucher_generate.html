@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Voucher - Admin{% endblock %}
+{% block page_title %}Generate Voucher{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-ticket-alt text-brand me-2"></i>Generate Voucher Baru
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Siswa <span class="text-danger">*</span></label>
+                        <select name="student_id" class="form-select" required>
+                            <option value="">-- Pilih Siswa --</option>
+                            {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.name }} ({{ s.phone_number or s.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipe Voucher <span class="text-danger">*</span></label>
+                        <select name="voucher_type_id" class="form-select" required id="voucherType">
+                            <option value="">-- Pilih Tipe --</option>
+                            {% for vt in voucher_types %}
+                            <option value="{{ vt.id }}" data-value="{{ vt.value }}">
+                                {{ vt.name }} - {{ vt.vendor.name }} (Rp {{ "{:,.0f}".format(vt.value) }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nilai Voucher</label>
+                        <input type="text" class="form-control" id="voucherValue" readonly value="-"
+                            style="font-size: 18px; font-weight: 600; color: var(--success);">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Catatan</label>
+                        <textarea name="notes" class="form-control" rows="2"
+                            placeholder="Catatan tambahan (opsional)"></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Penting:</strong> Setelah voucher di-generate, PIN 4 digit akan ditampilkan
+                        <strong>sekali saja</strong>.
+                        Pastikan untuk mencatat dan memberikannya ke siswa.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-magic me-2"></i>Generate Voucher
+                        </button>
+                        <a href="{{ url_for('admin_voucher.voucher_list') }}" class="btn btn-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('voucherType').addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const value = selected.dataset.value;
+        document.getElementById('voucherValue').value = value ? 'Rp ' + parseInt(value).toLocaleString('id-ID') : '-';
+    });
+</script>
+{% endblock %}

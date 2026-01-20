@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Vendor - Admin{% endblock %}
+{% block page_title %}Data Vendor{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="fw-600 mb-0">
+                <i class="fas fa-store text-brand me-2"></i>Daftar Vendor Partner
+            </h5>
+            <a href="{{ url_for('admin_voucher.vendor_add') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tambah Vendor
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 24px;">Nama Vendor</th>
+                        <th>Kontak</th>
+                        <th>Tipe Voucher</th>
+                        <th>Outstanding</th>
+                        <th>Status</th>
+                        <th style="text-align: right; padding-right: 24px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vendor in vendors %}
+                    <tr>
+                        <td style="padding-left: 24px;">
+                            <div class="fw-600">{{ vendor.name }}</div>
+                            <div class="text-muted" style="font-size: 12px;">{{ vendor.address[:50] + '...' if
+                                vendor.address and vendor.address|length > 50 else vendor.address or '-' }}</div>
+                        </td>
+                        <td>
+                            <div>{{ vendor.phone or '-' }}</div>
+                            <div class="text-muted" style="font-size: 12px;">{{ vendor.email or '-' }}</div>
+                        </td>
+                        <td>
+                            {% for vt in vendor.voucher_types %}
+                            <span class="badge badge-secondary me-1">{{ vt.name }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% set outstanding = vendor.outstanding_balance %}
+                            {% if outstanding > 0 %}
+                            <span class="text-danger fw-600">Rp {{ "{:,.0f}".format(outstanding) }}</span>
+                            {% else %}
+                            <span class="text-success">Lunas</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if vendor.is_active %}
+                            <span class="badge badge-success">Aktif</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Nonaktif</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; padding-right: 24px;">
+                            <a href="{{ url_for('admin_voucher.vendor_balance_detail', vendor_id=vendor.id) }}"
+                                class="btn btn-sm btn-outline-primary me-1" title="Lihat Balance">
+                                <i class="fas fa-chart-line"></i>
+                            </a>
+                            <a href="{{ url_for('admin_voucher.vendor_edit', vendor_id=vendor.id) }}"
+                                class="btn btn-sm btn-outline-secondary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fas fa-store fa-2x mb-2"></i>
+                            <p class="mb-0">Belum ada vendor. <a href="{{ url_for('admin_voucher.vendor_add') }}">Tambah
+                                    vendor pertama</a></p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
