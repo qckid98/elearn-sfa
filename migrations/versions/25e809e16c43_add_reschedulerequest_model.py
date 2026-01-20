@@ -1,7 +1,7 @@
 """Add RescheduleRequest model
 
 Revision ID: 25e809e16c43
-Revises: 6a4ad6dd5d62
+Revises: 0276e7ec209b
 Create Date: 2026-01-20 07:26:49.289056
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '25e809e16c43'
-down_revision = '6a4ad6dd5d62'
+down_revision = '0276e7ec209b'
 branch_labels = None
 depends_on = None
 
