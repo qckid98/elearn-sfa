@@ -41,7 +41,7 @@ def index():
         
         programs[prog_name].append({
             'id': pc.id,
-            'name': pc.name,
+            'name': pc.display_name,
             'total_sessions': pc.total_sessions,
             'syllabus_count': len(pc.syllabus_items),
             'syllabus_sessions': total_syllabus_sessions,

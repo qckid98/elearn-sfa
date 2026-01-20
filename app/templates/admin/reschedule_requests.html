@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block page_title %}Reschedule Requests - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-700 mb-1">Request Reschedule</h4>
+        <p class="text-muted mb-0">Kelola permintaan pindah jadwal dari siswa</p>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.reschedule_requests', status='pending') }}"
+                class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="fas fa-clock me-1"></i> Pending
+                {% if pending_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('admin.reschedule_requests', status='approved') }}"
+                class="btn btn-sm {% if status_filter == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}">
+                <i class="fas fa-check me-1"></i> Approved
+            </a>
+            <a href="{{ url_for('admin.reschedule_requests', status='rejected') }}"
+                class="btn btn-sm {% if status_filter == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                <i class="fas fa-times me-1"></i> Rejected
+            </a>
+            <a href="{{ url_for('admin.reschedule_requests', status='all') }}"
+                class="btn btn-sm {% if status_filter == 'all' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                <i class="fas fa-list me-1"></i> Semua
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Requests List -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="fw-600 mb-0">
+            <i class="fas fa-calendar-alt text-brand me-2"></i>Daftar Request
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        {% if requests %}
+        <div class="table-responsive">
+            <table class="table table-modern mb-0">
+                <thead>
+                    <tr>
+                        <th>Siswa</th>
+                        <th>Kelas</th>
+                        <th>Jadwal Lama</th>
+                        <th>Jadwal Baru</th>
+                        <th>Alasan</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar avatar-sm">{{ req.student.name[0] if req.student else '-' }}</div>
+                                <div>
+                                    <div class="fw-600">{{ req.student.name if req.student else '-' }}</div>
+                                    <small class="text-muted">{{ req.request_date.strftime('%d %b %Y %H:%M') }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if req.class_enrollment and req.class_enrollment.program_class %}
+                            <span class="badge bg-primary">{{ req.class_enrollment.program_class.display_name }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-600">{{ days[req.original_date.weekday()] }}, {{
+                                req.original_date.strftime('%d %b %Y') }}</div>
+                            <small class="text-muted">
+                                {{ req.original_timeslot.name if req.original_timeslot else '-' }}
+                                ({{ req.original_teacher.name if req.original_teacher else '-' }})
+                            </small>
+                        </td>
+                        <td>
+                            <div class="fw-600 text-success">{{ days[req.new_date.weekday()] }}, {{
+                                req.new_date.strftime('%d %b %Y') }}</div>
+                            <small class="text-muted">
+                                {{ req.new_timeslot.name if req.new_timeslot else '-' }}
+                                ({{ req.new_teacher.name if req.new_teacher else '-' }})
+                            </small>
+                        </td>
+                        <td>
+                            <span class="text-muted" style="font-size: 13px;" title="{{ req.reason }}">
+                                {{ (req.reason[:30] + '...') if req.reason and req.reason|length > 30 else (req.reason
+                                or '-') }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                            {% elif req.status == 'approved' %}
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Approved</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <div class="d-flex gap-2">
+                                <form action="{{ url_for('admin.approve_reschedule', req_id=req.id) }}" method="POST"
+                                    class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                    data-bs-target="#rejectModal{{ req.id }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">
+                                {% if req.approver %}
+                                oleh {{ req.approver.name }}<br>
+                                {{ req.approved_at.strftime('%d/%m %H:%M') if req.approved_at else '' }}
+                                {% endif %}
+                            </small>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Reject Modal -->
+                    {% if req.status == 'pending' %}
+                    <div class="modal fade" id="rejectModal{{ req.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <form action="{{ url_for('admin.reject_reschedule', req_id=req.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title"><i
+                                                class="fas fa-times-circle text-danger me-2"></i>Tolak Reschedule</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Tolak request reschedule dari <strong>{{ req.student.name if req.student else
+                                                '-' }}</strong>?</p>
+                                        <div class="mb-3">
+                                            <label class="form-label">Alasan Penolakan (opsional)</label>
+                                            <textarea name="rejection_reason" class="form-control" rows="3"
+                                                placeholder="Masukkan alasan penolakan..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-danger"><i
+                                                class="fas fa-times me-1"></i>Tolak</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-check text-muted fa-3x mb-3" style="opacity: 0.3;"></i>
+            <p class="text-muted mb-0">Tidak ada request {{ status_filter if status_filter != 'all' else '' }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block page_title %}Buat Reschedule - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-700 mb-1">Buat Reschedule</h4>
+        <p class="text-muted mb-0">Pindahkan jadwal untuk <strong>{{ student.name }}</strong></p>
+    </div>
+    <a href="{{ url_for('admin.student_detail', user_id=student.id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Kembali
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="fw-600 mb-0"><i class="fas fa-calendar-alt text-brand me-2"></i>Pilih Jadwal & Tanggal Baru</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="rescheduleForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Step 1: Select Schedule -->
+            <div class="mb-4">
+                <label class="form-label fw-600">1. Pilih Jadwal yang Akan Dipindahkan</label>
+                {% for enroll_id, data in schedules_by_enrollment.items() %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2">{{ data.enrollment.program.name }}</h6>
+                    <div class="row g-2">
+                        {% for sched in data.schedules %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="form-check p-3 border rounded schedule-option"
+                                data-class-enrollment-id="{{ sched.class_enrollment_id }}"
+                                data-day="{{ sched.day_of_week }}">
+                                <input class="form-check-input" type="radio" name="schedule_id" id="sched{{ sched.id }}"
+                                    value="{{ sched.id }}" required>
+                                <label class="form-check-label w-100" for="sched{{ sched.id }}">
+                                    <div class="fw-600">{{ days[sched.day_of_week] }} - {{ sched.timeslot.name if
+                                        sched.timeslot else '-' }}</div>
+                                    <small class="text-muted">
+                                        {% if sched.class_enrollment %}
+                                        {{ sched.class_enrollment.program_class.display_name }} •
+                                        {% endif %}
+                                        {{ sched.teacher.name if sched.teacher else '-' }}
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Step 2: Original Date -->
+            <div class="mb-4">
+                <label class="form-label fw-600">2. Tanggal Asli yang Akan Di-reschedule</label>
+                <input type="date" name="original_date" class="form-control" id="originalDate" required
+                    min="{{ now().strftime('%Y-%m-%d') if now else '' }}">
+                <small class="text-muted">Pilih tanggal yang sesuai dengan hari jadwal di atas</small>
+            </div>
+
+            <!-- Step 3: New Date & Slot -->
+            <div class="mb-4">
+                <label class="form-label fw-600">3. Pilih Tanggal Baru</label>
+                <input type="date" name="new_date" class="form-control" id="newDate" required
+                    min="{{ now().strftime('%Y-%m-%d') if now else '' }}">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-600">4. Pilih Slot & Pengajar Baru</label>
+                <div id="availableSlots">
+                    <p class="text-muted">Pilih jadwal dan tanggal baru untuk melihat slot yang tersedia.</p>
+                </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="mb-4">
+                <label class="form-label fw-600">5. Alasan (opsional)</label>
+                <textarea name="reason" class="form-control" rows="2" placeholder="Alasan reschedule..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                <i class="fas fa-check me-1"></i> Buat Reschedule
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('rescheduleForm');
+        const newDateInput = document.getElementById('newDate');
+        const slotsContainer = document.getElementById('availableSlots');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Track selected values
+        let selectedClassEnrollmentId = null;
+        let availableSlots = [];
+
+        // When schedule is selected
+        document.querySelectorAll('input[name="schedule_id"]').forEach(radio => {
+            radio.addEventListener('change', function () {
+                const option = this.closest('.schedule-option');
+                selectedClassEnrollmentId = option.dataset.classEnrollmentId;
+                loadSlots();
+            });
+        });
+
+        // When new date changes
+        newDateInput.addEventListener('change', loadSlots);
+
+        function loadSlots() {
+            if (!selectedClassEnrollmentId || !newDateInput.value) {
+                slotsContainer.innerHTML = '<p class="text-muted">Pilih jadwal dan tanggal baru untuk melihat slot yang tersedia.</p>';
+                return;
+            }
+
+            const newDate = new Date(newDateInput.value);
+            const dayOfWeek = newDate.getDay() === 0 ? 6 : newDate.getDay() - 1; // Convert to 0=Monday
+
+            // Fetch available slots
+            fetch(`/admin/api/reschedule/slots-for-class/${selectedClassEnrollmentId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        slotsContainer.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+                        return;
+                    }
+
+                    availableSlots = data.slots;
+
+                    // Filter slots matching the selected day
+                    const matchingSlots = availableSlots.filter(s => s.day_of_week === dayOfWeek);
+
+                    if (matchingSlots.length === 0) {
+                        slotsContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Tidak ada slot tersedia untuk <strong>${data.class_name}</strong> di hari ini.
+                            Pilih tanggal lain.
+                        </div>`;
+                        submitBtn.disabled = true;
+                        return;
+                    }
+
+                    let html = '<div class="row g-2">';
+                    matchingSlots.forEach(slot => {
+                        html += `
+                        <div class="col-md-6">
+                            <div class="form-check p-3 border rounded">
+                                <input class="form-check-input slot-radio" type="radio" name="slot_choice" 
+                                       id="slot_${slot.teacher_id}_${slot.timeslot_id}" 
+                                       data-teacher-id="${slot.teacher_id}"
+                                       data-timeslot-id="${slot.timeslot_id}" required>
+                                <label class="form-check-label w-100" for="slot_${slot.teacher_id}_${slot.timeslot_id}">
+                                    <div class="fw-600">${slot.timeslot_name} (${slot.start_time} - ${slot.end_time})</div>
+                                    <small class="text-muted">${slot.teacher_name}</small>
+                                </label>
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    slotsContainer.innerHTML = html;
+
+                    // Add change listeners
+                    document.querySelectorAll('.slot-radio').forEach(radio => {
+                        radio.addEventListener('change', updateHiddenFields);
+                    });
+                })
+                .catch(err => {
+                    slotsContainer.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+                });
+        }
+
+        function updateHiddenFields() {
+            const selected = document.querySelector('.slot-radio:checked');
+            if (selected) {
+                // Create or update hidden fields
+                let teacherInput = document.querySelector('input[name="new_teacher_id"]');
+                let timeslotInput = document.querySelector('input[name="new_timeslot_id"]');
+
+                if (!teacherInput) {
+                    teacherInput = document.createElement('input');
+                    teacherInput.type = 'hidden';
+                    teacherInput.name = 'new_teacher_id';
+                    form.appendChild(teacherInput);
+                }
+                if (!timeslotInput) {
+                    timeslotInput = document.createElement('input');
+                    timeslotInput.type = 'hidden';
+                    timeslotInput.name = 'new_timeslot_id';
+                    form.appendChild(timeslotInput);
+                }
+
+                teacherInput.value = selected.dataset.teacherId;
+                timeslotInput.value = selected.dataset.timeslotId;
+                submitBtn.disabled = false;
+            }
+        }
+    });
+</script>
+
+<style>
+    .schedule-option,
+    .form-check.border {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .schedule-option:hover,
+    .form-check.border:hover {
+        border-color: var(--brand-primary) !important;
+        background: rgba(var(--brand-primary-rgb), 0.03);
+    }
+
+    .schedule-option:has(input:checked),
+    .form-check.border:has(input:checked) {
+        border-color: var(--brand-primary) !important;
+        background: rgba(var(--brand-primary-rgb), 0.05);
+    }
+</style>
+{% endblock %}

@@ -317,3 +317,52 @@ class TeacherSessionOverride(db.Model):
     original_teacher = db.relationship('User', foreign_keys=[original_teacher_id], backref='sessions_delegated')
     substitute_teacher = db.relationship('User', foreign_keys=[substitute_teacher_id], backref='sessions_covered')
     creator = db.relationship('User', foreign_keys=[created_by])
+
+
+# 13. RESCHEDULE REQUEST MODEL - Request pindah jadwal
+class RescheduleRequest(db.Model):
+    __tablename__ = 'reschedule_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Source - jadwal yang ingin di-reschedule (one of these should be set)
+    student_schedule_id = db.Column(db.Integer, db.ForeignKey('student_schedules.id'), nullable=True)
+    original_booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
+    original_date = db.Column(db.Date, nullable=False)  # Tanggal asli yang di-reschedule
+    original_timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'), nullable=False)
+    original_teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Target - jadwal baru yang diminta
+    new_date = db.Column(db.Date, nullable=False)
+    new_timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'), nullable=False)
+    new_teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Tracking
+    class_enrollment_id = db.Column(db.Integer, db.ForeignKey('class_enrollments.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reason = db.Column(db.Text, nullable=True)  # Alasan reschedule (opsional)
+    
+    # Request metadata
+    requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Student atau Admin
+    request_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Approval workflow
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Result - booking yang dibuat setelah approve
+    new_booking_id = db.Column(db.Integer, db.ForeignKey('bookings.id'), nullable=True)
+    
+    # Relationships
+    student_schedule = db.relationship('StudentSchedule', foreign_keys=[student_schedule_id])
+    original_booking = db.relationship('Booking', foreign_keys=[original_booking_id])
+    original_timeslot = db.relationship('TimeSlot', foreign_keys=[original_timeslot_id])
+    original_teacher = db.relationship('User', foreign_keys=[original_teacher_id])
+    new_timeslot = db.relationship('TimeSlot', foreign_keys=[new_timeslot_id])
+    new_teacher = db.relationship('User', foreign_keys=[new_teacher_id])
+    class_enrollment = db.relationship('ClassEnrollment')
+    student = db.relationship('User', foreign_keys=[student_id], backref='reschedule_requests')
+    requester = db.relationship('User', foreign_keys=[requested_by])
+    approver = db.relationship('User', foreign_keys=[approved_by])
+    new_booking = db.relationship('Booking', foreign_keys=[new_booking_id])

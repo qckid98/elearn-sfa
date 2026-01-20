@@ -51,6 +51,16 @@ def create_app():
             count = AttendanceRequest.query.filter_by(approval_status='pending').count()
             return {'pending_attendance_count': count}
         return {'pending_attendance_count': 0}
+    
+    # Context Processor untuk pending reschedule requests count (admin sidebar badge)
+    @app.context_processor
+    def inject_pending_reschedule():
+        from flask_login import current_user
+        if current_user.is_authenticated and current_user.role == 'admin':
+            from app.models import RescheduleRequest
+            count = RescheduleRequest.query.filter_by(status='pending').count()
+            return {'pending_reschedule_count': count}
+        return {'pending_reschedule_count': 0}
 
     # Initialize scheduler for background notification jobs
     from app.scheduler import init_scheduler

@@ -75,7 +75,7 @@
             {% for cls in prog.classes %}
             <div class="d-flex align-items-center gap-2 px-3 py-2 rounded"
               style="background: var(--bg-body); font-size: 13px;">
-              <span class="fw-600">{{ cls.name }}</span>
+              <span class="fw-600">{{ cls.display_name }}</span>
               <span class="badge {{ 'badge-warning' if cls.is_batch_based else 'badge-secondary' }}"
                 style="font-size: 11px;">
                 {{ cls.total_sessions }} sesi

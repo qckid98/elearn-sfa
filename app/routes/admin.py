@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass, AttendanceRequest, TeacherSessionOverride
+from app.models import User, Enrollment, StudentSchedule, Subject, TimeSlot, TeacherAvailability, Program, Batch, ProgramSubject, TeacherSkill, Booking, Attendance, Tool, ProgramTool, ProgramClass, ClassEnrollment, MasterClass, AttendanceRequest, TeacherSessionOverride, RescheduleRequest
 from datetime import date, datetime
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -1777,3 +1777,271 @@ def session_override_delete(override_id):
     
     flash('Penggantian pengajar berhasil dihapus!', 'success')
     return redirect(url_for('admin.session_overrides'))
+
+
+# --- RESCHEDULE REQUESTS MANAGEMENT ---
+
+@bp.route('/reschedule-requests')
+@login_required
+@admin_required
+def reschedule_requests():
+    """List all reschedule requests"""
+    status_filter = request.args.get('status', 'pending')
+    
+    query = RescheduleRequest.query
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    requests_list = query.order_by(RescheduleRequest.request_date.desc()).all()
+    
+    # Count pending for badge
+    pending_count = RescheduleRequest.query.filter_by(status='pending').count()
+    
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    return render_template('admin/reschedule_requests.html',
+                           requests=requests_list,
+                           status_filter=status_filter,
+                           pending_count=pending_count,
+                           days=days)
+
+
+@bp.route('/reschedule/<int:req_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_reschedule(req_id):
+    """Approve a reschedule request and create the new booking"""
+    req = RescheduleRequest.query.get_or_404(req_id)
+    
+    if req.status != 'pending':
+        flash('Request ini sudah diproses sebelumnya.', 'error')
+        return redirect(url_for('admin.reschedule_requests'))
+    
+    # Create booking for the new date
+    new_booking = Booking(
+        enrollment_id=req.student_schedule.enrollment_id if req.student_schedule else req.class_enrollment.enrollment_id,
+        class_enrollment_id=req.class_enrollment_id,
+        date=req.new_date,
+        timeslot_id=req.new_timeslot_id,
+        teacher_id=req.new_teacher_id,
+        status='booked'
+    )
+    db.session.add(new_booking)
+    db.session.flush()  # Get the new booking ID
+    
+    # Also create a cancelled booking for the original date to mark it as rescheduled
+    # This prevents the original session from appearing
+    if req.student_schedule:
+        # Check if there's already a booking for original date
+        existing_original = Booking.query.filter_by(
+            enrollment_id=req.student_schedule.enrollment_id,
+            date=req.original_date,
+            timeslot_id=req.original_timeslot_id
+        ).first()
+        
+        if not existing_original:
+            # Create a booking to mark original date as rescheduled
+            cancelled_booking = Booking(
+                enrollment_id=req.student_schedule.enrollment_id,
+                class_enrollment_id=req.class_enrollment_id,
+                date=req.original_date,
+                timeslot_id=req.original_timeslot_id,
+                teacher_id=req.original_teacher_id,
+                status='rescheduled'
+            )
+            db.session.add(cancelled_booking)
+    
+    # Update request status
+    req.status = 'approved'
+    req.approved_by = current_user.id
+    req.approved_at = datetime.now()
+    req.new_booking_id = new_booking.id
+    
+    db.session.commit()
+    
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    flash(f'Reschedule disetujui. Sesi dipindahkan ke {days[req.new_date.weekday()]}, {req.new_date.strftime("%d %b %Y")}.', 'success')
+    return redirect(url_for('admin.reschedule_requests'))
+
+
+@bp.route('/reschedule/<int:req_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_reschedule(req_id):
+    """Reject a reschedule request"""
+    req = RescheduleRequest.query.get_or_404(req_id)
+    
+    if req.status != 'pending':
+        flash('Request ini sudah diproses sebelumnya.', 'error')
+        return redirect(url_for('admin.reschedule_requests'))
+    
+    rejection_reason = request.form.get('rejection_reason', '').strip()
+    
+    req.status = 'rejected'
+    req.approved_by = current_user.id
+    req.approved_at = datetime.now()
+    req.rejection_reason = rejection_reason
+    
+    db.session.commit()
+    
+    flash('Reschedule request ditolak.', 'info')
+    return redirect(url_for('admin.reschedule_requests'))
+
+
+@bp.route('/reschedule/create/<int:student_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_create_reschedule(student_id):
+    """Admin creates a reschedule on behalf of a student (auto-approved)"""
+    student = User.query.get_or_404(student_id)
+    
+    if request.method == 'POST':
+        schedule_id = request.form.get('schedule_id', type=int)
+        original_date_str = request.form.get('original_date')
+        new_date_str = request.form.get('new_date')
+        new_timeslot_id = request.form.get('new_timeslot_id', type=int)
+        new_teacher_id = request.form.get('new_teacher_id', type=int)
+        reason = request.form.get('reason', '').strip()
+        
+        if not all([schedule_id, original_date_str, new_date_str, new_timeslot_id, new_teacher_id]):
+            flash('Data tidak lengkap.', 'error')
+            return redirect(url_for('admin.admin_create_reschedule', student_id=student_id))
+        
+        try:
+            original_date = datetime.strptime(original_date_str, '%Y-%m-%d').date()
+            new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Format tanggal tidak valid.', 'error')
+            return redirect(url_for('admin.admin_create_reschedule', student_id=student_id))
+        
+        schedule = StudentSchedule.query.get_or_404(schedule_id)
+        
+        # Create new booking directly (auto-approved)
+        new_booking = Booking(
+            enrollment_id=schedule.enrollment_id,
+            class_enrollment_id=schedule.class_enrollment_id,
+            date=new_date,
+            timeslot_id=new_timeslot_id,
+            teacher_id=new_teacher_id,
+            status='booked'
+        )
+        db.session.add(new_booking)
+        db.session.flush()
+        
+        # Mark original date as rescheduled
+        existing_original = Booking.query.filter_by(
+            enrollment_id=schedule.enrollment_id,
+            date=original_date,
+            timeslot_id=schedule.timeslot_id
+        ).first()
+        
+        if not existing_original:
+            cancelled_booking = Booking(
+                enrollment_id=schedule.enrollment_id,
+                class_enrollment_id=schedule.class_enrollment_id,
+                date=original_date,
+                timeslot_id=schedule.timeslot_id,
+                teacher_id=schedule.teacher_id,
+                status='rescheduled'
+            )
+            db.session.add(cancelled_booking)
+        
+        # Create reschedule record for history
+        reschedule = RescheduleRequest(
+            student_schedule_id=schedule_id,
+            original_date=original_date,
+            original_timeslot_id=schedule.timeslot_id,
+            original_teacher_id=schedule.teacher_id,
+            new_date=new_date,
+            new_timeslot_id=new_timeslot_id,
+            new_teacher_id=new_teacher_id,
+            class_enrollment_id=schedule.class_enrollment_id,
+            student_id=student.id,
+            reason=reason or 'Dibuat oleh admin',
+            requested_by=current_user.id,
+            status='approved',
+            approved_by=current_user.id,
+            approved_at=datetime.now(),
+            new_booking_id=new_booking.id
+        )
+        db.session.add(reschedule)
+        db.session.commit()
+        
+        days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+        flash(f'Reschedule untuk {student.name} berhasil dibuat. Jadwal dipindahkan ke {days[new_date.weekday()]}, {new_date.strftime("%d %b %Y")}.', 'success')
+        return redirect(url_for('admin.student_detail', user_id=student_id))
+    
+    # GET: Show form
+    # Get student's enrollments and schedules
+    enrollments = Enrollment.query.filter_by(student_id=student_id).all()
+    schedules_by_enrollment = {}
+    
+    for enroll in enrollments:
+        schedules = StudentSchedule.query.filter_by(enrollment_id=enroll.id).all()
+        if schedules:
+            schedules_by_enrollment[enroll.id] = {
+                'enrollment': enroll,
+                'schedules': schedules
+            }
+    
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    timeslots = TimeSlot.query.all()
+    
+    return render_template('admin/reschedule_create.html',
+                           student=student,
+                           schedules_by_enrollment=schedules_by_enrollment,
+                           days=days,
+                           timeslots=timeslots)
+
+
+@bp.route('/api/reschedule/slots-for-class/<int:class_enrollment_id>')
+@login_required
+@admin_required
+def get_slots_for_class(class_enrollment_id):
+    """API to get available slots for a class enrollment's master class"""
+    ce = ClassEnrollment.query.get_or_404(class_enrollment_id)
+    
+    if not ce.program_class or not ce.program_class.master_class_id:
+        return jsonify({'error': 'Class has no master_class assigned'}), 400
+    
+    master_class_id = ce.program_class.master_class_id
+    
+    # Find teachers who can teach this master_class
+    eligible_teachers = db.session.query(User).join(TeacherSkill).filter(
+        TeacherSkill.master_class_id == master_class_id,
+        User.role == 'teacher'
+    ).all()
+    
+    teacher_ids = [t.id for t in eligible_teachers]
+    
+    # Get their availability for this class
+    availabilities = TeacherAvailability.query.filter(
+        TeacherAvailability.teacher_id.in_(teacher_ids),
+        TeacherAvailability.master_class_id == master_class_id
+    ).all()
+    
+    timeslots = {ts.id: ts for ts in TimeSlot.query.all()}
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    slots = []
+    for av in availabilities:
+        ts = timeslots.get(av.timeslot_id)
+        if ts:
+            slots.append({
+                'teacher_id': av.teacher_id,
+                'teacher_name': av.teacher.name,
+                'day_of_week': av.day_of_week,
+                'day_name': days[av.day_of_week],
+                'timeslot_id': av.timeslot_id,
+                'timeslot_name': ts.name,
+                'start_time': ts.start_time.strftime('%H:%M'),
+                'end_time': ts.end_time.strftime('%H:%M')
+            })
+    
+    slots.sort(key=lambda x: (x['day_of_week'], x['start_time']))
+    
+    return jsonify({
+        'slots': slots,
+        'master_class_id': master_class_id,
+        'class_name': ce.program_class.display_name
+    })

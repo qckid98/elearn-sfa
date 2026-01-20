@@ -625,20 +625,90 @@
                       {% endif %}
                     </td>
                     <td style="text-align: right; padding-right: 24px;">
-                      {% if not session.existing_booking and session.can_izin %}
-                      <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
-                        data-bs-target="#izinScheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}">
-                        <i class="fas fa-hand-paper me-1"></i> Izin
-                      </button>
-                      {% elif session.existing_booking and session.existing_booking.status == 'izin' %}
-                      <span class="text-muted" style="font-size: 12px;"><i class="fas fa-check"></i> Diizinkan</span>
-                      {% elif not session.class_enrollment or session.class_enrollment.program_class.max_izin == 0 %}
-                      <span class="text-muted" style="font-size: 12px;">No izin</span>
-                      {% elif session.class_enrollment and session.class_enrollment.izin_remaining <= 0 %} <span
-                        class="text-muted" style="font-size: 12px;">Kuota habis</span>
+                      <div class="d-flex gap-1 justify-content-end">
+                        {% if not session.existing_booking %}
+                        <!-- Reschedule Button -->
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                          data-bs-target="#rescheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}"
+                          title="Reschedule">
+                          <i class="fas fa-calendar-alt"></i>
+                        </button>
+                        {% if session.can_izin %}
+                        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                          data-bs-target="#izinScheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}"
+                          title="Izin">
+                          <i class="fas fa-hand-paper"></i>
+                        </button>
                         {% endif %}
+                        {% elif session.existing_booking and session.existing_booking.status == 'izin' %}
+                        <span class="text-muted" style="font-size: 12px;"><i class="fas fa-check"></i> Diizinkan</span>
+                        {% elif session.existing_booking and session.existing_booking.status == 'rescheduled' %}
+                        <span class="text-muted" style="font-size: 12px;"><i class="fas fa-exchange-alt"></i>
+                          Direscheduled</span>
+                        {% endif %}
+                      </div>
                     </td>
                   </tr>
+
+                  <!-- Modal for Reschedule -->
+                  {% if not session.existing_booking %}
+                  <div class="modal fade"
+                    id="rescheduleModal{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title"><i class="fas fa-calendar-alt me-2 text-primary"></i>Request
+                            Reschedule
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ url_for('main.submit_reschedule_request') }}" method="POST">
+                          <div class="modal-body">
+                            <input type="hidden" name="schedule_id" value="{{ session.schedule_id }}">
+                            <input type="hidden" name="original_date" value="{{ session.date.strftime('%Y-%m-%d') }}">
+
+                            <div class="alert alert-info">
+                              <i class="fas fa-info-circle me-2"></i>
+                              Anda akan memindahkan jadwal <strong>{{ session.class_enrollment.program_class.name if
+                                session.class_enrollment else '-' }}</strong> dari:
+                              <br><strong>{{ days[session.day_of_week] }}, {{ session.date.strftime('%d %b %Y') }} - {{
+                                session.timeslot.name }}</strong>
+                            </div>
+
+                            <div class="mb-3">
+                              <label class="form-label fw-600">Pilih Tanggal Baru</label>
+                              <input type="date" name="new_date" class="form-control reschedule-date" required
+                                min="{{ session.date.strftime('%Y-%m-%d') }}"
+                                data-schedule-id="{{ session.schedule_id }}"
+                                data-master-class-id="{{ session.class_enrollment.program_class.master_class_id if session.class_enrollment and session.class_enrollment.program_class else '' }}">
+                            </div>
+
+                            <div class="mb-3">
+                              <label class="form-label fw-600">Pilih Slot & Pengajar</label>
+                              <div class="reschedule-slots"
+                                id="slots_{{ session.schedule_id }}_{{ session.date.strftime('%Y%m%d') }}">
+                                <p class="text-muted">Pilih tanggal terlebih dahulu untuk melihat slot yang tersedia.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div class="mb-3">
+                              <label class="form-label">Alasan (opsional)</label>
+                              <textarea name="reason" class="form-control" rows="2"
+                                placeholder="Alasan reschedule..."></textarea>
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary reschedule-submit" disabled>
+                              <i class="fas fa-check me-1"></i> Ajukan Reschedule
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
 
                   <!-- Modal for izin confirmation from schedule -->
                   {% if not session.existing_booking and session.can_izin %}
@@ -1105,5 +1175,93 @@
       loadWaQr();
     });
   }
+
+  // Reschedule Modal Slot Loading
+  document.querySelectorAll('.reschedule-date').forEach(function (dateInput) {
+    dateInput.addEventListener('change', function () {
+      var masterClassId = this.dataset.masterClassId;
+      var scheduleId = this.dataset.scheduleId;
+      var newDate = this.value;
+      var modal = this.closest('.modal');
+      var slotsContainer = modal.querySelector('.reschedule-slots');
+      var submitBtn = modal.querySelector('.reschedule-submit');
+
+      if (!masterClassId || !newDate) {
+        slotsContainer.innerHTML = '<p class="text-muted">Pilih tanggal terlebih dahulu.</p>';
+        submitBtn.disabled = true;
+        return;
+      }
+
+      var selectedDate = new Date(newDate);
+      var dayOfWeek = selectedDate.getDay() === 0 ? 6 : selectedDate.getDay() - 1; // Convert to 0=Monday
+
+      slotsContainer.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</p>';
+
+      fetch('/api/reschedule/available-slots?master_class_id=' + masterClassId)
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.error) {
+            slotsContainer.innerHTML = '<div class="alert alert-warning">' + data.error + '</div>';
+            submitBtn.disabled = true;
+            return;
+          }
+
+          // Filter slots matching the selected day
+          var matchingSlots = data.slots.filter(function (s) { return s.day_of_week === dayOfWeek; });
+
+          if (matchingSlots.length === 0) {
+            slotsContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Tidak ada slot tersedia untuk hari ini. Pilih tanggal lain.</div>';
+            submitBtn.disabled = true;
+            return;
+          }
+
+          var html = '<div class="row g-2">';
+          matchingSlots.forEach(function (slot) {
+            html += '<div class="col-md-6"><div class="form-check p-3 border rounded slot-option">';
+            html += '<input class="form-check-input slot-radio" type="radio" name="slot_choice" ';
+            html += 'id="slot_' + scheduleId + '_' + slot.teacher_id + '_' + slot.timeslot_id + '" ';
+            html += 'data-teacher-id="' + slot.teacher_id + '" data-timeslot-id="' + slot.timeslot_id + '" required>';
+            html += '<label class="form-check-label w-100" for="slot_' + scheduleId + '_' + slot.teacher_id + '_' + slot.timeslot_id + '">';
+            html += '<div class="fw-600">' + slot.timeslot_name + ' (' + slot.start_time + ' - ' + slot.end_time + ')</div>';
+            html += '<small class="text-muted">' + slot.teacher_name + '</small>';
+            html += '</label></div></div>';
+          });
+          html += '</div>';
+          slotsContainer.innerHTML = html;
+
+          // Add change listeners to slot radios
+          modal.querySelectorAll('.slot-radio').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+              var form = this.closest('form');
+
+              // Create or update hidden fields
+              var existingTeacher = form.querySelector('input[name="new_teacher_id"]');
+              var existingTimeslot = form.querySelector('input[name="new_timeslot_id"]');
+
+              if (!existingTeacher) {
+                existingTeacher = document.createElement('input');
+                existingTeacher.type = 'hidden';
+                existingTeacher.name = 'new_teacher_id';
+                form.appendChild(existingTeacher);
+              }
+              if (!existingTimeslot) {
+                existingTimeslot = document.createElement('input');
+                existingTimeslot.type = 'hidden';
+                existingTimeslot.name = 'new_timeslot_id';
+                form.appendChild(existingTimeslot);
+              }
+
+              existingTeacher.value = this.dataset.teacherId;
+              existingTimeslot.value = this.dataset.timeslotId;
+              submitBtn.disabled = false;
+            });
+          });
+        })
+        .catch(function (err) {
+          slotsContainer.innerHTML = '<div class="alert alert-danger">Error: ' + err.message + '</div>';
+          submitBtn.disabled = true;
+        });
+    });
+  });
 </script>
 {% endblock %}

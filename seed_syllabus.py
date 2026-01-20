@@ -18,9 +18,9 @@ def seed_syllabus():
     print("Cleared existing syllabus\n")
     
     # ============ FASHION DESIGN FF (48 sessions) ============
-    fd_ff_class = ProgramClass.query.join(Program).filter(
-        Program.name == 'Fashion Foundation',
-        ProgramClass.name == 'Fashion Design'
+    fd_ff_class = ProgramClass.query.join(Program).join(MasterClass).filter(
+        Program.name == 'Fashion Foundation 3 In 1',
+        MasterClass.name == 'Fashion Design FF'
     ).first()
     
     if fd_ff_class:
@@ -60,9 +60,9 @@ def seed_syllabus():
         print("⚠️  Fashion Design FF class not found")
     
     # ============ PCSW FF (48 sessions) ============
-    pcsw_ff_class = ProgramClass.query.join(Program).filter(
-        Program.name == 'Fashion Foundation',
-        ProgramClass.name == 'PCSW'
+    pcsw_ff_class = ProgramClass.query.join(Program).join(MasterClass).filter(
+        Program.name == 'Fashion Foundation 3 In 1',
+        MasterClass.name == 'PCSW FF'
     ).first()
     
     if pcsw_ff_class:
@@ -99,10 +99,10 @@ def seed_syllabus():
     else:
         print("⚠️  PCSW FF class not found")
     
-    # ============ FAST TRACK (13 sessions) ============
-    ft_class = ProgramClass.query.join(Program).filter(
+    # ============ FAST TRACK (48 sessions) ============
+    ft_class = ProgramClass.query.join(Program).join(MasterClass).filter(
         Program.name == 'Fast Track',
-        ProgramClass.name == 'Fast Track'
+        MasterClass.name == 'Fast Track'
     ).first()
     
     if ft_class:

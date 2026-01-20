@@ -472,6 +472,14 @@
               <span class="badge bg-danger ms-auto">{{ pending_attendance_count }}</span>
               {% endif %}
             </a>
+            <a href="{{ url_for('admin.reschedule_requests') }}"
+              class="nav-item {% if 'reschedule' in request.endpoint %}active{% endif %}">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Request Reschedule</span>
+              {% if pending_reschedule_count and pending_reschedule_count > 0 %}
+              <span class="badge bg-danger ms-auto">{{ pending_reschedule_count }}</span>
+              {% endif %}
+            </a>
           </div>
         </div>
 
@@ -524,6 +532,11 @@
             class="nav-item {% if 'portfolio' in request.endpoint %}active{% endif %}">
             <i class="fas fa-folder-open"></i>
             <span>Portfolio</span>
+          </a>
+          <a href="{{ url_for('main.reschedule_history') }}"
+            class="nav-item {% if 'reschedule_history' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-history"></i>
+            <span>Riwayat Reschedule</span>
           </a>
         </div>
         {% endif %}

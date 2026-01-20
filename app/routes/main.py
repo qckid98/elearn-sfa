@@ -1,7 +1,11 @@
 from app.utils.whatsapp import send_wa_message, check_wa_status
-from flask import Blueprint, render_template, request, flash, url_for, redirect
+from flask import Blueprint, render_template, request, flash, url_for, redirect, jsonify
 from flask_login import login_required, current_user
-from app.models import User, Enrollment, Program, Batch, Booking, Attendance, ClassEnrollment, StudentSchedule
+from app.models import (
+    User, Enrollment, Program, Batch, Booking, Attendance, ClassEnrollment, 
+    StudentSchedule, RescheduleRequest, TeacherAvailability, TeacherSkill, 
+    TimeSlot, MasterClass
+)
 from app import db
 import uuid
 from datetime import date, datetime, timedelta
@@ -844,3 +848,189 @@ def request_izin_schedule():
     class_name = ce.program_class.name if ce else 'kelas'
     flash(f'Izin berhasil diajukan untuk {class_name} tanggal {izin_date.strftime("%d %b %Y")}. Sesi akan digeser ke jadwal berikutnya.', 'success')
     return redirect(url_for('main.dashboard'))
+
+
+# --- RESCHEDULE ROUTES ---
+
+@bp.route('/api/reschedule/available-slots')
+@login_required
+def get_available_reschedule_slots():
+    """
+    API to get available slots for rescheduling based on master_class_id.
+    Returns teachers with their availability for the given class.
+    """
+    master_class_id = request.args.get('master_class_id', type=int)
+    exclude_date = request.args.get('exclude_date')  # Original date to exclude
+    
+    if not master_class_id:
+        return jsonify({'error': 'master_class_id is required'}), 400
+    
+    # Find teachers who can teach this master_class
+    eligible_teachers = db.session.query(User).join(TeacherSkill).filter(
+        TeacherSkill.master_class_id == master_class_id,
+        User.role == 'teacher'
+    ).all()
+    
+    teacher_ids = [t.id for t in eligible_teachers]
+    
+    # Get their availability for this class
+    availabilities = TeacherAvailability.query.filter(
+        TeacherAvailability.teacher_id.in_(teacher_ids),
+        TeacherAvailability.master_class_id == master_class_id
+    ).all()
+    
+    # Get all timeslots for reference
+    timeslots = {ts.id: ts for ts in TimeSlot.query.all()}
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    # Build available slots list
+    slots = []
+    for av in availabilities:
+        ts = timeslots.get(av.timeslot_id)
+        if ts:
+            slots.append({
+                'teacher_id': av.teacher_id,
+                'teacher_name': av.teacher.name,
+                'day_of_week': av.day_of_week,
+                'day_name': days[av.day_of_week],
+                'timeslot_id': av.timeslot_id,
+                'timeslot_name': ts.name,
+                'start_time': ts.start_time.strftime('%H:%M'),
+                'end_time': ts.end_time.strftime('%H:%M')
+            })
+    
+    # Sort by day, then timeslot
+    slots.sort(key=lambda x: (x['day_of_week'], x['start_time']))
+    
+    return jsonify({
+        'slots': slots,
+        'master_class_id': master_class_id
+    })
+
+
+@bp.route('/reschedule/request', methods=['POST'])
+@login_required
+def submit_reschedule_request():
+    """
+    Submit a reschedule request for a scheduled session.
+    """
+    if current_user.role not in ('student', 'admin'):
+        flash('Akses ditolak.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get form data
+    schedule_id = request.form.get('schedule_id', type=int)
+    original_date_str = request.form.get('original_date')
+    new_date_str = request.form.get('new_date')
+    new_timeslot_id = request.form.get('new_timeslot_id', type=int)
+    new_teacher_id = request.form.get('new_teacher_id', type=int)
+    reason = request.form.get('reason', '').strip()
+    
+    # Validate required fields
+    if not all([schedule_id, original_date_str, new_date_str, new_timeslot_id, new_teacher_id]):
+        flash('Data tidak lengkap.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Parse dates
+    try:
+        original_date = datetime.strptime(original_date_str, '%Y-%m-%d').date()
+        new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('Format tanggal tidak valid.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get schedule and verify ownership
+    schedule = StudentSchedule.query.get_or_404(schedule_id)
+    if current_user.role == 'student' and schedule.enrollment.student_id != current_user.id:
+        flash('Anda tidak memiliki akses ke jadwal ini.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Verify original date matches schedule day_of_week
+    if original_date.weekday() != schedule.day_of_week:
+        flash('Tanggal tidak sesuai dengan hari jadwal.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Check H-1 jam rule for original date
+    original_datetime = datetime.combine(original_date, schedule.timeslot.start_time)
+    now = datetime.now()
+    time_until_original = original_datetime - now
+    
+    if time_until_original < timedelta(hours=1):
+        flash('Reschedule harus diajukan minimal 1 jam sebelum jadwal dimulai.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Validate new_date is in the future
+    if new_date <= date.today():
+        flash('Tanggal baru harus di masa depan.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Validate new teacher has the skill for this class
+    if schedule.class_enrollment and schedule.class_enrollment.program_class.master_class_id:
+        master_class_id = schedule.class_enrollment.program_class.master_class_id
+        teacher_skill = TeacherSkill.query.filter_by(
+            teacher_id=new_teacher_id,
+            master_class_id=master_class_id
+        ).first()
+        
+        if not teacher_skill:
+            flash('Pengajar tidak memiliki skill untuk kelas ini.', 'error')
+            return redirect(url_for('main.dashboard'))
+    
+    # Check if there's already a pending reschedule for this date
+    existing_request = RescheduleRequest.query.filter_by(
+        student_schedule_id=schedule_id,
+        original_date=original_date,
+        status='pending'
+    ).first()
+    
+    if existing_request:
+        flash('Sudah ada request reschedule pending untuk tanggal ini.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Create reschedule request
+    reschedule = RescheduleRequest(
+        student_schedule_id=schedule_id,
+        original_date=original_date,
+        original_timeslot_id=schedule.timeslot_id,
+        original_teacher_id=schedule.teacher_id,
+        new_date=new_date,
+        new_timeslot_id=new_timeslot_id,
+        new_teacher_id=new_teacher_id,
+        class_enrollment_id=schedule.class_enrollment_id,
+        student_id=schedule.enrollment.student_id,
+        reason=reason,
+        requested_by=current_user.id,
+        status='pending'
+    )
+    
+    db.session.add(reschedule)
+    db.session.commit()
+    
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    class_name = schedule.class_enrollment.program_class.name if schedule.class_enrollment else 'kelas'
+    
+    flash(f'Request reschedule untuk {class_name} dari {days[original_date.weekday()]}, {original_date.strftime("%d %b %Y")} '
+          f'ke {days[new_date.weekday()]}, {new_date.strftime("%d %b %Y")} berhasil diajukan. Menunggu persetujuan admin.', 'success')
+    
+    return redirect(url_for('main.dashboard'))
+
+
+@bp.route('/reschedule/history')
+@login_required
+def reschedule_history():
+    """
+    View reschedule request history for current student.
+    """
+    if current_user.role != 'student':
+        flash('Akses ditolak.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    requests = RescheduleRequest.query.filter_by(
+        student_id=current_user.id
+    ).order_by(RescheduleRequest.request_date.desc()).all()
+    
+    days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    
+    return render_template('reschedule_history.html', 
+                           requests=requests, 
+                           days=days)
