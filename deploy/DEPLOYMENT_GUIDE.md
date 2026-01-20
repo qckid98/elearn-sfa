@@ -58,32 +58,41 @@ nano .env
 
 ---
 
-## 2️⃣ Setup Nginx & SSL
+## 2️⃣ Setup SSL & Nginx
 
-### Copy Nginx Config
+### Step 1: Get SSL Certificate First
+
+> ⚠️ **PENTING**: Certificate harus dibuat SEBELUM copy nginx.conf baru, karena nginx.conf mengacu ke path certificate.
+
+```bash
+# Pastikan DNS edu.sparksfashionacademy.co.id sudah pointing ke IP VPS
+dig edu.sparksfashionacademy.co.id
+
+# Get SSL certificate untuk kedua domain
+sudo certbot --nginx -d edu.sparksfashionacademy.co.id -d lms.sparksfashionacademy.co.id
+
+# Atau jika lms sudah ada certificate sebelumnya, expand:
+sudo certbot --nginx --expand -d lms.sparksfashionacademy.co.id -d edu.sparksfashionacademy.co.id
+
+# Verify auto-renewal
+sudo certbot renew --dry-run
+```
+
+### Step 2: Copy Nginx Config
 
 ```bash
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/elearn-sfa
 sudo ln -s /etc/nginx/sites-available/elearn-sfa /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default  # Remove default config
+sudo rm /etc/nginx/sites-enabled/default  # Remove default config (first time only)
 ```
 
-### Test & Reload (HTTP only first)
+### Step 3: Test & Reload
 
 ```bash
-# Comment out SSL lines in nginx config first, then:
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Get SSL Certificate
-
-```bash
-sudo certbot --nginx -d edu.sparksfashionacademy.co.id -d lms.sparksfashionacademy.co.id
-
-# Auto-renewal (should be automatic, but verify)
-sudo certbot renew --dry-run
-```
 
 ---
 
