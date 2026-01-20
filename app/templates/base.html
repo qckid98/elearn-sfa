@@ -621,14 +621,14 @@
               </div>
             </div>
             <div class="dropdown-menu">
-              <div class="dropdown-item">
+              <a href="{{ url_for('profile.index') }}" class="dropdown-item">
                 <i class="fas fa-user"></i>
                 <span>Profil Saya</span>
-              </div>
-              <div class="dropdown-item">
-                <i class="fas fa-cog"></i>
-                <span>Pengaturan</span>
-              </div>
+              </a>
+              <a href="{{ url_for('profile.change_password') }}" class="dropdown-item">
+                <i class="fas fa-key"></i>
+                <span>Ganti Password</span>
+              </a>
               <div class="dropdown-divider"></div>
               <a href="{{ url_for('auth.logout') }}" class="dropdown-item danger">
                 <i class="fas fa-sign-out-alt"></i>

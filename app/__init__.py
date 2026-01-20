@@ -25,7 +25,7 @@ def create_app():
     security.init_app(app)
 
     # --- BAGIAN REGISTRASI BLUEPRINT ---
-    from app.routes import auth, main, onboarding, attendance, admin, teacher, admin_syllabus, portfolio, admin_voucher, vendor
+    from app.routes import auth, main, onboarding, attendance, admin, teacher, admin_syllabus, portfolio, admin_voucher, vendor, profile
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
@@ -37,6 +37,7 @@ def create_app():
     app.register_blueprint(portfolio.bp)
     app.register_blueprint(admin_voucher.bp)
     app.register_blueprint(vendor.bp)
+    app.register_blueprint(profile.bp)
 
     # Context Processor untuk menyisipkan waktu server ke semua template
     from datetime import datetime

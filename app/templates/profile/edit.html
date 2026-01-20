@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profil - SFA{% endblock %}
+{% block page_title %}Edit Profil{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-card {
+        background: var(--bg-card, white);
+        border-radius: 16px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        padding: 2rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .edit-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .edit-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand-primary) 0%, #a82837 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 auto 1rem;
+    }
+
+    .edit-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .edit-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color, #e2e8f0);
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    .form-control:disabled {
+        background: var(--bg-body, #f8fafc);
+        cursor: not-allowed;
+    }
+
+    .input-group-text {
+        border-radius: 10px 0 0 10px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        background: var(--bg-body, #f8fafc);
+    }
+
+    .input-group .form-control {
+        border-radius: 0 10px 10px 0;
+    }
+
+    .form-hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+    }
+
+    .form-hint i {
+        margin-right: 0.25rem;
+    }
+
+    .btn-group-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn-save {
+        flex: 1;
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-save:hover {
+        background: #b82d3a;
+        transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+        background: var(--bg-body);
+        color: var(--text-primary);
+    }
+
+    .locked-notice {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        color: #b45309;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    [data-theme="dark"] .locked-notice {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="edit-card">
+        <div class="edit-header">
+            <div class="edit-avatar">
+                {{ current_user.name[0]|upper if current_user.name else '?' }}
+            </div>
+            <div class="edit-title">Edit Profil</div>
+            <div class="edit-subtitle">Perbarui informasi dasar akun Anda</div>
+        </div>
+
+        <form method="POST" action="{{ url_for('profile.edit') }}">
+            <!-- Name -->
+            <div class="mb-3">
+                <label for="name" class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ current_user.name or '' }}"
+                    required>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                {% if current_user.role == 'admin' %}
+                <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}"
+                    required>
+                <div class="form-hint">
+                    <i class="fas fa-info-circle"></i> Pastikan email valid dan aktif
+                </div>
+                {% else %}
+                <input type="email" class="form-control" id="email" value="{{ current_user.email }}" disabled>
+                <div class="locked-notice">
+                    <i class="fas fa-lock"></i>
+                    <span>Email hanya dapat diubah oleh admin. Hubungi admin jika perlu mengubah email.</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Phone Number -->
+            <div class="mb-3">
+                <label for="phone_number" class="form-label">Nomor WhatsApp</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fab fa-whatsapp text-success"></i>
+                    </span>
+                    <input type="tel" class="form-control" id="phone_number" name="phone_number"
+                        value="{% if current_user.phone_number %}+{{ current_user.phone_number }}{% endif %}"
+                        placeholder="08xxxxxxxxxx">
+                </div>
+                <div class="form-hint">
+                    <i class="fas fa-info-circle"></i> Format: 08xxxxxxxxxx atau +628xxxxxxxxxx
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group-actions">
+                <a href="{{ url_for('profile.index') }}" class="btn-cancel text-center">
+                    <i class="fas fa-arrow-left me-2"></i>Batal
+                </a>
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save me-2"></i>Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

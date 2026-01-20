@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil Saya - SFA{% endblock %}
+{% block page_title %}Profil Saya{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, var(--brand-primary) 0%, #a82837 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-role {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        display: inline-block;
+        text-transform: capitalize;
+    }
+
+    .profile-card {
+        background: var(--bg-card, white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .profile-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .profile-card-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted, #64748b);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .info-row {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(220, 53, 69, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand-primary);
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .info-content {
+        flex: 1;
+    }
+
+    .info-label {
+        font-size: 0.8rem;
+        color: var(--text-muted, #64748b);
+        margin-bottom: 0.15rem;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: var(--text-primary, #1e293b);
+    }
+
+    .info-note {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn-primary {
+        background: var(--brand-primary);
+        color: white;
+    }
+
+    .action-btn-primary:hover {
+        background: #b82d3a;
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .action-btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color, #e2e8f0);
+        color: var(--text-primary, #1e293b);
+    }
+
+    .action-btn-outline:hover {
+        background: var(--bg-body, #f8fafc);
+        color: var(--text-primary);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+    }
+
+    .stat-item {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        border: 1px solid rgba(220, 53, 69, 0.1);
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--brand-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="d-flex align-items-center gap-3">
+            <div class="profile-avatar">
+                {{ current_user.name[0]|upper if current_user.name else '?' }}
+            </div>
+            <div>
+                <div class="profile-name">{{ current_user.name or 'User' }}</div>
+                <span class="profile-role">{{ current_user.role }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Basic Info Card -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="profile-card-title mb-0">Informasi Dasar</div>
+                    <a href="{{ url_for('profile.edit') }}" class="action-btn action-btn-outline"
+                        style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Nama Lengkap</div>
+                        <div class="info-value">{{ current_user.name or '-' }}</div>
+                    </div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ current_user.email }}</div>
+                        {% if current_user.role != 'admin' %}
+                        <div class="info-note"><i class="fas fa-lock"></i> Hanya admin yang dapat mengubah email</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-icon">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Nomor WhatsApp</div>
+                        <div class="info-value">
+                            {% if current_user.phone_number %}
+                            +{{ current_user.phone_number }}
+                            {% else %}
+                            <span class="text-muted">Belum diisi</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Details Card (only for students) -->
+            {% if current_user.role == 'student' %}
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="profile-card-title mb-0">Detail Pribadi</div>
+                    <a href="{{ url_for('profile.edit_details') }}" class="action-btn action-btn-outline"
+                        style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">NIK</div>
+                            <div class="info-value">{{ current_user.nik or '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Tanggal Lahir</div>
+                            <div class="info-value">
+                                {% if current_user.tanggal_lahir %}
+                                {{ current_user.tanggal_lahir.strftime('%d %B %Y') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-pray"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Agama</div>
+                            <div class="info-value">{{ current_user.agama or '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Pekerjaan</div>
+                            <div class="info-value">{{ current_user.pekerjaan or '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Status Pernikahan</div>
+                            <div class="info-value">{{ current_user.status_pernikahan or '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Mengetahui SFA Dari</div>
+                            <div class="info-value">{{ current_user.mengetahui_sfa_dari or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-row mt-3">
+                    <div class="info-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Alamat</div>
+                        <div class="info-value">{{ current_user.alamat or '-' }}</div>
+                    </div>
+                </div>
+
+                {% if current_user.alasan_memilih_sfa %}
+                <div class="info-row">
+                    <div class="info-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Alasan Memilih SFA</div>
+                        <div class="info-value">{{ current_user.alasan_memilih_sfa }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Admin Stats Card -->
+            {% if current_user.role == 'admin' and admin_stats %}
+            <div class="profile-card">
+                <div class="profile-card-title">Statistik Aktivitas</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ admin_stats.total_students }}</div>
+                        <div class="stat-label">Total Siswa</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ admin_stats.vouchers_created }}</div>
+                        <div class="stat-label">Voucher Dibuat</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ admin_stats.attendance_approved }}</div>
+                        <div class="stat-label">Absen Disetujui</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ admin_stats.reschedule_approved }}</div>
+                        <div class="stat-label">Reschedule Disetujui</div>
+                    </div>
+                </div>
+
+                {% if admin_stats.attendance_pending > 0 or admin_stats.reschedule_pending > 0 %}
+                <div class="alert alert-warning mt-3 mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>
+                        {% if admin_stats.attendance_pending > 0 %}
+                        <strong>{{ admin_stats.attendance_pending }}</strong> request absen menunggu approval.
+                        {% endif %}
+                        {% if admin_stats.reschedule_pending > 0 %}
+                        <strong>{{ admin_stats.reschedule_pending }}</strong> request reschedule menunggu approval.
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Quick Actions Card -->
+            <div class="profile-card">
+                <div class="profile-card-title">Aksi Cepat</div>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('profile.edit') }}"
+                        class="action-btn action-btn-primary justify-content-center">
+                        <i class="fas fa-user-edit"></i> Edit Profil
+                    </a>
+                    {% if current_user.role == 'student' %}
+                    <a href="{{ url_for('profile.edit_details') }}"
+                        class="action-btn action-btn-outline justify-content-center">
+                        <i class="fas fa-address-card"></i> Edit Detail Pribadi
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('profile.change_password') }}"
+                        class="action-btn action-btn-outline justify-content-center">
+                        <i class="fas fa-key"></i> Ganti Password
+                    </a>
+                </div>
+            </div>
+
+            <!-- Security Card -->
+            <div class="profile-card">
+                <div class="profile-card-title">Keamanan</div>
+                <div class="info-row">
+                    <div class="info-icon" style="background: rgba(16, 185, 129, 0.1);">
+                        <i class="fas fa-shield-alt" style="color: #10b981;"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Status Akun</div>
+                        <div class="info-value" style="color: #10b981;">
+                            <i class="fas fa-check-circle"></i> Aktif
+                        </div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">Password</div>
+                        <div class="info-value">••••••••</div>
+                        <div class="info-note">
+                            <a href="{{ url_for('profile.change_password') }}" class="text-decoration-none">Ubah
+                                password</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Detail Pribadi - SFA{% endblock %}
+{% block page_title %}Edit Detail Pribadi{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-card {
+        background: var(--bg-card, white);
+        border-radius: 16px;
+        border: 1px solid var(--border-color, #e2e8f0);
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .edit-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .edit-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--brand-primary);
+        margin: 0 auto 1rem;
+    }
+
+    .edit-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .edit-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-grid .full-width {
+        grid-column: span 2;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid .full-width {
+            grid-column: span 1;
+        }
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color, #e2e8f0);
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+    }
+
+    .btn-group-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-save {
+        flex: 1;
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-save:hover {
+        background: #b82d3a;
+        transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+        background: var(--bg-body);
+        color: var(--text-primary);
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        font-weight: 600;
+        grid-column: span 2;
+    }
+
+    @media (max-width: 768px) {
+        .section-title {
+            grid-column: span 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="edit-card">
+        <div class="edit-header">
+            <div class="edit-icon">
+                <i class="fas fa-address-card"></i>
+            </div>
+            <div class="edit-title">Edit Detail Pribadi</div>
+            <div class="edit-subtitle">Lengkapi informasi pribadi Anda untuk keperluan administrasi</div>
+        </div>
+
+        <form method="POST" action="{{ url_for('profile.edit_details') }}">
+            <div class="form-grid">
+                <!-- Identitas Section -->
+                <div class="section-title">
+                    <i class="fas fa-id-card me-2"></i> Identitas
+                </div>
+
+                <div>
+                    <label for="nik" class="form-label">NIK (Nomor Induk Kependudukan)</label>
+                    <input type="text" class="form-control" id="nik" name="nik" value="{{ current_user.nik or '' }}"
+                        maxlength="16" pattern="[0-9]{16}" placeholder="16 digit NIK">
+                    <div class="form-hint">
+                        <i class="fas fa-info-circle"></i> Masukkan 16 digit NIK sesuai KTP
+                    </div>
+                </div>
+
+                <div>
+                    <label for="tanggal_lahir" class="form-label">Tanggal Lahir</label>
+                    <input type="date" class="form-control" id="tanggal_lahir" name="tanggal_lahir"
+                        value="{% if current_user.tanggal_lahir %}{{ current_user.tanggal_lahir.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+
+                <div>
+                    <label for="agama" class="form-label">Agama</label>
+                    <select class="form-select" id="agama" name="agama">
+                        <option value="">-- Pilih Agama --</option>
+                        {% set agama_options = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'] %}
+                        {% for opt in agama_options %}
+                        <option value="{{ opt }}" {% if current_user.agama==opt %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="status_pernikahan" class="form-label">Status Pernikahan</label>
+                    <select class="form-select" id="status_pernikahan" name="status_pernikahan">
+                        <option value="">-- Pilih Status --</option>
+                        {% set status_options = ['Lajang', 'Menikah', 'Cerai'] %}
+                        {% for opt in status_options %}
+                        <option value="{{ opt }}" {% if current_user.status_pernikahan==opt %}selected{% endif %}>{{ opt
+                            }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Pekerjaan & Alamat Section -->
+                <div class="section-title">
+                    <i class="fas fa-briefcase me-2"></i> Pekerjaan & Alamat
+                </div>
+
+                <div>
+                    <label for="pekerjaan" class="form-label">Pekerjaan</label>
+                    <input type="text" class="form-control" id="pekerjaan" name="pekerjaan"
+                        value="{{ current_user.pekerjaan or '' }}"
+                        placeholder="Contoh: Mahasiswa, Karyawan, Freelancer">
+                </div>
+
+                <div class="full-width">
+                    <label for="alamat" class="form-label">Alamat Lengkap</label>
+                    <textarea class="form-control" id="alamat" name="alamat" rows="3"
+                        placeholder="Masukkan alamat lengkap Anda">{{ current_user.alamat or '' }}</textarea>
+                </div>
+
+                <!-- Info SFA Section -->
+                <div class="section-title">
+                    <i class="fas fa-graduation-cap me-2"></i> Informasi SFA
+                </div>
+
+                <div>
+                    <label for="mengetahui_sfa_dari" class="form-label">Mengetahui SFA Dari</label>
+                    <input type="text" class="form-control" id="mengetahui_sfa_dari" name="mengetahui_sfa_dari"
+                        value="{{ current_user.mengetahui_sfa_dari or '' }}"
+                        placeholder="Contoh: Instagram, Teman, Google">
+                </div>
+
+                <div class="full-width">
+                    <label for="alasan_memilih_sfa" class="form-label">Alasan Memilih SFA</label>
+                    <textarea class="form-control" id="alasan_memilih_sfa" name="alasan_memilih_sfa" rows="3"
+                        placeholder="Ceritakan alasan Anda memilih Sparks Fashion Academy">{{ current_user.alasan_memilih_sfa or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group-actions">
+                <a href="{{ url_for('profile.index') }}" class="btn-cancel text-center">
+                    <i class="fas fa-arrow-left me-2"></i>Batal
+                </a>
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save me-2"></i>Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
